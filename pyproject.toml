@@ -1,0 +1,16 @@
+[project]
+name = "goatvaultserver"
+version = "0.1.0"
+description = "FastAPI with MongoDB"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.119.0",
+    "python-dotenv>=1.1.1",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.0",
+    "ty>=0.0.1a22",
+]
