@@ -7,6 +7,46 @@ from app.models.user_model import UserCollection, UserModel
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+@router.get(
+    "/",
+    response_description="List all users",
+    response_model=UserCollection,
+    status_code=status.HTTP_200_OK,
+    response_model_by_alias=False,
+)
+async def list_users() -> UserCollection:
+    """
+    List all users in the database.
+    """
+    from app.database import user_collection
+
+    user_list = await user_collection.find().to_list()
+    return UserCollection(users=user_list)
+
+
+@router.get(
+    "/{id}",
+    response_description="Get a single user",
+    response_model=UserModel,
+    status_code=status.HTTP_200_OK,
+    response_model_by_alias=False,
+)
+async def get_user(id: str) -> UserModel:
+    """
+    Get the record for a specific user, looked up by `id`.
+    """
+    from app.database import user_collection
+
+    user = await user_collection.find_one({"_id": id})
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {id} not found",
+        )
+
+    return UserModel(**user)
+
+
 @router.post(
     "/",
     response_description="Add new user",
@@ -35,39 +75,49 @@ async def create_user(user: UserModel = Body(...)) -> UserModel:
     return UserModel(**created_user_obj)
 
 
-@router.get(
-    "/",
-    response_description="List all users",
-    response_model=UserCollection,
-    response_model_by_alias=False,
-)
-async def list_users() -> UserCollection:
-    """
-    List all users in the database.
-    """
-    from app.database import user_collection
-
-    user_list = await user_collection.find().to_list()
-    return UserCollection(users=user_list)
-
-
-@router.get(
+@router.put(
     "/{id}",
-    response_description="Get a single user",
+    response_description="Update a user",
     response_model=UserModel,
+    status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def get_user(id: str) -> UserModel:
+async def update_user(id: str, user: UserModel = Body(...)) -> UserModel:
     """
-    Get the record for a specific user, looked up by `id`.
+    Update the record for a specific user, looked up by `id`.
     """
     from app.database import user_collection
 
-    user = await user_collection.find_one({"_id": id})
-    if user is None:
+    updated_user = jsonable_encoder(user)
+    await user_collection.update_one({"_id": id}, {"$set": updated_user})
+
+    updated_user_obj = await user_collection.find_one({"_id": id})
+    if updated_user_obj is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User {id} not found",
         )
 
-    return UserModel(**user)
+    return UserModel(**updated_user_obj)
+
+
+@router.delete(
+    "/{id}",
+    response_description="Delete a user",
+    response_model=UserModel,
+    response_model_by_alias=False,
+)
+async def delete_user(id: str) -> UserModel:
+    """
+    Delete the record for a specific user, looked up by `id`.
+    """
+    from app.database import user_collection
+
+    deleted_user = await user_collection.find_one_and_delete({"_id": id})
+    if deleted_user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {id} not found",
+        )
+
+    return UserModel(**deleted_user)
