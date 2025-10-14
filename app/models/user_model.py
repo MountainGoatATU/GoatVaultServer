@@ -33,8 +33,8 @@ class UserModel(BaseModel):
             "example": {
                 "id": "64b8f0f0f0f0f0f0f0f0f0f0",
                 "email": "user@example.com",
-                "salt": "salt",
-                "hash": "hash",
+                "salt": "saltsaltsaltsalt",
+                "password_hash": "hashhashhashhash",
                 "mfa_enabled": False,
                 "mfa_secret": None,
                 "created_at": datetime.now().isoformat(),

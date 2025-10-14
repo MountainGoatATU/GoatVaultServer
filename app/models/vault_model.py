@@ -33,10 +33,10 @@ class VaultModel(BaseModel):
                 "_id": "64b8f0f0f0f0f0f0f0f0f0f0",
                 "user_id": "64b8f0f0f0f0f0f0f0f0f0f0",
                 "name": "My Vault",
-                "salt": "salt",
+                "salt": "saltsaltsaltsalt",
                 "encrypted_blob": "encrypted_blob",
-                "nonce": "nonce",
-                "auth_tag": "auth_tag",
+                "nonce": "noncenoncenoncenonce",
+                "auth_tag": "auth_tag_auth_tag",
                 "created_at": datetime.now().isoformat(),
                 "updated_at": datetime.now().isoformat(),
             }
