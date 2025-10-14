@@ -1,8 +1,7 @@
 from datetime import UTC, datetime
-from typing import Annotated, TypeAlias
+from typing import Annotated, ClassVar, TypeAlias
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, EmailStr, Field
-
 
 PyObjectId: TypeAlias = Annotated[str, BeforeValidator(str)]
 
@@ -27,7 +26,7 @@ class UserModel(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
-    model_config = ConfigDict(
+    model_config: ClassVar[ConfigDict] = ConfigDict(
         populate_by_name=True,
         arbitrary_types_allowed=True,
         json_schema_extra={
@@ -50,4 +49,4 @@ class UserCollection(BaseModel):
     A container holding a list of `UserModel` instances
     """
 
-    vaults: list[UserModel]
+    users: list[UserModel]
