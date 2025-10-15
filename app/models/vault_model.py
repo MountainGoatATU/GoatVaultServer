@@ -36,7 +36,7 @@ class VaultModel(BaseModel):
 
 
 #
-# REQUEST MODELS (What clients send to the API)
+# REQUEST MODELS
 #
 
 

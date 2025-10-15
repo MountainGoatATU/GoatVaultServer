@@ -96,7 +96,6 @@ async def update_user(
     from app.database import user_collection
 
     update_data = user_data.model_dump(exclude_unset=True, mode="python")
-
     if not update_data:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -126,6 +125,12 @@ async def update_user(
         )
 
     updated_user_obj = await user_collection.find_one({"_id": userId})
+    if updated_user_obj is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve updated user",
+        )
+
     return UserResponse(**updated_user_obj)
 
 
