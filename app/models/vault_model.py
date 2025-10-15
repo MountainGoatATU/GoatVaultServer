@@ -15,10 +15,10 @@ class VaultModel(BaseModel):
     name: str = Field(..., min_length=1, max_length=50)
 
     # Encryption fields
-    salt: str = Field(..., min_length=16, max_length=64)
-    encrypted_blob: str = Field(...)
-    nonce: str = Field(..., min_length=16, max_length=32)
-    auth_tag: str = Field(..., min_length=16, max_length=32)
+    salt: bytes = Field(..., min_length=16, max_length=64)
+    encrypted_blob: bytes = Field(...)
+    nonce: bytes = Field(..., min_length=16, max_length=64)
+    auth_tag: bytes = Field(..., min_length=16, max_length=64)
 
     # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -32,10 +32,10 @@ class VaultModel(BaseModel):
                 "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
                 "user_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
                 "name": "My Vault",
-                "salt": "saltsaltsaltsalt",
-                "encrypted_blob": "encrypted_blob",
-                "nonce": "noncenoncenoncenonce",
-                "auth_tag": "auth_tag_auth_tag",
+                "salt": "736f6d652d73616c742d62797465732d68657265",
+                "encrypted_blob": "656e637279707465642d646174612d68657265",
+                "nonce": "6e6f6e63652d62797465732d68657265",
+                "auth_tag": "617574682d7461672d62797465732d68657265",
                 "created_at": datetime.now().isoformat(),
                 "updated_at": datetime.now().isoformat(),
             }

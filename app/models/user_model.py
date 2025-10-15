@@ -14,8 +14,8 @@ class UserModel(BaseModel):
     email: EmailStr = Field(..., max_length=254)
 
     # Encryption fields
-    salt: str = Field(..., min_length=16, max_length=64)
-    password_hash: str = Field(..., min_length=16, max_length=128)
+    salt: bytes = Field(..., min_length=16, max_length=64)
+    password_hash: bytes = Field(..., min_length=16, max_length=128)
 
     # Multi-factor authentication
     mfa_enabled: bool = Field(default=False)
@@ -32,8 +32,8 @@ class UserModel(BaseModel):
             "example": {
                 "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
                 "email": "user@example.com",
-                "salt": "saltsaltsaltsalt",
-                "password_hash": "hashhashhashhash",
+                "salt": "736f6d652d73616c742d62797465732d68657265",
+                "password_hash": "736f6d652d686173682d62797465732d68657265",
                 "mfa_enabled": False,
                 "mfa_secret": None,
                 "created_at": datetime.now().isoformat(),
