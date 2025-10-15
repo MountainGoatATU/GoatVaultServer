@@ -1,8 +1,9 @@
+from uuid import UUID
 from fastapi import APIRouter, Body, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from pymongo.results import InsertOneResult
 
-from app.models.user_model import UserCollection, UserModel, PyObjectId
+from app.models.user_model import UserCollection, UserModel
 from app.routes.vault_route import vault_router
 
 user_router = APIRouter(prefix="/users", tags=["users"])
@@ -33,7 +34,7 @@ async def list_users() -> UserCollection:
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def get_user(userId: PyObjectId) -> UserModel:
+async def get_user(userId: UUID) -> UserModel:
     """
     Get the record for a specific user, looked up by `id`.
     """
@@ -84,7 +85,7 @@ async def create_user(user: UserModel = Body(...)) -> UserModel:
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def update_user(userId: PyObjectId, user: UserModel = Body(...)) -> UserModel:
+async def update_user(userId: UUID, user: UserModel = Body(...)) -> UserModel:
     """
     Update the record for a specific user, looked up by `userId`.
     """
@@ -109,7 +110,7 @@ async def update_user(userId: PyObjectId, user: UserModel = Body(...)) -> UserMo
     response_model=UserModel,
     response_model_by_alias=False,
 )
-async def delete_user(userId: PyObjectId) -> UserModel:
+async def delete_user(userId: UUID) -> UserModel:
     """
     Delete the record for a specific user, looked up by `userId`.
     """

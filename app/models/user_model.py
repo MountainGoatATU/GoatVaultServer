@@ -1,9 +1,8 @@
 from datetime import UTC, datetime
-from typing import Annotated, ClassVar, TypeAlias
+from typing import ClassVar
+import uuid
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, EmailStr, Field
-
-PyObjectId: TypeAlias = Annotated[str, BeforeValidator(str)]
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserModel(BaseModel):
@@ -11,7 +10,7 @@ class UserModel(BaseModel):
     Container for a single user record.
     """
 
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, alias="_id")
     email: EmailStr = Field(..., max_length=254)
 
     # Encryption fields
@@ -31,7 +30,7 @@ class UserModel(BaseModel):
         arbitrary_types_allowed=True,
         json_schema_extra={
             "example": {
-                "id": "64b8f0f0f0f0f0f0f0f0f0f0",
+                "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
                 "email": "user@example.com",
                 "salt": "saltsaltsaltsalt",
                 "password_hash": "hashhashhashhash",

@@ -1,12 +1,13 @@
+from uuid import UUID
 from fastapi import APIRouter, Body, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult
 
-from app.models.vault_model import VaultCollection, VaultModel, PyObjectId
+from app.models.vault_model import VaultCollection, VaultModel
 
 
-vault_router = APIRouter(prefix="/{userId}/vaults", tags=["vaults"])
+vault_router = APIRouter(prefix="/{userId}/vaults")
 
 
 @vault_router.get(
@@ -16,7 +17,7 @@ vault_router = APIRouter(prefix="/{userId}/vaults", tags=["vaults"])
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def list_vaults(userId: PyObjectId) -> VaultCollection:
+async def list_vaults(userId: UUID) -> VaultCollection:
     """
     List all vaults in the database.
 
@@ -35,7 +36,7 @@ async def list_vaults(userId: PyObjectId) -> VaultCollection:
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def get_vault(userId: PyObjectId, vaultId: PyObjectId) -> VaultModel:
+async def get_vault(userId: UUID, vaultId: UUID) -> VaultModel:
     """
     Get the record for a specific vault, looked up by `id`.
     """
@@ -59,7 +60,7 @@ async def get_vault(userId: PyObjectId, vaultId: PyObjectId) -> VaultModel:
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
 )
-async def create_vault(userId: PyObjectId, vault: VaultModel = Body(...)) -> VaultModel:
+async def create_vault(userId: UUID, vault: VaultModel = Body(...)) -> VaultModel:
     """
     Insert a new vault record.
 
@@ -91,9 +92,7 @@ async def create_vault(userId: PyObjectId, vault: VaultModel = Body(...)) -> Vau
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def update_vault(
-    userId: PyObjectId, vaultId: PyObjectId, vault: VaultModel
-) -> VaultModel:
+async def update_vault(userId: UUID, vaultId: UUID, vault: VaultModel) -> VaultModel:
     """
     Update the record for a specific vault, looked up by `id`.
     """
@@ -121,7 +120,7 @@ async def update_vault(
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def delete_vault(userId: PyObjectId, vaultId: PyObjectId) -> VaultModel:
+async def delete_vault(userId: UUID, vaultId: UUID) -> VaultModel:
     """
     Delete the record for a specific vault, looked up by `id`.
     """

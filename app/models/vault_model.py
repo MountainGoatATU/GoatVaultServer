@@ -1,9 +1,8 @@
 from datetime import UTC, datetime
-from typing import Annotated, ClassVar, TypeAlias
+from typing import ClassVar
+import uuid
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
-
-PyObjectId: TypeAlias = Annotated[str, BeforeValidator(str)]
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class VaultModel(BaseModel):
@@ -11,8 +10,8 @@ class VaultModel(BaseModel):
     Container for a single vault record.
     """
 
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
-    user_id: PyObjectId = Field(...)
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, alias="_id")
+    user_id: uuid.UUID = Field(...)
     name: str = Field(..., min_length=1, max_length=50)
 
     # Encryption fields
@@ -30,8 +29,8 @@ class VaultModel(BaseModel):
         arbitrary_types_allowed=True,
         json_schema_extra={
             "example": {
-                "_id": "64b8f0f0f0f0f0f0f0f0f0f0",
-                "user_id": "64b8f0f0f0f0f0f0f0f0f0f0",
+                "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
+                "user_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
                 "name": "My Vault",
                 "salt": "saltsaltsaltsalt",
                 "encrypted_blob": "encrypted_blob",
