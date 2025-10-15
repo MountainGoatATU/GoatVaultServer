@@ -2,8 +2,6 @@ import os
 
 from dotenv import load_dotenv
 from pymongo import AsyncMongoClient
-from bson.codec_options import CodecOptions
-from bson.binary import UuidRepresentation
 
 _ = load_dotenv()
 

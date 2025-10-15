@@ -5,7 +5,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from starlette.middleware.exceptions import ExceptionMiddleware
 # from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
-from app.routes import user_route, vault_route
+from app.routes import user_route
 
 
 _ = load_dotenv()
