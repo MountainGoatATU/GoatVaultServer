@@ -1,6 +1,5 @@
 from uuid import UUID
 from fastapi import APIRouter, Body, HTTPException, status
-from fastapi.encoders import jsonable_encoder
 from pymongo.results import InsertOneResult
 
 from app.models.user_model import UserCollection, UserModel
@@ -65,7 +64,7 @@ async def create_user(user: UserModel = Body(...)) -> UserModel:
     """
     from app.database import user_collection
 
-    new_user = jsonable_encoder(user)
+    new_user = user.model_dump(by_alias=True, mode="python")
     created_user: InsertOneResult = await user_collection.insert_one(new_user)
     created_user_obj = await user_collection.find_one({"_id": created_user.inserted_id})
 
@@ -91,7 +90,7 @@ async def update_user(userId: UUID, user: UserModel = Body(...)) -> UserModel:
     """
     from app.database import user_collection
 
-    updated_user = jsonable_encoder(user)
+    updated_user = user.model_dump(by_alias=True, mode="python")
     await user_collection.update_one({"_id": userId}, {"$set": updated_user})
 
     updated_user_obj = await user_collection.find_one({"_id": userId})

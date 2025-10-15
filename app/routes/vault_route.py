@@ -1,6 +1,5 @@
 from uuid import UUID
 from fastapi import APIRouter, Body, HTTPException, status
-from fastapi.encoders import jsonable_encoder
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult
 
@@ -68,7 +67,7 @@ async def create_vault(userId: UUID, vault: VaultModel = Body(...)) -> VaultMode
     """
     from app.database import vault_collection
 
-    new_vault = jsonable_encoder(vault)
+    new_vault = vault.model_dump(by_alias=True, mode="python")
     new_vault["user_id"] = userId
 
     created_vault: InsertOneResult = await vault_collection.insert_one(new_vault)
@@ -100,7 +99,7 @@ async def update_vault(userId: UUID, vaultId: UUID, vault: VaultModel) -> VaultM
 
     updated_vault = await vault_collection.find_one_and_update(
         {"_id": vaultId, "user_id": userId},
-        {"$set": jsonable_encoder(vault)},
+        {"$set": vault.model_dump(by_alias=True, mode="python")},
         return_document=ReturnDocument.AFTER,
     )
 
