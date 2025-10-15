@@ -3,20 +3,20 @@ from fastapi.encoders import jsonable_encoder
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult
 
-from app.models.vault_model import VaultCollection, VaultModel
+from app.models.vault_model import VaultCollection, VaultModel, PyObjectId
 
 
-router = APIRouter(prefix="/vaults", tags=["vaults"])
+vault_router = APIRouter(prefix="/{userId}/vaults", tags=["vaults"])
 
 
-@router.get(
+@vault_router.get(
     "/",
     response_description="List all vaults",
     response_model=VaultCollection,
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def list_vaults() -> VaultCollection:
+async def list_vaults(userId: PyObjectId) -> VaultCollection:
     """
     List all vaults in the database.
 
@@ -24,24 +24,24 @@ async def list_vaults() -> VaultCollection:
     """
     from app.database import vault_collection
 
-    vault_list = await vault_collection.find().to_list(1000)
+    vault_list = await vault_collection.find({"user_id": userId}).to_list(1000)
     return VaultCollection(vaults=vault_list)
 
 
-@router.get(
-    "/{id}",
+@vault_router.get(
+    "/{vaultId}",
     response_description="Get a single vault",
     response_model=VaultModel,
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def get_vault(id: str) -> VaultModel:
+async def get_vault(userId: PyObjectId, vaultId: PyObjectId) -> VaultModel:
     """
     Get the record for a specific vault, looked up by `id`.
     """
     from app.database import vault_collection
 
-    vault = await vault_collection.find_one({"_id": id})
+    vault = await vault_collection.find_one({"_id": vaultId, "user_id": userId})
 
     if vault is None:
         raise HTTPException(
@@ -52,14 +52,14 @@ async def get_vault(id: str) -> VaultModel:
     return VaultModel(**vault)
 
 
-@router.post(
+@vault_router.post(
     "/",
     response_description="Add new vault",
     response_model=VaultModel,
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
 )
-async def create_vault(vault: VaultModel = Body(...)) -> VaultModel:
+async def create_vault(userId: PyObjectId, vault: VaultModel = Body(...)) -> VaultModel:
     """
     Insert a new vault record.
 
@@ -68,6 +68,8 @@ async def create_vault(vault: VaultModel = Body(...)) -> VaultModel:
     from app.database import vault_collection
 
     new_vault = jsonable_encoder(vault)
+    new_vault["user_id"] = userId
+
     created_vault: InsertOneResult = await vault_collection.insert_one(new_vault)
     created_vault_obj = await vault_collection.find_one(
         {"_id": created_vault.inserted_id}
@@ -82,21 +84,23 @@ async def create_vault(vault: VaultModel = Body(...)) -> VaultModel:
     return VaultModel(**created_vault_obj)
 
 
-@router.put(
-    path="/{id}",
+@vault_router.put(
+    path="/{vaultId}",
     response_description="Update a vault",
     response_model=VaultModel,
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def update_vault(id: str, vault: VaultModel) -> VaultModel:
+async def update_vault(
+    userId: PyObjectId, vaultId: PyObjectId, vault: VaultModel
+) -> VaultModel:
     """
     Update the record for a specific vault, looked up by `id`.
     """
     from app.database import vault_collection
 
     updated_vault = await vault_collection.find_one_and_update(
-        {"_id": id},
+        {"_id": vaultId, "user_id": userId},
         {"$set": jsonable_encoder(vault)},
         return_document=ReturnDocument.AFTER,
     )
@@ -104,31 +108,33 @@ async def update_vault(id: str, vault: VaultModel) -> VaultModel:
     if updated_vault is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Vault {id} not found",
+            detail=f"Vault {vaultId} not found",
         )
 
     return VaultModel(**updated_vault)
 
 
-@router.delete(
-    "/{id}",
+@vault_router.delete(
+    "/{vaultId}",
     response_description="Delete a vault",
     response_model=VaultModel,
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def delete_vault(id: str) -> VaultModel:
+async def delete_vault(userId: PyObjectId, vaultId: PyObjectId) -> VaultModel:
     """
     Delete the record for a specific vault, looked up by `id`.
     """
     from app.database import vault_collection
 
-    deleted_vault = await vault_collection.find_one_and_delete({"_id": id})
+    deleted_vault = await vault_collection.find_one_and_delete(
+        {"_id": vaultId, "user_id": userId}
+    )
 
     if deleted_vault is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Vault {id} not found",
+            detail=f"Vault {vaultId} not found",
         )
 
     return VaultModel(**deleted_vault)

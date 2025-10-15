@@ -17,8 +17,7 @@ app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 app.add_middleware(ExceptionMiddleware)
 
 
-app.include_router(user_route.router, prefix="/v1")
-app.include_router(vault_route.router, prefix="/v1")
+app.include_router(user_route.user_router, prefix="/v1")
 
 
 @app.get("/")
