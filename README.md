@@ -9,19 +9,22 @@ Development API server for GoatVault password manager.
 
 ## Installation
 
-### Using uv (recommended)
+### Clone Repository
 
 ```bash
 git clone https://github.com/x0rtex/DobryDo.git
 cd dobrydo
+```
+
+### Install dependencies using uv (recommended)
+
+```bash
 uv sync
 ```
 
-### Using pip
+### Install dependencies using pip
 
 ```bash
-git clone https://github.com/x0rtex/DobryDo.git
-cd dobrydo
 pip install -e .
 ```
 
@@ -30,3 +33,4 @@ pip install -e .
 ```bash
 uv run uvicorn app.main:app --reload
 ```
+- Visit http://localhost:8000/docs for API documentation
