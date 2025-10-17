@@ -12,6 +12,8 @@ from app.models.vault_model import (
     VaultCollection,
 )
 
+from app.database import vault_collection, user_collection
+
 
 vault_router = APIRouter(prefix="/{userId}/vaults")
 
@@ -27,8 +29,6 @@ async def list_vaults(userId: UUID) -> VaultCollection:
     """
     List all vaults for a specific user.
     """
-    from app.database import vault_collection
-
     vault_list = await vault_collection.find({"user_id": userId}).to_list(1000)
     return VaultCollection(vaults=vault_list)
 
@@ -44,8 +44,6 @@ async def get_vault(userId: UUID, vaultId: UUID) -> VaultResponse:
     """
     Get the record for a specific vault, looked up by `id`.
     """
-    from app.database import vault_collection
-
     vault = await vault_collection.find_one({"_id": vaultId, "user_id": userId})
 
     if vault is None:
@@ -69,10 +67,13 @@ async def create_vault(
 ) -> VaultResponse:
     """
     Insert a new vault record.
-
-    A unique `id` will be created and provided in the response.
     """
-    from app.database import vault_collection
+    user = await user_collection.find_one({"_id": userId})
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {userId} not found",
+        )
 
     new_vault = VaultModel(
         user_id=userId,
@@ -111,8 +112,6 @@ async def update_vault(
     """
     Update the record for a specific vault, looked up by `id`.
     """
-    from app.database import vault_collection
-
     update_data = vault_data.model_dump(exclude_unset=True, mode="python")
 
     if not update_data:
@@ -149,8 +148,6 @@ async def delete_vault(userId: UUID, vaultId: UUID) -> VaultResponse:
     """
     Delete the record for a specific vault, looked up by `id`.
     """
-    from app.database import vault_collection
-
     deleted_vault = await vault_collection.find_one_and_delete(
         {"_id": vaultId, "user_id": userId}
     )

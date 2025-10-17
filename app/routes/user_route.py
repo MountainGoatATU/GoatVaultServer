@@ -10,6 +10,8 @@ from app.models.user_model import (
     UserResponse,
 )
 
+from app.database import user_collection
+
 from app.routes.vault_route import vault_router
 
 user_router = APIRouter(prefix="/users", tags=["users"])
@@ -27,8 +29,6 @@ async def get_user(userId: UUID) -> UserResponse:
     """
     Get the record for a specific user, looked up by `id`.
     """
-    from app.database import user_collection
-
     user = await user_collection.find_one({"_id": userId})
     if user is None:
         raise HTTPException(
@@ -52,8 +52,6 @@ async def create_user(user_data: UserCreateRequest = Body(...)) -> UserResponse:
 
     A unique `userId` will be created and provided in the response.
     """
-    from app.database import user_collection
-
     existing_user = await user_collection.find_one({"email": user_data.email})
     if existing_user:
         raise HTTPException(
@@ -93,8 +91,6 @@ async def update_user(
     """
     Update the record for a specific user, looked up by `userId`.
     """
-    from app.database import user_collection
-
     update_data = user_data.model_dump(exclude_unset=True, mode="python")
     if not update_data:
         raise HTTPException(
@@ -144,8 +140,6 @@ async def delete_user(userId: UUID) -> UserModel:
     """
     Delete the record for a specific user, looked up by `userId`.
     """
-    from app.database import user_collection
-
     deleted_user = await user_collection.find_one_and_delete({"_id": userId})
     if deleted_user is None:
         raise HTTPException(
