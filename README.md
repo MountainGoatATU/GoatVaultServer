@@ -12,8 +12,8 @@ Development API server for GoatVault password manager.
 ### Clone Repository
 
 ```bash
-git clone https://github.com/x0rtex/DobryDo.git
-cd dobrydo
+git clone https://github.com/MountainGoatATU/GoatVaultServer.git
+cd GoatVaultServer
 ```
 
 ### Install dependencies using uv (recommended)
