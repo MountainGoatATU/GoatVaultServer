@@ -25,4 +25,7 @@ async def root():
     """
     Root endpoint for GoatVault Server.
     """
-    return {"message": "GoatVault Root Endpoint"}
+    return {
+        "message": "GoatVault API",
+        "docs": "/docs",
+    }
