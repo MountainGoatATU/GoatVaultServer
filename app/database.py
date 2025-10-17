@@ -7,8 +7,8 @@ from pymongo.asynchronous.collection import AsyncCollection
 
 _ = load_dotenv()
 
-MONGODB_URL = os.getenv("MONGODB_URL")
-DATABASE_NAME = os.getenv("DATABASE_NAME")
+MONGODB_URL: str | None = os.getenv("MONGODB_URL")
+DATABASE_NAME: str | None = os.getenv("DATABASE_NAME")
 
 if not MONGODB_URL or not DATABASE_NAME:
     raise ValueError(
