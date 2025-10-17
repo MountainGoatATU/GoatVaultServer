@@ -15,7 +15,7 @@ from app.models.vault_model import (
 from app.database import vault_collection, user_collection
 
 
-vault_router = APIRouter(prefix="/{userId}/vaults")
+vault_router: APIRouter = APIRouter(prefix="/{userId}/vaults")
 
 
 @vault_router.get(

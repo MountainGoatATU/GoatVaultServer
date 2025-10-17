@@ -1,8 +1,9 @@
 from datetime import UTC, datetime
 from uuid import UUID
-from fastapi import APIRouter, Body, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from pymongo.results import InsertOneResult, UpdateResult
 
+from app.auth import verify_api_key
 from app.models.user_model import (
     UserModel,
     UserCreateRequest,
@@ -10,11 +11,13 @@ from app.models.user_model import (
     UserResponse,
 )
 
-from app.database import user_collection
+from app.database import user_collection, vault_collection
 
 from app.routes.vault_route import vault_router
 
-user_router = APIRouter(prefix="/users", tags=["users"])
+user_router: APIRouter = APIRouter(
+    prefix="/users", tags=["users"], dependencies=[Depends(verify_api_key)]
+)
 user_router.include_router(vault_router)
 
 
@@ -140,6 +143,9 @@ async def delete_user(userId: UUID) -> UserModel:
     """
     Delete the record for a specific user, looked up by `userId`.
     """
+
+    await vault_collection.delete_many({"user_id": userId})
+
     deleted_user = await user_collection.find_one_and_delete({"_id": userId})
     if deleted_user is None:
         raise HTTPException(
