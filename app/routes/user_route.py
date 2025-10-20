@@ -1,9 +1,16 @@
 from datetime import UTC, datetime
 from uuid import UUID
 from fastapi import APIRouter, Body, Depends, HTTPException, status
-from pymongo.results import InsertOneResult, UpdateResult
+from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
 
 from app.auth import verify_api_key
+from app.exceptions import (
+    NoFieldsToUpdateException,
+    UserAlreadyExistsException,
+    UserCreationFailedException,
+    UserUpdateFailedException,
+    UserNotFoundException,
+)
 from app.models.user_model import (
     UserModel,
     UserCreateRequest,
@@ -34,10 +41,7 @@ async def get_user(userId: UUID) -> UserResponse:
     """
     user = await user_collection.find_one({"_id": userId})
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User {userId} not found",
-        )
+        raise UserNotFoundException(userId)
 
     return UserResponse(**user)
 
@@ -57,10 +61,7 @@ async def create_user(user_data: UserCreateRequest = Body(...)) -> UserResponse:
     """
     existing_user = await user_collection.find_one({"email": user_data.email})
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="User with this email already exists",
-        )
+        raise UserAlreadyExistsException()
 
     new_user = UserModel(
         email=user_data.email,
@@ -73,10 +74,7 @@ async def create_user(user_data: UserCreateRequest = Body(...)) -> UserResponse:
     created_user_obj = await user_collection.find_one({"_id": created_user.inserted_id})
 
     if created_user_obj is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create user",
-        )
+        raise UserCreationFailedException()
 
     return UserResponse(**created_user_obj)
 
@@ -96,39 +94,28 @@ async def update_user(
     """
     update_data = user_data.model_dump(exclude_unset=True, mode="python")
     if not update_data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields to update",
-        )
+        raise NoFieldsToUpdateException()
 
     update_data["updated_at"] = datetime.now(UTC)
+    email: str | None = update_data["email"]
 
-    if "email" in update_data:
+    if email:
         existing = await user_collection.find_one(
-            {"email": update_data["email"], "_id": {"$ne": userId}}
+            {"email": email, "_id": {"$ne": userId}}
         )
         if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Email already in use",
-            )
+            raise UserAlreadyExistsException()
 
     result: UpdateResult = await user_collection.update_one(
         {"_id": userId}, {"$set": update_data}
     )
 
     if result.matched_count == 0:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User {userId} not found",
-        )
+        raise UserNotFoundException(userId)
 
     updated_user_obj = await user_collection.find_one({"_id": userId})
     if updated_user_obj is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve updated user",
-        )
+        raise UserUpdateFailedException()
 
     return UserResponse(**updated_user_obj)
 
@@ -144,13 +131,10 @@ async def delete_user(userId: UUID) -> UserModel:
     Delete the record for a specific user, looked up by `userId`.
     """
 
-    await vault_collection.delete_many({"user_id": userId})
+    _: DeleteResult = await vault_collection.delete_many({"user_id": userId})
 
     deleted_user = await user_collection.find_one_and_delete({"_id": userId})
     if deleted_user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User {userId} not found",
-        )
+        raise UserNotFoundException(userId)
 
     return UserModel(**deleted_user)

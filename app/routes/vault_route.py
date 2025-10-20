@@ -4,6 +4,12 @@ from fastapi import APIRouter, Body, HTTPException, status
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult
 
+from app.exceptions import (
+    NoFieldsToUpdateException,
+    UserNotFoundException,
+    VaultCreationFailedException,
+    VaultNotFoundException,
+)
 from app.models.vault_model import (
     VaultModel,
     VaultCreateRequest,
@@ -47,10 +53,7 @@ async def get_vault(userId: UUID, vaultId: UUID) -> VaultResponse:
     vault = await vault_collection.find_one({"_id": vaultId, "user_id": userId})
 
     if vault is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Vault {vaultId} not found",
-        )
+        raise VaultNotFoundException(vaultId)
 
     return VaultResponse(**vault)
 
@@ -70,10 +73,7 @@ async def create_vault(
     """
     user = await user_collection.find_one({"_id": userId})
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User {userId} not found",
-        )
+        raise UserNotFoundException(userId)
 
     new_vault = VaultModel(
         user_id=userId,
@@ -91,10 +91,7 @@ async def create_vault(
     )
 
     if created_vault_obj is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create vault",
-        )
+        raise VaultCreationFailedException()
 
     return VaultResponse(**created_vault_obj)
 
@@ -115,10 +112,7 @@ async def update_vault(
     update_data = vault_data.model_dump(exclude_unset=True, mode="python")
 
     if not update_data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields to update",
-        )
+        raise NoFieldsToUpdateException(vaultId)
 
     update_data["updated_at"] = datetime.now(UTC)
 
@@ -129,10 +123,7 @@ async def update_vault(
     )
 
     if updated_vault is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Vault {vaultId} not found",
-        )
+        raise VaultNotFoundException(vaultId)
 
     return VaultResponse(**updated_vault)
 
@@ -153,9 +144,6 @@ async def delete_vault(userId: UUID, vaultId: UUID) -> VaultResponse:
     )
 
     if deleted_vault is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Vault {vaultId} not found",
-        )
+        raise VaultNotFoundException(vaultId)
 
     return VaultResponse(**deleted_vault)
