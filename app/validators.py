@@ -1,8 +1,7 @@
 from uuid import UUID
-from app.database import user_collection, vault_collection
+from app.database import user_collection
 from app.exceptions import (
     UserAlreadyExistsException,
-    UserNotFoundException,
     EmailAlreadyInUseException,
 )
 
