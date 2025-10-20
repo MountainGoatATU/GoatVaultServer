@@ -58,7 +58,7 @@ class VaultCreateRequest(BaseModel):
                 "salt": "cmFuZG9tc2FsdA==",
                 "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
                 "nonce": "cmFuZG9tbm9uY2U=",
-                "auth_tag": "YXV0aHRhZw==",
+                "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
             }
         }
     )
@@ -115,7 +115,7 @@ class VaultResponse(BaseModel):
                 "salt": "cmFuZG9tc2FsdA==",
                 "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
                 "nonce": "cmFuZG9tbm9uY2U=",
-                "auth_tag": "YXV0aHRhZw==",
+                "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
                 "created_at": "2024-01-15T10:30:00Z",
                 "updated_at": "2024-01-15T10:30:00Z",
             }
