@@ -9,7 +9,13 @@ from app.routes import user_route
 
 
 _ = load_dotenv()
-app = FastAPI(title="GoatVaultServer", description="A server for GoatVault")
+app = FastAPI(
+    title="GoatVaultServer",
+    description="A server for GoatVault",
+    swagger_ui_parameters={
+        "persistAuthorization": True,
+    },
+)
 
 app.add_middleware(ServerErrorMiddleware)
 # app.add_middleware(HTTPSRedirectMiddleware)
