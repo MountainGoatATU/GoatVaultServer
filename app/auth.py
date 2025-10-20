@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from fastapi import HTTPException, Security, status
 from fastapi.security import APIKeyHeader
 
-load_dotenv()
+_ = load_dotenv()
 
 API_KEY: str | None = os.getenv("API_KEY")
 
