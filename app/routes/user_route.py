@@ -21,6 +21,7 @@ from app.models.user_model import (
 from app.database import user_collection, vault_collection
 
 from app.routes.vault_route import vault_router
+from app.validators import validate_email_available, validate_email_available_for_user
 
 user_router: APIRouter = APIRouter(
     prefix="/users", tags=["users"], dependencies=[Depends(verify_api_key)]
@@ -59,9 +60,7 @@ async def create_user(user_data: UserCreateRequest = Body(...)) -> UserResponse:
 
     A unique `userId` will be created and provided in the response.
     """
-    existing_user = await user_collection.find_one({"email": user_data.email})
-    if existing_user:
-        raise UserAlreadyExistsException()
+    await validate_email_available(user_data.email)
 
     new_user = UserModel(
         email=user_data.email,
@@ -96,15 +95,10 @@ async def update_user(
     if not update_data:
         raise NoFieldsToUpdateException()
 
-    update_data["updated_at"] = datetime.now(UTC)
-    email: str | None = update_data["email"]
+    if "email" in update_data:
+        await validate_email_available_for_user(update_data["email"], userId)
 
-    if email:
-        existing = await user_collection.find_one(
-            {"email": email, "_id": {"$ne": userId}}
-        )
-        if existing:
-            raise UserAlreadyExistsException()
+    update_data["updated_at"] = datetime.now(UTC)
 
     result: UpdateResult = await user_collection.update_one(
         {"_id": userId}, {"$set": update_data}

@@ -112,7 +112,7 @@ async def update_vault(
     update_data = vault_data.model_dump(exclude_unset=True, mode="python")
 
     if not update_data:
-        raise NoFieldsToUpdateException(vaultId)
+        raise NoFieldsToUpdateException()
 
     update_data["updated_at"] = datetime.now(UTC)
 
