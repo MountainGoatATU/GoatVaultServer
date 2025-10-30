@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from uuid import UUID
+import uuid
 from fastapi import APIRouter, Body, HTTPException, status
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult
@@ -75,7 +76,10 @@ async def create_vault(
     if user is None:
         raise UserNotFoundException(userId)
 
+    vault_id = vault_data.id or uuid.uuid4()  # Generate a new UUID if not provided
+
     new_vault = VaultModel(
+        id=vault_id,
         user_id=userId,
         name=vault_data.name,
         salt=vault_data.salt,
@@ -85,7 +89,12 @@ async def create_vault(
     )
 
     new_vault_dict = new_vault.model_dump(by_alias=True, mode="python")
-    created_vault: InsertOneResult = await vault_collection.insert_one(new_vault_dict)
+    
+    try:
+        created_vault: InsertOneResult = await vault_collection.insert_one(new_vault_dict)
+    except KeyError as e:
+        raise VaultCreationFailedException(str(e))  # Duplicate key or other insertion error
+
     created_vault_obj = await vault_collection.find_one(
         {"_id": created_vault.inserted_id}
     )

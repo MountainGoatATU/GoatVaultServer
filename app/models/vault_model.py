@@ -45,6 +45,7 @@ class VaultCreateRequest(BaseModel):
     Request model for creating a new vault.
     """
 
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, alias="_id")
     name: str = Field(..., min_length=1, max_length=50)
     salt: bytes = Field(..., min_length=16, max_length=64)
     encrypted_blob: bytes = Field(...)
@@ -54,6 +55,7 @@ class VaultCreateRequest(BaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(
         json_schema_extra={
             "example": {
+                "_id": "3f68b9b1-9b38-4f1d-a8e3-8d6a6fbc72d9",
                 "name": "My Passwords",
                 "salt": "cmFuZG9tc2FsdA==",
                 "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
