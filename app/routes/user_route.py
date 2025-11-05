@@ -1,25 +1,23 @@
 from datetime import UTC, datetime
 from uuid import UUID
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+
+from fastapi import APIRouter, Body, Depends, status
 from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
 
 from app.auth import verify_api_key
+from app.database import user_collection, vault_collection
 from app.exceptions import (
     NoFieldsToUpdateException,
-    UserAlreadyExistsException,
     UserCreationFailedException,
-    UserUpdateFailedException,
     UserNotFoundException,
+    UserUpdateFailedException,
 )
 from app.models.user_model import (
-    UserModel,
     UserCreateRequest,
-    UserUpdateRequest,
+    UserModel,
     UserResponse,
+    UserUpdateRequest,
 )
-
-from app.database import user_collection, vault_collection
-
 from app.routes.vault_route import vault_router
 from app.validators import validate_email_available, validate_email_available_for_user
 
