@@ -9,7 +9,7 @@ on:
       - "*.md"
 jobs:
   uv-build:
-    name: UV Build
+    name: UV Build & Test
     runs-on: ubuntu-latest
 
     steps:
@@ -28,10 +28,22 @@ jobs:
       - name: Install the project
         run: uv sync --locked --all-extras --dev
 
-      - name: Enable caching
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
+      - name: Lint with Ruff
+        run: uv run ruff check app tests
+        continue-on-error: true
+
+      - name: Run tests
+        run: uv run pytest -v --tb=short
+        env:
+          MONGODB_URL: mongodb://localhost:27017
+          DATABASE_NAME: test_goatvault
+          API_KEY: test-api-key-github-actions
 
       - name: Build project
         run: uv build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
