@@ -1,10 +1,12 @@
+import uuid
 from datetime import UTC, datetime
 from uuid import UUID
-import uuid
-from fastapi import APIRouter, Body, HTTPException, status
+
+from fastapi import APIRouter, Body, status
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult
 
+from app.database import user_collection, vault_collection
 from app.exceptions import (
     NoFieldsToUpdateException,
     UserNotFoundException,
@@ -12,15 +14,12 @@ from app.exceptions import (
     VaultNotFoundException,
 )
 from app.models.vault_model import (
-    VaultModel,
-    VaultCreateRequest,
-    VaultUpdateRequest,
-    VaultResponse,
     VaultCollection,
+    VaultCreateRequest,
+    VaultModel,
+    VaultResponse,
+    VaultUpdateRequest,
 )
-
-from app.database import vault_collection, user_collection
-
 
 vault_router: APIRouter = APIRouter(prefix="/{userId}/vaults")
 
@@ -79,7 +78,7 @@ async def create_vault(
     vault_id = vault_data.id or uuid.uuid4()  # Generate a new UUID if not provided
 
     new_vault = VaultModel(
-        id=vault_id,
+        _id=vault_id,
         user_id=userId,
         name=vault_data.name,
         salt=vault_data.salt,
@@ -89,11 +88,13 @@ async def create_vault(
     )
 
     new_vault_dict = new_vault.model_dump(by_alias=True, mode="python")
-    
+
     try:
-        created_vault: InsertOneResult = await vault_collection.insert_one(new_vault_dict)
-    except KeyError as e:
-        raise VaultCreationFailedException(str(e))  # Duplicate key or other insertion error
+        created_vault: InsertOneResult = await vault_collection.insert_one(
+            new_vault_dict
+        )
+    except KeyError:
+        raise VaultCreationFailedException()  # Duplicate key or other insertion error
 
     created_vault_obj = await vault_collection.find_one(
         {"_id": created_vault.inserted_id}
