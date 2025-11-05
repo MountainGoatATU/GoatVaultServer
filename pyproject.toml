@@ -12,7 +12,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
     "ruff>=0.14.0",
     "taskipy>=1.14.1",
     "ty>=0.0.1a22",
@@ -21,6 +23,12 @@ dev = [
 [tool.taskipy.tasks]
 dev = "python -m uvicorn app.main:app --reload"
 server = "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
+test = "pytest -v"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.ruff]
 line-length = 100
