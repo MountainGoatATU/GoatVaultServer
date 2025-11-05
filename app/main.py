@@ -14,7 +14,7 @@ _ = load_dotenv()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI):
     """
     Handle application startup and shutdown events.
     """

@@ -105,18 +105,14 @@ async def test_update_user_success(async_client, sample_user_id):
 
     with (
         patch("app.routes.user_route.user_collection") as mock_collection,
-        patch(
-            "app.routes.user_route.validate_email_available_for_user", new=AsyncMock()
-        ),
+        patch("app.routes.user_route.validate_email_available_for_user", new=AsyncMock()),
     ):
         mock_result = MagicMock()
         mock_result.matched_count = 1
         mock_collection.update_one = AsyncMock(return_value=mock_result)
         mock_collection.find_one = AsyncMock(return_value=updated_user)
 
-        response = await async_client.patch(
-            f"/v1/users/{sample_user_id}", json=update_data
-        )
+        response = await async_client.patch(f"/v1/users/{sample_user_id}", json=update_data)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
@@ -130,17 +126,13 @@ async def test_update_user_not_found(async_client, sample_user_id):
 
     with (
         patch("app.routes.user_route.user_collection") as mock_collection,
-        patch(
-            "app.routes.user_route.validate_email_available_for_user", new=AsyncMock()
-        ),
+        patch("app.routes.user_route.validate_email_available_for_user", new=AsyncMock()),
     ):
         mock_result = MagicMock()
         mock_result.matched_count = 0
         mock_collection.update_one = AsyncMock(return_value=mock_result)
 
-        response = await async_client.patch(
-            f"/v1/users/{sample_user_id}", json=update_data
-        )
+        response = await async_client.patch(f"/v1/users/{sample_user_id}", json=update_data)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -201,7 +193,7 @@ async def test_delete_user_not_found(async_client, sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_api_key_required(async_client):
+async def test_api_key_required():
     """Test that endpoints require API key."""
     # Create client without API key
     from httpx import ASGITransport, AsyncClient

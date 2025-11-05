@@ -1,8 +1,9 @@
 from uuid import UUID
+
 from app.database import user_collection
 from app.exceptions import (
-    UserAlreadyExistsException,
     EmailAlreadyInUseException,
+    UserAlreadyExistsException,
 )
 
 

@@ -65,9 +65,7 @@ async def get_vault(userId: UUID, vaultId: UUID) -> VaultResponse:
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
 )
-async def create_vault(
-    userId: UUID, vault_data: VaultCreateRequest = Body(...)
-) -> VaultResponse:
+async def create_vault(userId: UUID, vault_data: VaultCreateRequest = Body(...)) -> VaultResponse:
     """
     Insert a new vault record.
     """
@@ -90,15 +88,11 @@ async def create_vault(
     new_vault_dict = new_vault.model_dump(by_alias=True, mode="python")
 
     try:
-        created_vault: InsertOneResult = await vault_collection.insert_one(
-            new_vault_dict
-        )
-    except KeyError:
-        raise VaultCreationFailedException()  # Duplicate key or other insertion error
+        created_vault: InsertOneResult = await vault_collection.insert_one(new_vault_dict)
+    except KeyError as err:
+        raise VaultCreationFailedException() from err  # Duplicate key or other insertion error
 
-    created_vault_obj = await vault_collection.find_one(
-        {"_id": created_vault.inserted_id}
-    )
+    created_vault_obj = await vault_collection.find_one({"_id": created_vault.inserted_id})
 
     if created_vault_obj is None:
         raise VaultCreationFailedException()
@@ -149,9 +143,7 @@ async def delete_vault(userId: UUID, vaultId: UUID) -> VaultResponse:
     """
     Delete the record for a specific vault, looked up by `id`.
     """
-    deleted_vault = await vault_collection.find_one_and_delete(
-        {"_id": vaultId, "user_id": userId}
-    )
+    deleted_vault = await vault_collection.find_one_and_delete({"_id": vaultId, "user_id": userId})
 
     if deleted_vault is None:
         raise VaultNotFoundException(vaultId)

@@ -1,6 +1,6 @@
+import uuid
 from datetime import UTC, datetime
 from typing import ClassVar
-import uuid
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
