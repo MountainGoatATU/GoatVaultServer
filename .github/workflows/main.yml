@@ -2,14 +2,18 @@ name: UV
 
 on:
   push:
+    branches:
+      - main
     paths-ignore:
       - "*.md"
   pull_request:
+    branches:
+      - main
     paths-ignore:
       - "*.md"
 jobs:
   test:
-    name: UV Build & Test
+    name: Build & Run Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -48,7 +52,7 @@ jobs:
           name: dist
           path: dist/
   deploy:
-    name: Deploy to Server
+    name: Deploy to Test Server
     needs: test
     runs-on: ubuntu-latest
 
