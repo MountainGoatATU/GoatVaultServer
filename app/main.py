@@ -1,20 +1,34 @@
+from contextlib import asynccontextmanager
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from starlette.middleware.errors import ServerErrorMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.middleware.exceptions import ExceptionMiddleware
-# from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 
+# from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
+from app.database import create_indexes
 from app.routes import user_route
 
-
 _ = load_dotenv()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Handle application startup and shutdown events.
+    """
+    await create_indexes()
+    yield
+
+
 app = FastAPI(
     title="GoatVaultServer",
     description="A server for GoatVault",
     swagger_ui_parameters={
         "persistAuthorization": True,
     },
+    lifespan=lifespan,
 )
 
 app.add_middleware(ServerErrorMiddleware)
