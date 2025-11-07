@@ -32,7 +32,16 @@ pip install -e .
 
 ## Usage
 
+### Production Server
+
 ```bash
-uv run uvicorn app.main:app --reload
+uv run task server
 ```
+
+### Development Server
+
+```bash
+uv run task dev
+```
+
 - Visit http://localhost:8000/docs for API documentation
