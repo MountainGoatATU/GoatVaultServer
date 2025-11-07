@@ -10,7 +10,7 @@ load_dotenv()
 
 JWT_SECRET = os.getenv("JWT_SECRET")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-AUTHORITY = os.getenv("AUTHORITY")
+ISSUER = os.getenv("ISSUER")
 TOKEN_EXP_HOURS = int(os.getenv("TOKEN_EXP_HOURS", 12))
 
 
@@ -20,8 +20,7 @@ def create_jwt_token(user_id: UUID) -> str:
 
     payload = {
         "sub": str(user_id),         # Subject (the user)
-        "authority": AUTHORITY,      # Server name issuing token
-        "iss": AUTHORITY,            # Standard JWT claim (issuer)
+        "iss": ISSUER,            # Standard JWT claim (issuer)
         "exp": expire,               # Expiration time
         "iat": datetime.now(UTC),    # Issued at
     }
