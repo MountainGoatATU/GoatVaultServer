@@ -16,13 +16,15 @@ git clone https://github.com/MountainGoatATU/GoatVaultServer.git
 cd GoatVaultServer
 ```
 
-### Install dependencies using uv (recommended)
+### Install dependencies
+
+#### Using uv (recommended)
 
 ```bash
 uv sync
 ```
 
-### Install dependencies using pip
+#### Using pip
 
 ```bash
 pip install -e .
