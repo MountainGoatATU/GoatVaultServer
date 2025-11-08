@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, HTTPException, status
 from app.models.token_model import TokenRequest, TokenResponse
 from app.database import user_collection
-from app.token_utils import create_jwt_token
+from app.auth import create_jwt_token
 
 token_router = APIRouter(prefix="/token", tags=["auth"])
 
