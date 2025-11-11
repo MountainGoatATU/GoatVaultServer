@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Body, Depends, status
 from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
 
-from app.auth import verify_api_key
+from app.auth import verify_token
 from app.database import user_collection, vault_collection
 from app.exceptions import (
     NoFieldsToUpdateException,
@@ -22,7 +22,7 @@ from app.routes.vault_route import vault_router
 from app.validators import validate_email_available, validate_email_available_for_user
 
 user_router: APIRouter = APIRouter(
-    prefix="/users", tags=["users"], dependencies=[Depends(verify_api_key)]
+    prefix="/users", tags=["users"], dependencies=[Depends(verify_token)]
 )
 user_router.include_router(vault_router)
 
