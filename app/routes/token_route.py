@@ -14,7 +14,7 @@ token_router = APIRouter(prefix="/token", tags=["auth"])
 )
 async def generate_token(payload: TokenRequest = Body(...)) -> TokenResponse:
     """
-    Generate a JWT token for a valid user UUID and email.
+    Generate a JWT token for a valid user `UUID` and `email`.
     - Verifies that user exists in MongoDB.
     - Returns a signed JWT containing the authority claim.
     """
