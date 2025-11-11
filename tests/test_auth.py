@@ -154,17 +154,6 @@ async def test_generate_token_user_not_found(async_client_no_auth, sample_user_i
 @pytest.mark.asyncio
 async def test_generate_token_email_mismatch(async_client_no_auth, sample_user_id):
     """Test generating a token with mismatched email."""
-    mock_user = {
-        "_id": sample_user_id,
-        "email": "correct@example.com",
-        "salt": b"salt1234567890ab",
-        "password_hash": b"hash1234567890ab",
-        "mfa_enabled": False,
-        "mfa_secret": None,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
-    }
-
     token_request = {
         "user_id": str(sample_user_id),
         "email": "wrong@example.com",
