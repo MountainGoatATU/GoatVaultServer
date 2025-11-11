@@ -51,14 +51,20 @@ async def verify_token(
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
     except PyJWTError as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid or expired JWT token: {str(e)}",
-        )
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        match e:
+            case jwt.ExpiredSignatureError:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
+                ) from e
+            case jwt.InvalidTokenError:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+                ) from e
+            case _:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail=f"Invalid or expired JWT token: {str(e)}",
+                ) from e
 
     issuer = payload.get("iss")
     if issuer != ISSUER:
