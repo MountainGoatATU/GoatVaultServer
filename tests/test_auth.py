@@ -31,8 +31,9 @@ async def test_verify_token_invalid():
     with pytest.raises(HTTPException) as exc_info:
         await verify_token(invalid_credentials)
 
-    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-    assert "Invalid or expired JWT token" in exc_info.value.detail
+    exception: HTTPException = exc_info.value  # type: ignore[assignment]
+    assert exception.status_code == status.HTTP_401_UNAUTHORIZED
+    assert "Invalid or expired JWT token" in exception.detail
 
 
 @pytest.mark.asyncio
@@ -43,7 +44,8 @@ async def test_verify_token_expired(expired_token):
     with pytest.raises(HTTPException) as exc_info:
         await verify_token(expired_credentials)
 
-    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+    exception: HTTPException = exc_info.value  # type: ignore[assignment]
+    assert exception.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 @pytest.mark.asyncio
@@ -56,8 +58,9 @@ async def test_verify_token_wrong_issuer(wrong_issuer_token):
     with pytest.raises(HTTPException) as exc_info:
         await verify_token(wrong_issuer_credentials)
 
-    assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
-    assert "Token issuer mismatch" in exc_info.value.detail
+    exception: HTTPException = exc_info.value  # type: ignore[assignment]
+    assert exception.status_code == status.HTTP_403_FORBIDDEN
+    assert "Token issuer mismatch" in exception.detail
 
 
 @pytest.mark.asyncio
