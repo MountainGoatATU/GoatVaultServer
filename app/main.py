@@ -8,8 +8,7 @@ from starlette.middleware.exceptions import ExceptionMiddleware
 
 # from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from app.database import create_indexes
-from app.routes import user_route
-from app.routes import token_route
+from app.routes import token_route, user_route
 
 _ = load_dotenv()
 
