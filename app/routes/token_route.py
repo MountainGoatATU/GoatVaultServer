@@ -1,7 +1,10 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Body, HTTPException, status
-from app.models.token_model import TokenRequest, TokenResponse
-from app.database import user_collection
+
 from app.auth import create_jwt_token
+from app.database import user_collection
+from app.models.token_model import TokenRequest, TokenResponse
 
 token_router = APIRouter(prefix="/token", tags=["auth"])
 
@@ -12,7 +15,7 @@ token_router = APIRouter(prefix="/token", tags=["auth"])
     response_model=TokenResponse,
     status_code=status.HTTP_200_OK,
 )
-async def generate_token(payload: TokenRequest = Body(...)) -> TokenResponse:
+async def generate_token(payload: Annotated[TokenRequest, Body()]) -> TokenResponse:
     """
     Generate a JWT token for a valid user `UUID` and `email`.
     - Verifies that user exists in MongoDB.

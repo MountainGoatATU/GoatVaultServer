@@ -1,5 +1,6 @@
 import uuid
 from datetime import UTC, datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Body, status
@@ -65,7 +66,9 @@ async def get_vault(userId: UUID, vaultId: UUID) -> VaultResponse:
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
 )
-async def create_vault(userId: UUID, vault_data: VaultCreateRequest = Body(...)) -> VaultResponse:
+async def create_vault(
+    userId: UUID, vault_data: Annotated[VaultCreateRequest, Body()]
+) -> VaultResponse:
     """
     Insert a new vault record.
     """

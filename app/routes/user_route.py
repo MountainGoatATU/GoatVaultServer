@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, status
@@ -52,7 +53,7 @@ async def get_user(userId: UUID) -> UserResponse:
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
 )
-async def create_user(user_data: UserCreateRequest = Body(...)) -> UserResponse:
+async def create_user(user_data: Annotated[UserCreateRequest, Body()]) -> UserResponse:
     """
     Insert a new user record.
 
@@ -84,7 +85,7 @@ async def create_user(user_data: UserCreateRequest = Body(...)) -> UserResponse:
     response_model_by_alias=False,
 )
 async def update_user(
-    userId: UUID, user_data: UserUpdateRequest = Body(...)
+    userId: UUID, user_data: Annotated[UserUpdateRequest, Body()]
 ) -> UserResponse:
     """
     Update the record for a specific user, looked up by `userId`.
@@ -98,9 +99,7 @@ async def update_user(
 
     update_data["updated_at"] = datetime.now(UTC)
 
-    result: UpdateResult = await user_collection.update_one(
-        {"_id": userId}, {"$set": update_data}
-    )
+    result: UpdateResult = await user_collection.update_one({"_id": userId}, {"$set": update_data})
 
     if result.matched_count == 0:
         raise UserNotFoundException(userId)
