@@ -44,4 +44,10 @@ uv run task server
 uv run task dev
 ```
 
+### Run tests
+
+```bash
+uv run task test
+```
+
 - Visit http://localhost:8000/docs for API documentation
