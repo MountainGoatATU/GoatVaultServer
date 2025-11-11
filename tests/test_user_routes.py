@@ -193,23 +193,15 @@ async def test_delete_user_not_found(async_client, sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_api_key_required():
-    """Test that endpoints require API key."""
-    # Create client without API key
-    from httpx import ASGITransport, AsyncClient
-
-    from app.main import app
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client_no_auth:
-        response = await client_no_auth.get(f"/v1/users/{uuid.uuid4()}")
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+async def test_bearer_token_required(async_client_no_auth):
+    """Test that endpoints require Bearer token."""
+    response = await async_client_no_auth.get(f"/v1/users/{uuid.uuid4()}")
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.asyncio
-async def test_invalid_api_key(invalid_api_key):
-    """Test that invalid API key is rejected."""
+async def test_invalid_bearer_token(invalid_token):
+    """Test that invalid Bearer token is rejected."""
     from httpx import ASGITransport, AsyncClient
 
     from app.main import app
@@ -217,7 +209,39 @@ async def test_invalid_api_key(invalid_api_key):
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://test",
-        headers={"X-API-Key": invalid_api_key},
+        headers={"Authorization": f"Bearer {invalid_token}"},
+    ) as client:
+        response = await client.get(f"/v1/users/{uuid.uuid4()}")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.asyncio
+async def test_expired_bearer_token(expired_token):
+    """Test that expired Bearer token is rejected."""
+    from httpx import ASGITransport, AsyncClient
+
+    from app.main import app
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={"Authorization": f"Bearer {expired_token}"},
+    ) as client:
+        response = await client.get(f"/v1/users/{uuid.uuid4()}")
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.asyncio
+async def test_wrong_issuer_token(wrong_issuer_token):
+    """Test that token with wrong issuer is rejected."""
+    from httpx import ASGITransport, AsyncClient
+
+    from app.main import app
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={"Authorization": f"Bearer {wrong_issuer_token}"},
     ) as client:
         response = await client.get(f"/v1/users/{uuid.uuid4()}")
         assert response.status_code == status.HTTP_403_FORBIDDEN

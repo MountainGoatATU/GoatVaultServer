@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta, UTC
-from uuid import UUID
 import os
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
+from uuid import UUID
 
 import jwt
 from dotenv import load_dotenv
@@ -13,31 +13,34 @@ from jwt import PyJWTError
 load_dotenv()
 
 JWT_SECRET = os.getenv("JWT_SECRET")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256") # Default to HS256
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
 ISSUER = os.getenv("ISSUER")
 TOKEN_EXP_HOURS = int(os.getenv("TOKEN_EXP_HOURS", 12))
 
 if not ISSUER:
     raise ValueError("ISSUER environment variable is required.")
 
+
 def create_jwt_token(user_id: UUID) -> str:
     """Generate a signed JWT for a given user UUID."""
     expire = datetime.now(UTC) + timedelta(hours=TOKEN_EXP_HOURS)
 
     payload = {
-        "sub": str(user_id),         # Subject (the user)
-        "iss": ISSUER,               # Standard JWT claim (issuer)
-        "exp": expire,               # Expiration time
-        "iat": datetime.now(UTC),    # Issued at
+        "sub": str(user_id),  # Subject (the user)
+        "iss": ISSUER,  # Standard JWT claim (issuer)
+        "exp": expire,  # Expiration time
+        "iat": datetime.now(UTC),  # Issued at
     }
 
     token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
     return token
 
+
 bearer_scheme = HTTPBearer(auto_error=True)
 
+
 async def verify_token(
-    credentials: Annotated[HTTPAuthorizationCredentials, Security(bearer_scheme)]
+    credentials: Annotated[HTTPAuthorizationCredentials, Security(bearer_scheme)],
 ) -> dict:
     """
     Verifies that the provided Bearer JWT token is valid and that its 'iss'
