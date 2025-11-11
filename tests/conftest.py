@@ -2,11 +2,9 @@ import base64
 import os
 import uuid
 from collections.abc import AsyncGenerator
-from typing import Annotated
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from fastapi import Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from httpx import ASGITransport, AsyncClient
 
