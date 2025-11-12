@@ -3,58 +3,44 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, status
+from fastapi import APIRouter, Body, Depends, status
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult
 
+from app.auth import verify_token
 from app.database import user_collection, vault_collection
 from app.exceptions import (
     NoFieldsToUpdateException,
     UserNotFoundException,
     VaultCreationFailedException,
-    VaultNotFoundException,
 )
 from app.models.vault_model import (
-    VaultCollection,
     VaultCreateRequest,
     VaultModel,
     VaultResponse,
     VaultUpdateRequest,
 )
 
-vault_router: APIRouter = APIRouter(prefix="/{userId}/vaults")
+vault_router: APIRouter = APIRouter(
+    prefix="/vaults", tags=["Vaults"], dependencies=[Depends(verify_token)]
+)
 
 
 @vault_router.get(
     "/",
-    response_description="List all vaults for a user.",
-    response_model=VaultCollection,
-    status_code=status.HTTP_200_OK,
-    response_model_by_alias=False,
-)
-async def list_vaults(userId: UUID) -> VaultCollection:
-    """
-    List all vaults for a specific user.
-    """
-    vault_list = await vault_collection.find({"user_id": userId}).to_list(1000)
-    return VaultCollection(vaults=vault_list)
-
-
-@vault_router.get(
-    "/{vaultId}",
     response_description="Get a single vault",
     response_model=VaultResponse,
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def get_vault(userId: UUID, vaultId: UUID) -> VaultResponse:
+async def get_vault(userId: UUID) -> VaultResponse:
     """
-    Get the record for a specific vault, looked up by `id`.
+    Get the record for a specific vault, looked up by `user_id`.
     """
-    vault = await vault_collection.find_one({"_id": vaultId, "user_id": userId})
+    vault = await vault_collection.find_one({"user_id": userId})
 
     if vault is None:
-        raise VaultNotFoundException(vaultId)
+        raise UserNotFoundException(userId)
 
     return VaultResponse(**vault)
 
@@ -66,21 +52,20 @@ async def get_vault(userId: UUID, vaultId: UUID) -> VaultResponse:
     status_code=status.HTTP_201_CREATED,
     response_model_by_alias=False,
 )
-async def create_vault(
-    userId: UUID, vault_data: Annotated[VaultCreateRequest, Body()]
-) -> VaultResponse:
+async def create_vault(vault_data: Annotated[VaultCreateRequest, Body()]) -> VaultResponse:
     """
     Insert a new vault record.
     """
-    user = await user_collection.find_one({"_id": userId})
-    if user is None:
-        raise UserNotFoundException(userId)
-
     vault_id = vault_data.id or uuid.uuid4()  # Generate a new UUID if not provided
+    user_id = vault_data.user_id
+    user = await user_collection.find_one({"_id": user_id})
+
+    if user is None:
+        raise UserNotFoundException(user_id)
 
     new_vault = VaultModel(
         _id=vault_id,
-        user_id=userId,
+        user_id=user_id,
         name=vault_data.name,
         salt=vault_data.salt,
         encrypted_blob=vault_data.encrypted_blob,
@@ -104,15 +89,13 @@ async def create_vault(
 
 
 @vault_router.patch(
-    path="/{vaultId}",
+    path="/",
     response_description="Update a vault",
     response_model=VaultResponse,
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def update_vault(
-    userId: UUID, vaultId: UUID, vault_data: VaultUpdateRequest
-) -> VaultResponse:
+async def update_vault(userId: UUID, vault_data: VaultUpdateRequest) -> VaultResponse:
     """
     Update the record for a specific vault, looked up by `id`.
     """
@@ -124,31 +107,31 @@ async def update_vault(
     update_data["updated_at"] = datetime.now(UTC)
 
     updated_vault = await vault_collection.find_one_and_update(
-        {"_id": vaultId, "user_id": userId},
+        {"user_id": userId},
         {"$set": update_data},
         return_document=ReturnDocument.AFTER,
     )
 
     if updated_vault is None:
-        raise VaultNotFoundException(vaultId)
+        raise UserNotFoundException(userId)
 
     return VaultResponse(**updated_vault)
 
 
 @vault_router.delete(
-    "/{vaultId}",
+    "/",
     response_description="Delete a vault",
     response_model=VaultResponse,
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
-async def delete_vault(userId: UUID, vaultId: UUID) -> VaultResponse:
+async def delete_vault(userId: UUID) -> VaultResponse:
     """
     Delete the record for a specific vault, looked up by `id`.
     """
-    deleted_vault = await vault_collection.find_one_and_delete({"_id": vaultId, "user_id": userId})
+    deleted_vault = await vault_collection.find_one_and_delete({"user_id": userId})
 
     if deleted_vault is None:
-        raise VaultNotFoundException(vaultId)
+        raise UserNotFoundException(userId)
 
     return VaultResponse(**deleted_vault)

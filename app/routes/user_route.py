@@ -19,13 +19,11 @@ from app.models.user_model import (
     UserResponse,
     UserUpdateRequest,
 )
-from app.routes.vault_route import vault_router
 from app.validators import validate_email_available, validate_email_available_for_user
 
 user_router: APIRouter = APIRouter(
     prefix="/users", tags=["users"], dependencies=[Depends(verify_token)]
 )
-user_router.include_router(vault_router)
 
 
 @user_router.get(

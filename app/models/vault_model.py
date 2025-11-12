@@ -44,7 +44,8 @@ class VaultCreateRequest(BaseModel):
     Request model for creating a new vault.
     """
 
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, alias="_id")
+    id: uuid.UUID = Field(default=..., alias="_id")
+    user_id: uuid.UUID = Field(...)
     name: str = Field(..., min_length=1, max_length=50)
     salt: bytes = Field(..., min_length=16, max_length=64)
     encrypted_blob: bytes = Field(...)
