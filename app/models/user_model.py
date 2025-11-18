@@ -4,6 +4,8 @@ from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from app.models.vault_model import VaultModel
+
 #
 # DATABASE MODEL
 #
@@ -16,39 +18,18 @@ class UserModel(BaseModel):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, alias="_id")
     email: EmailStr = Field(..., max_length=254)
-
-    # Encryption fields
-    salt: bytes = Field(..., min_length=16, max_length=64)
-    password_hash: bytes = Field(..., min_length=16, max_length=128)
+    auth_salt: bytes = Field(..., min_length=16, max_length=64)
+    auth_verifier: bytes = Field(..., min_length=16, max_length=128)
 
     # Multi-factor authentication
     mfa_enabled: bool = Field(default=False)
     mfa_secret: str | None = Field(default=None)
 
-    data: VaultModel = Field(...)
+    vault: VaultModel = Field(...)
 
     # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-
-    model_config: ClassVar[ConfigDict] = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
-    )
-
-
-class VaultModel(BaseModel):
-    """
-    Container for a single vault record.
-    """
-
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, alias="_id")
-
-    # Encryption fields
-    salt: bytes = Field(..., min_length=16, max_length=64)
-    encrypted_blob: bytes = Field(...)
-    nonce: bytes = Field(..., min_length=16, max_length=64)
-    auth_tag: bytes = Field(..., min_length=16, max_length=64)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         populate_by_name=True,
@@ -67,19 +48,19 @@ class UserCreateRequest(BaseModel):
     """
 
     email: EmailStr = Field(..., max_length=254)
-    salt: bytes = Field(..., min_length=16, max_length=64)
-    password_hash: bytes = Field(..., min_length=16, max_length=128)
-    data: VaultModel = Field(...)
+    auth_salt: bytes = Field(..., min_length=16, max_length=64)
+    auth_verifier: bytes = Field(..., min_length=16, max_length=128)
+    vault: VaultModel = Field(...)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         json_schema_extra={
             "example": {
                 "email": "user@example.com",
-                "salt": "cmFuZG9tc2FsdGJ5dGVz",
-                "password_hash": "aGFzaGVkcGFzc3dvcmRieXRlcw==",
-                "data": {
+                "auth_salt": "cmFuZG9tc2FsdGJ5dGVz",
+                "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlcw==",
+                "vault": {
                     "_id": "3f68b9b1-9b38-4f1d-a8e3-8d6a6fbc72d9",
-                    "salt": "cmFuZG9tc2FsdA==",
+                    "vault_salt": "cmFuZG9tc2FsdA==",
                     "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
                     "nonce": "cmFuZG9tbm9uY2U=",
                     "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
@@ -96,9 +77,9 @@ class UserUpdateRequest(BaseModel):
     """
 
     email: EmailStr | None = Field(None, max_length=254)
-    salt: bytes | None = Field(None, min_length=16, max_length=64)
-    password_hash: bytes | None = Field(None, min_length=16, max_length=128)
-    data: VaultModel | None = None
+    auth_salt: bytes | None = Field(None, min_length=16, max_length=64)
+    auth_verifier: bytes | None = Field(None, min_length=16, max_length=128)
+    vault: VaultModel | None = None
     mfa_enabled: bool | None = None
     mfa_secret: str | None = None
 
@@ -107,9 +88,9 @@ class UserUpdateRequest(BaseModel):
             "example": {
                 "email": "newemail@example.com",
                 "mfa_enabled": True,
-                "data": {
+                "vault": {
                     "_id": "3f68b9b1-9b38-4f1d-a8e3-8d6a6fbc72d9",
-                    "salt": "cmFuZG9tc2FsdA==",
+                    "vault_salt": "cmFuZG9tc2FsdA==",
                     "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
                     "nonce": "cmFuZG9tbm9uY2U=",
                     "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
@@ -131,9 +112,9 @@ class UserResponse(BaseModel):
 
     id: uuid.UUID = Field(..., alias="_id")
     email: EmailStr
-    salt: bytes
-    password_hash: bytes
-    data: VaultModel
+    auth_salt: bytes
+    auth_verifier: bytes
+    vault: VaultModel
     mfa_enabled: bool
     mfa_secret: str | None
 
@@ -143,11 +124,11 @@ class UserResponse(BaseModel):
             "example": {
                 "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
                 "email": "user@example.com",
-                "salt": "cmFuZG9tc2FsdGJ5dGVz",
-                "password_hash": "aGFzaGVkcGFzc3dvcmRieXRlcw==",
-                "data": {
+                "auth_salt": "cmFuZG9tc2FsdGJ5dGVz",
+                "auth_verifier": "cmFuZG9tc2FsdGJ5dGVz",
+                "vault": {
                     "_id": "3f68b9b1-9b38-4f1d-a8e3-8d6a6fbc72d9",
-                    "salt": "cmFuZG9tc2FsdA==",
+                    "vault_salt": "cmFuZG9tc2FsdA==",
                     "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
                     "nonce": "cmFuZG9tbm9uY2U=",
                     "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
@@ -157,11 +138,3 @@ class UserResponse(BaseModel):
             }
         },
     )
-
-
-class UserCollection(BaseModel):
-    """
-    A container holding a list of `UserModel` instances
-    """
-
-    users: list[UserModel]

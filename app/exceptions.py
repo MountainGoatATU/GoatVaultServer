@@ -23,16 +23,6 @@ class UserNotFoundException(HTTPException):
         )
 
 
-class VaultNotFoundException(HTTPException):
-    """Raised when a vault cannot be found."""
-
-    def __init__(self, vault_id: UUID):
-        super().__init__(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Vault {vault_id} not found",
-        )
-
-
 class UserAlreadyExistsException(HTTPException):
     """Raised when attempting to create a user with an existing email."""
 
@@ -70,14 +60,4 @@ class UserUpdateFailedException(HTTPException):
         super().__init__(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update user",
-        )
-
-
-class VaultCreationFailedException(HTTPException):
-    """Raised when vault creation fails at database level."""
-
-    def __init__(self):
-        super().__init__(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create vault",
         )

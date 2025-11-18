@@ -1,5 +1,6 @@
+"""Data models."""
+
 from app.models.user_model import (
-    UserCollection,
     UserCreateRequest,
     UserModel,
     UserResponse,
@@ -14,6 +15,5 @@ __all__ = [
     "UserCreateRequest",
     "UserUpdateRequest",
     "UserResponse",
-    "UserCollection",
     "VaultModel",
 ]
