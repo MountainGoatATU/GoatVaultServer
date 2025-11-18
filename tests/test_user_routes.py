@@ -12,8 +12,8 @@ async def test_get_user_success(async_client, sample_user_id):
     mock_user = {
         "_id": sample_user_id,
         "email": "test@example.com",
-        "salt": b"salt1234567890ab",  # 16 bytes
-        "password_hash": b"hash1234567890ab",  # 16 bytes
+        "auth_salt": b"salt1234567890ab",  # 16 bytes
+        "auth_verifier": b"authverifier1234567890ab",  # 16 bytes
         "mfa_enabled": False,
         "mfa_secret": None,
         "created_at": datetime.now(UTC),
@@ -50,8 +50,8 @@ async def test_create_user_success(async_client, sample_user_data):
     created_user = {
         "_id": new_user_id,
         "email": sample_user_data["email"],
-        "salt": b"salt1234567890ab",  # 16 bytes
-        "password_hash": b"hash1234567890ab",  # 16 bytes
+        "auth_salt": b"salt1234567890ab",  # 16 bytes
+        "auth_verifier": b"authverifier1234567890ab",  # 16 bytes
         "mfa_enabled": False,
         "mfa_secret": None,
         "created_at": datetime.now(UTC),
@@ -95,8 +95,8 @@ async def test_update_user_success(async_client, sample_user_id):
     updated_user = {
         "_id": sample_user_id,
         "email": "newemail@example.com",
-        "salt": b"salt1234567890ab",  # 16 bytes
-        "password_hash": b"hash1234567890ab",  # 16 bytes
+        "auth_salt": b"salt1234567890ab",  # 16 bytes
+        "auth_verifier": b"authverifier1234567890ab",  # 16 bytes
         "mfa_enabled": False,
         "mfa_secret": None,
         "created_at": datetime.now(UTC),
@@ -152,8 +152,8 @@ async def test_delete_user_success(async_client, sample_user_id):
     deleted_user = {
         "_id": sample_user_id,
         "email": "test@example.com",
-        "salt": b"salt1234567890ab",  # 16 bytes
-        "password_hash": b"hash1234567890ab",  # 16 bytes
+        "auth_salt": b"salt1234567890ab",  # 16 bytes
+        "auth_verifier": b"authverifier1234567890ab",  # 16 bytes
         "mfa_enabled": False,
         "mfa_secret": None,
         "created_at": datetime.now(UTC),

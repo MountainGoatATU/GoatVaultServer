@@ -108,8 +108,8 @@ async def test_generate_token_success(async_client_no_auth, sample_user_id):
     mock_user = {
         "_id": sample_user_id,
         "email": "test@example.com",
-        "salt": b"salt1234567890ab",
-        "password_hash": b"hash1234567890ab",
+        "auth_salt": b"salt1234567890ab",
+        "auth_verifier": b"authverifier1234567890ab",
         "mfa_enabled": False,
         "mfa_secret": None,
         "created_at": datetime.now(UTC),
@@ -221,8 +221,8 @@ async def test_generate_token_can_be_used_for_auth(async_client_no_auth, sample_
     mock_user = {
         "_id": sample_user_id,
         "email": "test@example.com",
-        "salt": b"salt1234567890ab",
-        "password_hash": b"hash1234567890ab",
+        "auth_salt": b"salt1234567890ab",
+        "auth_verifier": b"authverifier1234567890ab",
         "mfa_enabled": False,
         "mfa_secret": None,
         "created_at": datetime.now(UTC),
@@ -263,8 +263,8 @@ async def test_token_endpoint_no_auth_required(async_client_no_auth, sample_user
     mock_user = {
         "_id": sample_user_id,
         "email": "test@example.com",
-        "salt": b"salt1234567890ab",
-        "password_hash": b"hash1234567890ab",
+        "auth_salt": b"salt1234567890ab",
+        "auth_verifier": b"authverifier1234567890ab",
         "mfa_enabled": False,
         "mfa_secret": None,
         "created_at": datetime.now(UTC),

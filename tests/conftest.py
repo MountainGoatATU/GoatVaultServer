@@ -8,7 +8,7 @@ import pytest
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from httpx import ASGITransport, AsyncClient
 
-# Set test environment variables before importing app
+# Test environment variables
 os.environ["MONGODB_URL"] = "mongodb://localhost:27017"
 os.environ["DATABASE_NAME"] = "test_goatvault"
 os.environ["JWT_SECRET"] = "test-jwt-secret-12345"
@@ -95,8 +95,8 @@ def sample_user_data() -> dict:
     """Return sample user creation data (with base64 encoded bytes for JSON)."""
     return {
         "email": "test@example.com",
-        "salt": base64.b64encode(b"random_salt_1234").decode("utf-8"),
-        "password_hash": base64.b64encode(b"hashed_password_").decode("utf-8"),
+        "auth_salt": base64.b64encode(b"random_salt_1234").decode("utf-8"),
+        "auth_verifier": base64.b64encode(b"auth_verifier_").decode("utf-8"),
     }
 
 
@@ -104,8 +104,7 @@ def sample_user_data() -> dict:
 def sample_vault_data() -> dict:
     """Return sample vault creation data (with base64 encoded bytes for JSON)."""
     return {
-        "name": "My Test Vault",
-        "salt": base64.b64encode(b"vault_salt_12345").decode("utf-8"),
+        "vault_salt": base64.b64encode(b"vault_salt_12345").decode("utf-8"),
         "encrypted_blob": base64.b64encode(b"encrypted_data_blob").decode("utf-8"),
         "nonce": base64.b64encode(b"random_nonce_123").decode("utf-8"),
         "auth_tag": base64.b64encode(b"auth_tag_1234567").decode("utf-8"),
@@ -138,19 +137,5 @@ def mock_user_collection() -> MagicMock:
     mock.insert_one = AsyncMock()
     mock.update_one = AsyncMock()
     mock.find_one_and_delete = AsyncMock()
-    mock.create_indexes = AsyncMock()
-    return mock
-
-
-@pytest.fixture
-def mock_vault_collection() -> MagicMock:
-    """Create a mock vault collection."""
-    mock = MagicMock()
-    mock.find = MagicMock()
-    mock.find_one = AsyncMock()
-    mock.insert_one = AsyncMock()
-    mock.find_one_and_update = AsyncMock()
-    mock.find_one_and_delete = AsyncMock()
-    mock.delete_many = AsyncMock()
     mock.create_indexes = AsyncMock()
     return mock
