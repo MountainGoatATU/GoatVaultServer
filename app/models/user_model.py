@@ -4,8 +4,6 @@ from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
-from app.models.vault_model import VaultModel
-
 #
 # DATABASE MODEL
 #
@@ -32,6 +30,25 @@ class UserModel(BaseModel):
     # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+    )
+
+
+class VaultModel(BaseModel):
+    """
+    Container for a single vault record.
+    """
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, alias="_id")
+
+    # Encryption fields
+    salt: bytes = Field(..., min_length=16, max_length=64)
+    encrypted_blob: bytes = Field(...)
+    nonce: bytes = Field(..., min_length=16, max_length=64)
+    auth_tag: bytes = Field(..., min_length=16, max_length=64)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         populate_by_name=True,
