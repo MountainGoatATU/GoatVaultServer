@@ -6,11 +6,7 @@ from app.models.user_model import (
     UserUpdateRequest,
 )
 from app.models.vault_model import (
-    VaultCollection,
-    VaultCreateRequest,
     VaultModel,
-    VaultResponse,
-    VaultUpdateRequest,
 )
 
 __all__ = [
@@ -20,8 +16,4 @@ __all__ = [
     "UserResponse",
     "UserCollection",
     "VaultModel",
-    "VaultCreateRequest",
-    "VaultUpdateRequest",
-    "VaultResponse",
-    "VaultCollection",
 ]

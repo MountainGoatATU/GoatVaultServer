@@ -63,6 +63,7 @@ async def create_user(user_data: Annotated[UserCreateRequest, Body()]) -> UserRe
         email=user_data.email,
         salt=user_data.salt,
         password_hash=user_data.password_hash,
+        data=user_data.data,
     )
 
     new_user_dict = new_user.model_dump(by_alias=True, mode="python")

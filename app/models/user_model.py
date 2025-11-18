@@ -4,6 +4,8 @@ from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from app.models.vault_model import VaultModel
+
 #
 # DATABASE MODEL
 #
@@ -24,6 +26,8 @@ class UserModel(BaseModel):
     # Multi-factor authentication
     mfa_enabled: bool = Field(default=False)
     mfa_secret: str | None = Field(default=None)
+
+    data: VaultModel = Field(...)
 
     # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -48,6 +52,7 @@ class UserCreateRequest(BaseModel):
     email: EmailStr = Field(..., max_length=254)
     salt: bytes = Field(..., min_length=16, max_length=64)
     password_hash: bytes = Field(..., min_length=16, max_length=128)
+    data: VaultModel = Field(...)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         json_schema_extra={
@@ -55,6 +60,13 @@ class UserCreateRequest(BaseModel):
                 "email": "user@example.com",
                 "salt": "cmFuZG9tc2FsdGJ5dGVz",
                 "password_hash": "aGFzaGVkcGFzc3dvcmRieXRlcw==",
+                "data": {
+                    "_id": "3f68b9b1-9b38-4f1d-a8e3-8d6a6fbc72d9",
+                    "salt": "cmFuZG9tc2FsdA==",
+                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
+                    "nonce": "cmFuZG9tbm9uY2U=",
+                    "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
+                },
             }
         }
     )
@@ -69,6 +81,7 @@ class UserUpdateRequest(BaseModel):
     email: EmailStr | None = Field(None, max_length=254)
     salt: bytes | None = Field(None, min_length=16, max_length=64)
     password_hash: bytes | None = Field(None, min_length=16, max_length=128)
+    data: VaultModel | None = None
     mfa_enabled: bool | None = None
     mfa_secret: str | None = None
 
@@ -77,6 +90,13 @@ class UserUpdateRequest(BaseModel):
             "example": {
                 "email": "newemail@example.com",
                 "mfa_enabled": True,
+                "data": {
+                    "_id": "3f68b9b1-9b38-4f1d-a8e3-8d6a6fbc72d9",
+                    "salt": "cmFuZG9tc2FsdA==",
+                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
+                    "nonce": "cmFuZG9tbm9uY2U=",
+                    "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
+                },
             }
         }
     )
@@ -96,6 +116,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     salt: bytes
     password_hash: bytes
+    data: VaultModel
     mfa_enabled: bool
     mfa_secret: str | None
 
@@ -107,6 +128,13 @@ class UserResponse(BaseModel):
                 "email": "user@example.com",
                 "salt": "cmFuZG9tc2FsdGJ5dGVz",
                 "password_hash": "aGFzaGVkcGFzc3dvcmRieXRlcw==",
+                "data": {
+                    "_id": "3f68b9b1-9b38-4f1d-a8e3-8d6a6fbc72d9",
+                    "salt": "cmFuZG9tc2FsdA==",
+                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
+                    "nonce": "cmFuZG9tbm9uY2U=",
+                    "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
+                },
                 "mfa_enabled": False,
                 "mfa_secret": None,
             }

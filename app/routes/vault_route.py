@@ -68,7 +68,7 @@ async def create_vault(vault_data: Annotated[VaultCreateRequest, Body()]) -> Vau
         user_id=user_id,
         name=vault_data.name,
         salt=vault_data.salt,
-        encrypted_blob=vault_data.encrypted_blob,
+        encrypted_blob=vault_data.data,
         nonce=vault_data.nonce,
         auth_tag=vault_data.auth_tag,
     )
