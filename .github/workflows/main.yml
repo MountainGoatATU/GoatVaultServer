@@ -36,12 +36,17 @@ jobs:
         run: uv run ruff check app tests
         continue-on-error: true
 
-      - name: Run tests
-        run: uv run pytest -v --tb=short
-        env:
-          MONGODB_URL: mongodb://localhost:27017
-          DATABASE_NAME: test_goatvault
-          API_KEY: test-api-key-github-actions
+      - name: Run tests with coverage
+        run: uv run task test
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            coverage.xml
+            htmlcov/
+        if: always()
 
       - name: Build project
         run: uv build
