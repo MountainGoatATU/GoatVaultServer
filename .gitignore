@@ -8,3 +8,7 @@ wheels/
 
 # Secrets
 .env
+
+# Coverage reports
+.reports/
+.coverage
