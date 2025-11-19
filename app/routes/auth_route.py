@@ -10,26 +10,6 @@ token_router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @token_router.post(
-    "/token",
-    response_description="Generate JWT token for user",
-    response_model=AuthResponse,
-    status_code=status.HTTP_200_OK,
-)
-async def generate_token(payload: Annotated[AuthRequest, Body()]) -> AuthResponse:
-    """
-    Generate a JWT token for a valid user `UUID` and `email`.
-    - Verifies that user exists in MongoDB.
-    - Returns a signed JWT containing the authority claim.
-    """
-    user = await user_collection.find_one({"_id": payload.user_id, "email": payload.email})
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    token = create_jwt_token(payload.user_id)
-    return AuthResponse(access_token=token)
-
-
-@token_router.post(
     "/init",
     response_description="Look up user by email",
     response_model=AuthInitResponse,
