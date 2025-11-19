@@ -50,4 +50,10 @@ uv run task dev
 uv run task test
 ```
 
+### Run tests with coverage
+
+```bash
+uv run task coverage
+```
+
 - Visit http://localhost:8000/docs for API documentation
