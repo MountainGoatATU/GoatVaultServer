@@ -20,7 +20,9 @@ from app.models.user_model import (
 from app.validators import validate_email_available_for_user
 
 user_router: APIRouter = APIRouter(
-    prefix="/users", tags=["users"], dependencies=[Depends(verify_token)],
+    prefix="/users",
+    tags=["users"],
+    dependencies=[Depends(verify_token)],
 )
 
 
@@ -46,7 +48,8 @@ async def get_user(userId: UUID) -> UserResponse:
     response_model_by_alias=False,
 )
 async def update_user(
-    userId: UUID, user_data: Annotated[UserUpdateRequest, Body()],
+    userId: UUID,
+    user_data: Annotated[UserUpdateRequest, Body()],
 ) -> UserResponse:
     """Update the record for a specific user, looked up by `userId`."""
     update_data = user_data.model_dump(exclude_unset=True, mode="python")

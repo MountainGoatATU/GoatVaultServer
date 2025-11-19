@@ -156,7 +156,7 @@ async def async_client(
 ) -> AsyncGenerator[AsyncClient, None]:
     """Create an async HTTP client for testing with authentication headers."""
     async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test", headers=auth_headers,
+        transport=ASGITransport(app=app), base_url="http://test", headers=auth_headers
     ) as client:
         yield client
 

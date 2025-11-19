@@ -48,10 +48,16 @@ class AuthRequest(Base64BytesModel):
 
     user_id: UUID = Field(..., description="UUID of the user requesting a token")
     auth_verifier: bytes = Field(
-        ..., min_length=16, max_length=128, description="Verifier for authentication",
+        ...,
+        min_length=16,
+        max_length=128,
+        description="Verifier for authentication",
     )
     mfa_secret: str | None = Field(
-        None, min_length=6, max_length=6, description="Multi-factor authentication code",
+        None,
+        min_length=6,
+        max_length=6,
+        description="Multi-factor authentication code",
     )
 
     model_config: ClassVar[ConfigDict] = ConfigDict(

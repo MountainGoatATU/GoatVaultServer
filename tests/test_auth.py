@@ -26,7 +26,8 @@ async def test_verify_token_valid(test_credentials) -> None:
 async def test_verify_token_invalid() -> None:
     """Test that invalid JWT token raises HTTPException."""
     invalid_credentials = HTTPAuthorizationCredentials(
-        scheme="Bearer", credentials="invalid.jwt.token",
+        scheme="Bearer",
+        credentials="invalid.jwt.token",
     )
 
     with pytest.raises(HTTPException) as exc_info:
@@ -54,7 +55,8 @@ async def test_verify_token_expired(expired_token) -> None:
 async def test_verify_token_wrong_issuer(wrong_issuer_token) -> None:
     """Test that JWT token with wrong issuer raises HTTPException."""
     wrong_issuer_credentials = HTTPAuthorizationCredentials(
-        scheme="Bearer", credentials=wrong_issuer_token,
+        scheme="Bearer",
+        credentials=wrong_issuer_token,
     )
 
     with pytest.raises(HTTPException) as exc_info:
@@ -298,7 +300,8 @@ async def test_verify_missing_fields(async_client_no_auth, sample_user_id) -> No
     """Test verifying auth with missing required fields."""
     # Missing auth_verifier
     response = await async_client_no_auth.post(
-        "/v1/auth/verify", json={"user_id": str(sample_user_id)},
+        "/v1/auth/verify",
+        json={"user_id": str(sample_user_id)},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
@@ -346,7 +349,9 @@ async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_u
 
 
 @pytest.mark.asyncio
-async def test_auth_endpoints_no_auth_required(async_client_no_auth, mock_user, sample_user_data) -> None:
+async def test_auth_endpoints_no_auth_required(
+    async_client_no_auth, mock_user, sample_user_data
+) -> None:
     """Test that auth endpoints do not require authentication."""
     # Register endpoint
     with (
@@ -366,7 +371,8 @@ async def test_auth_endpoints_no_auth_required(async_client_no_auth, mock_user, 
         mock_collection.find_one = AsyncMock(return_value=mock_user)
 
         response = await async_client_no_auth.post(
-            "/v1/auth/init", json={"email": "test@example.com"},
+            "/v1/auth/init",
+            json={"email": "test@example.com"},
         )
         assert response.status_code == status.HTTP_200_OK
 
@@ -410,7 +416,8 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
         mock_collection.find_one = AsyncMock(return_value=created_user)
 
         register_response = await async_client_no_auth.post(
-            "/v1/auth/register", json=sample_user_data,
+            "/v1/auth/register",
+            json=sample_user_data,
         )
         assert register_response.status_code == status.HTTP_200_OK
         user_data = register_response.json()
@@ -421,7 +428,8 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
         mock_collection.find_one = AsyncMock(return_value=created_user)
 
         init_response = await async_client_no_auth.post(
-            "/v1/auth/init", json={"email": registered_email},
+            "/v1/auth/init",
+            json={"email": registered_email},
         )
         assert init_response.status_code == status.HTTP_200_OK
         init_data = init_response.json()

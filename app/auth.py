@@ -58,11 +58,13 @@ async def verify_token(
         match e:
             case jwt.ExpiredSignatureError:
                 raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired",
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token expired",
                 ) from e
             case jwt.InvalidTokenError:
                 raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token",
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token",
                 ) from e
             case _:
                 raise HTTPException(
