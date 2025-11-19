@@ -1,1 +1,1 @@
-"""GoatVault Server - Development API"""
+"""GoatVault Server - Development API."""

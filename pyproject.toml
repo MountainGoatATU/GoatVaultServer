@@ -27,6 +27,7 @@ dev = [
 dev = "uvicorn app.main:app --reload"
 server = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
 test = "pytest --cov=app --cov-report=term --cov-report=html --cov-report=xml"
+lint = "ruff check"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
@@ -51,20 +52,10 @@ line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = [
-    "E",      # pycodestyle errors
-    "W",      # pycodestyle warnings
-    "F",      # pyflakes
-    "I",      # isort
-    "B",      # flake8-bugbear
-    "C4",     # flake8-comprehensions
-    "UP",     # pyupgrade
-    "ARG",    # flake8-unused-arguments
-    "SIM",    # flake8-simplify
-]
-ignore = [
-    "E501",   # line too long
-]
+select = ["E","W","F","I","B","C4","UP","ARG","SIM","FAST001","FAST002","FAST003"]
+ignore = ["E501"]
+fixable = ["ALL"]
+unfixable = []
 
 [tool.ruff.lint.pylint]
 max-args = 15
@@ -77,3 +68,5 @@ quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
+docstring-code-format = true
+docstring-code-line-length = "dynamic"

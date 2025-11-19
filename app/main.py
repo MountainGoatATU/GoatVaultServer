@@ -22,9 +22,7 @@ CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8000").split(",")
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """
-    Handle application startup and shutdown events.
-    """
+    """Handle application startup and shutdown events."""
     await create_indexes()
     yield
 
@@ -70,9 +68,7 @@ app.include_router(auth_route.auth_router, prefix="/v1")
 
 @app.get("/")
 async def root():
-    """
-    Root endpoint for GoatVault Server.
-    """
+    """Root endpoint for GoatVault Server."""
     return {
         "message": "GoatVault API",
         "docs": "/docs",

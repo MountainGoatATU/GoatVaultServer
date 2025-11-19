@@ -6,9 +6,7 @@ from app.models.base import Base64BytesModel
 
 
 class VaultModel(Base64BytesModel):
-    """
-    Object representing a user's vault.
-    """
+    """Object representing a user's vault."""
 
     vault_salt: bytes = Field(..., min_length=16, max_length=64)
     encrypted_blob: bytes = Field(...)

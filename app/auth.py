@@ -38,8 +38,7 @@ def create_jwt_token(user_id: UUID) -> str:
         "iat": datetime.now(UTC),  # Issued at
     }
 
-    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
-    return token
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
 bearer_scheme = HTTPBearer(auto_error=True)
@@ -48,8 +47,7 @@ bearer_scheme = HTTPBearer(auto_error=True)
 async def verify_token(
     credentials: Annotated[HTTPAuthorizationCredentials, Security(bearer_scheme)],
 ) -> dict:
-    """
-    Verifies that the provided Bearer JWT token is valid and that its 'iss'
+    """Verifies that the provided Bearer JWT token is valid and that its 'iss'
     (issuer) claim matches the SERVER_NAME environment variable.
     """
     token = credentials.credentials
@@ -60,16 +58,16 @@ async def verify_token(
         match e:
             case jwt.ExpiredSignatureError:
                 raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired"
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired",
                 ) from e
             case jwt.InvalidTokenError:
                 raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+                    status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token",
                 ) from e
             case _:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail=f"Invalid or expired JWT token: {str(e)}",
+                    detail=f"Invalid or expired JWT token: {e!s}",
                 ) from e
 
     issuer = payload.get("iss")

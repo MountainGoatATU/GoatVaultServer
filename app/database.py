@@ -23,8 +23,7 @@ user_collection: AsyncCollection = db.get_collection("users")
 
 
 async def create_indexes() -> None:
-    """
-    Create database indexes for optimal query performance.
+    """Create database indexes for optimal query performance.
 
     This function should be called during application startup.
     """
@@ -37,8 +36,6 @@ async def create_indexes() -> None:
     # Vault collection indexes
     vault_indexes = [
         IndexModel([("user_id", ASCENDING)], name="user_id_idx"),
-        IndexModel(
-            [("user_id", ASCENDING), ("_id", ASCENDING)], name="user_id_vault_id_idx"
-        ),
+        IndexModel([("user_id", ASCENDING), ("_id", ASCENDING)], name="user_id_vault_id_idx"),
     ]
     await vault_collection.create_indexes(vault_indexes)

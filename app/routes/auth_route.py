@@ -13,7 +13,12 @@ from app.exceptions import (
     UserCreationFailedException,
     UserNotFoundByEmailException,
 )
-from app.models.auth_model import AuthInitRequest, AuthInitResponse, AuthRequest, AuthResponse
+from app.models.auth_model import (
+    AuthInitRequest,
+    AuthInitResponse,
+    AuthRequest,
+    AuthResponse,
+)
 from app.models.user_model import UserCreateRequest, UserModel, UserResponse
 from app.validators import validate_email_available
 
@@ -25,7 +30,6 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 @auth_router.post(
     "/register",
     response_description="Register new user",
-    response_model=UserResponse,
     status_code=status.HTTP_200_OK,
 )
 @limiter.limit("5/minute")
@@ -33,9 +37,7 @@ async def register(
     request: Request,  # noqa: ARG001
     payload: Annotated[UserCreateRequest, Body()],
 ) -> UserResponse:
-    """
-    Register new user.
-    """
+    """Register new user."""
     await validate_email_available(payload.email)
 
     new_user = UserModel(
@@ -50,7 +52,7 @@ async def register(
     created_user_obj = await user_collection.find_one({"_id": created_user.inserted_id})
 
     if created_user_obj is None:
-        raise UserCreationFailedException()
+        raise UserCreationFailedException
 
     return UserResponse(**created_user_obj)
 
@@ -58,19 +60,17 @@ async def register(
 @auth_router.post(
     "/init",
     response_description="Look up user by email",
-    response_model=AuthInitResponse,
     status_code=status.HTTP_200_OK,
 )
 @limiter.limit("5/minute")
 async def init(request: Request, payload: Annotated[AuthInitRequest, Body()]) -> AuthInitResponse:  # noqa: ARG001
-    """
-    Look up user by email.
+    """Look up user by email.
     - Verify that user exists.
     - Return details including `auth_salt` and encrypted `vault`.
     """
     user = await user_collection.find_one({"email": payload.email})
     if not user:
-        raise UserNotFoundByEmailException()
+        raise UserNotFoundByEmailException
 
     return AuthInitResponse(
         user_id=user["_id"],
@@ -83,22 +83,20 @@ async def init(request: Request, payload: Annotated[AuthInitRequest, Body()]) ->
 @auth_router.post(
     "/verify",
     response_description="Verify auth verifier",
-    response_model=AuthResponse,
     status_code=status.HTTP_200_OK,
 )
 @limiter.limit("5/minute")
 async def verify(request: Request, payload: Annotated[AuthRequest, Body()]) -> AuthResponse:  # noqa: ARG001
-    """
-    Return a JWT token for a valid `auth_verifier`.
+    """Return a JWT token for a valid `auth_verifier`.
     - Verifies that user exists.
     - Returns a signed JWT containing the authority claim.
     """
     user = await user_collection.find_one({"_id": payload.user_id})
     if not user:
-        raise UserNotFoundByEmailException()
+        raise UserNotFoundByEmailException
 
     if not hmac.compare_digest(payload.auth_verifier, user["auth_verifier"]):
-        raise InvalidAuthVerifierException()
+        raise InvalidAuthVerifierException
 
     token: str = create_jwt_token(payload.user_id)
     return AuthResponse(access_token=token)

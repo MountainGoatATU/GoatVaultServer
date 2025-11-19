@@ -20,21 +20,18 @@ from app.models.user_model import (
 from app.validators import validate_email_available_for_user
 
 user_router: APIRouter = APIRouter(
-    prefix="/users", tags=["users"], dependencies=[Depends(verify_token)]
+    prefix="/users", tags=["users"], dependencies=[Depends(verify_token)],
 )
 
 
 @user_router.get(
     "/{userId}",
     response_description="Get a single user",
-    response_model=UserResponse,
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
 async def get_user(userId: UUID) -> UserResponse:
-    """
-    Get the record for a specific user, looked up by `id`.
-    """
+    """Get the record for a specific user, looked up by `id`."""
     user = await user_collection.find_one({"_id": userId})
     if user is None:
         raise UserNotFoundException(userId)
@@ -45,19 +42,16 @@ async def get_user(userId: UUID) -> UserResponse:
 @user_router.patch(
     "/{userId}",
     response_description="Update a user",
-    response_model=UserResponse,
     status_code=status.HTTP_200_OK,
     response_model_by_alias=False,
 )
 async def update_user(
-    userId: UUID, user_data: Annotated[UserUpdateRequest, Body()]
+    userId: UUID, user_data: Annotated[UserUpdateRequest, Body()],
 ) -> UserResponse:
-    """
-    Update the record for a specific user, looked up by `userId`.
-    """
+    """Update the record for a specific user, looked up by `userId`."""
     update_data = user_data.model_dump(exclude_unset=True, mode="python")
     if not update_data:
-        raise NoFieldsToUpdateException()
+        raise NoFieldsToUpdateException
 
     if "email" in update_data:
         await validate_email_available_for_user(update_data["email"], userId)
@@ -71,7 +65,7 @@ async def update_user(
 
     updated_user_obj = await user_collection.find_one({"_id": userId})
     if updated_user_obj is None:
-        raise UserUpdateFailedException()
+        raise UserUpdateFailedException
 
     return UserResponse(**updated_user_obj)
 
@@ -79,14 +73,10 @@ async def update_user(
 @user_router.delete(
     "/{userId}",
     response_description="Delete a user",
-    response_model=UserModel,
     response_model_by_alias=False,
 )
 async def delete_user(userId: UUID) -> UserModel:
-    """
-    Delete the record for a specific user, looked up by `userId`.
-    """
-
+    """Delete the record for a specific user, looked up by `userId`."""
     _: DeleteResult = await vault_collection.delete_many({"user_id": userId})
 
     deleted_user = await user_collection.find_one_and_delete({"_id": userId})

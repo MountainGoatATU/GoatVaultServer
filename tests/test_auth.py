@@ -11,7 +11,7 @@ from app.auth import create_jwt_token, verify_token
 
 
 @pytest.mark.asyncio
-async def test_verify_token_valid(test_credentials):
+async def test_verify_token_valid(test_credentials) -> None:
     """Test that valid JWT token is accepted."""
     result = await verify_token(test_credentials)
 
@@ -23,10 +23,10 @@ async def test_verify_token_valid(test_credentials):
 
 
 @pytest.mark.asyncio
-async def test_verify_token_invalid():
+async def test_verify_token_invalid() -> None:
     """Test that invalid JWT token raises HTTPException."""
     invalid_credentials = HTTPAuthorizationCredentials(
-        scheme="Bearer", credentials="invalid.jwt.token"
+        scheme="Bearer", credentials="invalid.jwt.token",
     )
 
     with pytest.raises(HTTPException) as exc_info:
@@ -34,11 +34,12 @@ async def test_verify_token_invalid():
 
     exception: HTTPException = exc_info.value  # type: ignore[assignment]
     assert exception.status_code == status.HTTP_401_UNAUTHORIZED
-    assert "Invalid" in exception.detail and "token" in exception.detail.lower()
+    assert "Invalid" in exception.detail
+    assert "token" in exception.detail.lower()
 
 
 @pytest.mark.asyncio
-async def test_verify_token_expired(expired_token):
+async def test_verify_token_expired(expired_token) -> None:
     """Test that expired JWT token raises HTTPException."""
     expired_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=expired_token)
 
@@ -50,10 +51,10 @@ async def test_verify_token_expired(expired_token):
 
 
 @pytest.mark.asyncio
-async def test_verify_token_wrong_issuer(wrong_issuer_token):
+async def test_verify_token_wrong_issuer(wrong_issuer_token) -> None:
     """Test that JWT token with wrong issuer raises HTTPException."""
     wrong_issuer_credentials = HTTPAuthorizationCredentials(
-        scheme="Bearer", credentials=wrong_issuer_token
+        scheme="Bearer", credentials=wrong_issuer_token,
     )
 
     with pytest.raises(HTTPException) as exc_info:
@@ -65,7 +66,7 @@ async def test_verify_token_wrong_issuer(wrong_issuer_token):
 
 
 @pytest.mark.asyncio
-async def test_create_jwt_token(sample_user_id):
+async def test_create_jwt_token(sample_user_id) -> None:
     """Test that JWT token is created successfully."""
     token = create_jwt_token(sample_user_id)
 
@@ -82,7 +83,7 @@ async def test_create_jwt_token(sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_verify_token_missing_subject():
+async def test_verify_token_missing_subject() -> None:
     """Test that JWT token without subject raises HTTPException."""
     import os
     from datetime import timedelta
@@ -107,7 +108,7 @@ async def test_verify_token_missing_subject():
 
 
 @pytest.mark.asyncio
-async def test_register_success(async_client_no_auth, sample_user_data, mock_vault_object):
+async def test_register_success(async_client_no_auth, sample_user_data, mock_vault_object) -> None:
     """Test successfully registering a new user."""
     new_user_id = uuid.uuid4()
     created_user = {
@@ -140,7 +141,7 @@ async def test_register_success(async_client_no_auth, sample_user_data, mock_vau
 
 
 @pytest.mark.asyncio
-async def test_register_duplicate_email(async_client_no_auth, sample_user_data):
+async def test_register_duplicate_email(async_client_no_auth, sample_user_data) -> None:
     """Test registering a user with an email that already exists."""
     with patch("app.routes.auth_route.validate_email_available") as mock_validate:
         from app.exceptions import UserAlreadyExistsException
@@ -153,7 +154,7 @@ async def test_register_duplicate_email(async_client_no_auth, sample_user_data):
 
 
 @pytest.mark.asyncio
-async def test_register_invalid_email(async_client_no_auth, sample_user_data):
+async def test_register_invalid_email(async_client_no_auth, sample_user_data) -> None:
     """Test registering with invalid email format."""
     invalid_data = sample_user_data.copy()
     invalid_data["email"] = "not-an-email"
@@ -164,14 +165,14 @@ async def test_register_invalid_email(async_client_no_auth, sample_user_data):
 
 
 @pytest.mark.asyncio
-async def test_register_missing_fields(async_client_no_auth):
+async def test_register_missing_fields(async_client_no_auth) -> None:
     """Test registering with missing required fields."""
     response = await async_client_no_auth.post("/v1/auth/register", json={})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
-async def test_init_success(async_client_no_auth, mock_user):
+async def test_init_success(async_client_no_auth, mock_user) -> None:
     """Test successfully initializing auth flow by getting user salt and vault."""
     init_request = {"email": "test@example.com"}
 
@@ -191,7 +192,7 @@ async def test_init_success(async_client_no_auth, mock_user):
 
 
 @pytest.mark.asyncio
-async def test_init_user_not_found(async_client_no_auth):
+async def test_init_user_not_found(async_client_no_auth) -> None:
     """Test initializing auth for non-existent user."""
     init_request = {"email": "nonexistent@example.com"}
 
@@ -205,7 +206,7 @@ async def test_init_user_not_found(async_client_no_auth):
 
 
 @pytest.mark.asyncio
-async def test_init_invalid_email(async_client_no_auth):
+async def test_init_invalid_email(async_client_no_auth) -> None:
     """Test initializing auth with invalid email format."""
     init_request = {"email": "not-an-email"}
 
@@ -215,7 +216,7 @@ async def test_init_invalid_email(async_client_no_auth):
 
 
 @pytest.mark.asyncio
-async def test_verify_success(async_client_no_auth, mock_user):
+async def test_verify_success(async_client_no_auth, mock_user) -> None:
     """Test successfully verifying auth and getting JWT token."""
     # The auth_verifier in the request should match what's in the database
     # When sent as base64 string in JSON, pydantic converts it to bytes
@@ -246,7 +247,7 @@ async def test_verify_success(async_client_no_auth, mock_user):
 
 
 @pytest.mark.asyncio
-async def test_verify_user_not_found(async_client_no_auth, sample_user_id):
+async def test_verify_user_not_found(async_client_no_auth, sample_user_id) -> None:
     """Test verifying auth for non-existent user."""
     verify_request = {
         "user_id": str(sample_user_id),
@@ -263,7 +264,7 @@ async def test_verify_user_not_found(async_client_no_auth, sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_verify_invalid_verifier(async_client_no_auth, mock_user):
+async def test_verify_invalid_verifier(async_client_no_auth, mock_user) -> None:
     """Test verifying auth with incorrect auth_verifier."""
     verify_request = {
         "user_id": str(mock_user["_id"]),
@@ -280,7 +281,7 @@ async def test_verify_invalid_verifier(async_client_no_auth, mock_user):
 
 
 @pytest.mark.asyncio
-async def test_verify_invalid_uuid(async_client_no_auth):
+async def test_verify_invalid_uuid(async_client_no_auth) -> None:
     """Test verifying auth with invalid UUID format."""
     verify_request = {
         "user_id": "not-a-valid-uuid",
@@ -293,11 +294,11 @@ async def test_verify_invalid_uuid(async_client_no_auth):
 
 
 @pytest.mark.asyncio
-async def test_verify_missing_fields(async_client_no_auth, sample_user_id):
+async def test_verify_missing_fields(async_client_no_auth, sample_user_id) -> None:
     """Test verifying auth with missing required fields."""
     # Missing auth_verifier
     response = await async_client_no_auth.post(
-        "/v1/auth/verify", json={"user_id": str(sample_user_id)}
+        "/v1/auth/verify", json={"user_id": str(sample_user_id)},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
@@ -314,7 +315,7 @@ async def test_verify_missing_fields(async_client_no_auth, sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_user):
+async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_user) -> None:
     """Test that token from verify endpoint can be used for authenticated requests."""
     verify_request = {
         "user_id": str(mock_user["_id"]),
@@ -345,7 +346,7 @@ async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_u
 
 
 @pytest.mark.asyncio
-async def test_auth_endpoints_no_auth_required(async_client_no_auth, mock_user, sample_user_data):
+async def test_auth_endpoints_no_auth_required(async_client_no_auth, mock_user, sample_user_data) -> None:
     """Test that auth endpoints do not require authentication."""
     # Register endpoint
     with (
@@ -365,7 +366,7 @@ async def test_auth_endpoints_no_auth_required(async_client_no_auth, mock_user, 
         mock_collection.find_one = AsyncMock(return_value=mock_user)
 
         response = await async_client_no_auth.post(
-            "/v1/auth/init", json={"email": "test@example.com"}
+            "/v1/auth/init", json={"email": "test@example.com"},
         )
         assert response.status_code == status.HTTP_200_OK
 
@@ -383,7 +384,7 @@ async def test_auth_endpoints_no_auth_required(async_client_no_auth, mock_user, 
 
 
 @pytest.mark.asyncio
-async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user):
+async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user) -> None:
     """Test complete auth flow: register -> init -> verify."""
     new_user_id = uuid.uuid4()
     created_user = {
@@ -409,7 +410,7 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
         mock_collection.find_one = AsyncMock(return_value=created_user)
 
         register_response = await async_client_no_auth.post(
-            "/v1/auth/register", json=sample_user_data
+            "/v1/auth/register", json=sample_user_data,
         )
         assert register_response.status_code == status.HTTP_200_OK
         user_data = register_response.json()
@@ -420,7 +421,7 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
         mock_collection.find_one = AsyncMock(return_value=created_user)
 
         init_response = await async_client_no_auth.post(
-            "/v1/auth/init", json={"email": registered_email}
+            "/v1/auth/init", json={"email": registered_email},
         )
         assert init_response.status_code == status.HTTP_200_OK
         init_data = init_response.json()

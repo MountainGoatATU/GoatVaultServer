@@ -7,7 +7,7 @@ from fastapi import status
 
 
 @pytest.mark.asyncio
-async def test_get_user_success(async_client, mock_user):
+async def test_get_user_success(async_client, mock_user) -> None:
     """Test successfully retrieving a user."""
     with patch("app.routes.user_route.user_collection") as mock_collection:
         mock_collection.find_one = AsyncMock(return_value=mock_user)
@@ -21,7 +21,7 @@ async def test_get_user_success(async_client, mock_user):
 
 
 @pytest.mark.asyncio
-async def test_get_user_not_found(async_client, sample_user_id):
+async def test_get_user_not_found(async_client, sample_user_id) -> None:
     """Test retrieving a non-existent user."""
     with patch("app.routes.user_route.user_collection") as mock_collection:
         mock_collection.find_one = AsyncMock(return_value=None)
@@ -33,7 +33,7 @@ async def test_get_user_not_found(async_client, sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_update_user_success(async_client, sample_user_id, mock_vault_object):
+async def test_update_user_success(async_client, sample_user_id, mock_vault_object) -> None:
     """Test successfully updating a user."""
     update_data = {"email": "newemail@example.com"}
     updated_user = {
@@ -65,7 +65,7 @@ async def test_update_user_success(async_client, sample_user_id, mock_vault_obje
 
 
 @pytest.mark.asyncio
-async def test_update_user_not_found(async_client, sample_user_id):
+async def test_update_user_not_found(async_client, sample_user_id) -> None:
     """Test updating a non-existent user."""
     update_data = {"email": "newemail@example.com"}
 
@@ -83,7 +83,7 @@ async def test_update_user_not_found(async_client, sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_update_user_no_fields(async_client, sample_user_id):
+async def test_update_user_no_fields(async_client, sample_user_id) -> None:
     """Test updating a user with no fields."""
     with patch("app.routes.user_route.user_collection"):
         response = await async_client.patch(f"/v1/users/{sample_user_id}", json={})
@@ -92,7 +92,7 @@ async def test_update_user_no_fields(async_client, sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_delete_user_success(async_client, mock_user):
+async def test_delete_user_success(async_client, mock_user) -> None:
     """Test successfully deleting a user."""
     with (
         patch("app.routes.user_route.user_collection") as mock_user_col,
@@ -112,7 +112,7 @@ async def test_delete_user_success(async_client, mock_user):
 
 
 @pytest.mark.asyncio
-async def test_delete_user_not_found(async_client, sample_user_id):
+async def test_delete_user_not_found(async_client, sample_user_id) -> None:
     """Test deleting a non-existent user."""
     with (
         patch("app.routes.user_route.user_collection") as mock_user_col,
@@ -127,14 +127,14 @@ async def test_delete_user_not_found(async_client, sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_bearer_token_required(async_client_no_auth):
+async def test_bearer_token_required(async_client_no_auth) -> None:
     """Test that endpoints require Bearer token."""
     response = await async_client_no_auth.get(f"/v1/users/{uuid.uuid4()}")
     assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.asyncio
-async def test_invalid_bearer_token(invalid_token):
+async def test_invalid_bearer_token(invalid_token) -> None:
     """Test that invalid Bearer token is rejected."""
     from httpx import ASGITransport, AsyncClient
 
@@ -150,7 +150,7 @@ async def test_invalid_bearer_token(invalid_token):
 
 
 @pytest.mark.asyncio
-async def test_expired_bearer_token(expired_token):
+async def test_expired_bearer_token(expired_token) -> None:
     """Test that expired Bearer token is rejected."""
     from httpx import ASGITransport, AsyncClient
 
@@ -166,7 +166,7 @@ async def test_expired_bearer_token(expired_token):
 
 
 @pytest.mark.asyncio
-async def test_wrong_issuer_token(wrong_issuer_token):
+async def test_wrong_issuer_token(wrong_issuer_token) -> None:
     """Test that token with wrong issuer is rejected."""
     from httpx import ASGITransport, AsyncClient
 

@@ -14,7 +14,7 @@ class AuthInitRequest(Base64BytesModel):
     email: EmailStr = Field(..., description="Email address of the user")
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
-        json_schema_extra={"example": {"email": "user@example.com"}}
+        json_schema_extra={"example": {"email": "user@example.com"}},
     )
 
 
@@ -38,8 +38,8 @@ class AuthInitResponse(Base64BytesModel):
                     "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
                 },
                 "mfa_enabled": "false",
-            }
-        }
+            },
+        },
     )
 
 
@@ -48,10 +48,10 @@ class AuthRequest(Base64BytesModel):
 
     user_id: UUID = Field(..., description="UUID of the user requesting a token")
     auth_verifier: bytes = Field(
-        ..., min_length=16, max_length=128, description="Verifier for authentication"
+        ..., min_length=16, max_length=128, description="Verifier for authentication",
     )
     mfa_secret: str | None = Field(
-        None, min_length=6, max_length=6, description="Multi-factor authentication code"
+        None, min_length=6, max_length=6, description="Multi-factor authentication code",
     )
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
@@ -59,8 +59,8 @@ class AuthRequest(Base64BytesModel):
             "example": {
                 "user_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
                 "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlcw==",
-            }
-        }
+            },
+        },
     )
 
 
@@ -75,6 +75,6 @@ class AuthResponse(Base64BytesModel):
             "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
                 "token_type": "bearer",
-            }
-        }
+            },
+        },
     )

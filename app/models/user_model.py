@@ -9,9 +9,7 @@ from app.models.vault_model import VaultModel
 
 
 class UserModel(Base64BytesModel):
-    """
-    Container for a single user record.
-    """
+    """Container for a single user record."""
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, alias="_id")
     email: EmailStr = Field(..., max_length=254)
@@ -33,9 +31,7 @@ class UserModel(Base64BytesModel):
 
 
 class UserCreateRequest(Base64BytesModel):
-    """
-    Request model for creating a new user.
-    """
+    """Request model for creating a new user."""
 
     email: EmailStr = Field(..., max_length=254)
     auth_salt: bytes = Field(..., min_length=16, max_length=64)
@@ -54,14 +50,13 @@ class UserCreateRequest(Base64BytesModel):
                     "nonce": "cmFuZG9tbm9uY2U=",
                     "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
                 },
-            }
-        }
+            },
+        },
     )
 
 
 class UserUpdateRequest(Base64BytesModel):
-    """
-    Request model for updating a user.
+    """Request model for updating a user.
     All fields are optional - only provided fields will be updated.
     """
 
@@ -83,15 +78,13 @@ class UserUpdateRequest(Base64BytesModel):
                     "nonce": "cmFuZG9tbm9uY2U=",
                     "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
                 },
-            }
-        }
+            },
+        },
     )
 
 
 class UserResponse(Base64BytesModel):
-    """
-    Response model for user data.
-    """
+    """Response model for user data."""
 
     id: uuid.UUID = Field(..., alias="_id")
     email: EmailStr
@@ -115,6 +108,6 @@ class UserResponse(Base64BytesModel):
                     "nonce": "cmFuZG9tbm9uY2U=",
                     "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
                 },
-            }
+            },
         },
     )

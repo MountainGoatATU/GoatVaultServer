@@ -11,9 +11,9 @@ from app.models.vault_model import (
 )
 
 __all__ = [
-    "UserModel",
     "UserCreateRequest",
-    "UserUpdateRequest",
+    "UserModel",
     "UserResponse",
+    "UserUpdateRequest",
     "VaultModel",
 ]

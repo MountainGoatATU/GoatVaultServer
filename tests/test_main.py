@@ -5,11 +5,9 @@ from app.main import app
 
 
 @pytest.mark.asyncio
-async def test_root_endpoint():
+async def test_root_endpoint() -> None:
     """Test the root endpoint."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/")
 
         assert response.status_code == 200
@@ -21,21 +19,17 @@ async def test_root_endpoint():
 
 
 @pytest.mark.asyncio
-async def test_openapi_docs():
+async def test_openapi_docs() -> None:
     """Test that OpenAPI docs are accessible."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/docs")
         assert response.status_code == 200
 
 
 @pytest.mark.asyncio
-async def test_openapi_json():
+async def test_openapi_json() -> None:
     """Test that OpenAPI JSON schema is accessible."""
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/openapi.json")
         assert response.status_code == 200
         data = response.json()
