@@ -1,3 +1,4 @@
+import hmac
 from typing import Annotated
 
 from fastapi import APIRouter, Body, status
@@ -86,7 +87,7 @@ async def verify(payload: Annotated[AuthRequest, Body()]) -> AuthResponse:
     if not user:
         raise UserNotFoundByEmailException()
 
-    if payload.auth_verifier != user["auth_verifier"]:
+    if not hmac.compare_digest(payload.auth_verifier, user["auth_verifier"]):
         raise InvalidAuthVerifierException()
 
     token: str = create_jwt_token(payload.user_id)
