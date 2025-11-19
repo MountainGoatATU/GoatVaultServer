@@ -3,23 +3,21 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, status
-from pymongo.results import DeleteResult, InsertOneResult, UpdateResult
+from pymongo.results import DeleteResult, UpdateResult
 
 from app.auth import verify_token
 from app.database import user_collection, vault_collection
 from app.exceptions import (
     NoFieldsToUpdateException,
-    UserCreationFailedException,
     UserNotFoundException,
     UserUpdateFailedException,
 )
 from app.models.user_model import (
-    UserCreateRequest,
     UserModel,
     UserResponse,
     UserUpdateRequest,
 )
-from app.validators import validate_email_available, validate_email_available_for_user
+from app.validators import validate_email_available_for_user
 
 user_router: APIRouter = APIRouter(
     prefix="/users", tags=["users"], dependencies=[Depends(verify_token)]
@@ -42,38 +40,6 @@ async def get_user(userId: UUID) -> UserResponse:
         raise UserNotFoundException(userId)
 
     return UserResponse(**user)
-
-
-@user_router.post(
-    "/",
-    response_description="Add new user",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED,
-    response_model_by_alias=False,
-)
-async def create_user(user_data: Annotated[UserCreateRequest, Body()]) -> UserResponse:
-    """
-    Insert a new user record.
-
-    A unique `userId` will be created and provided in the response.
-    """
-    await validate_email_available(user_data.email)
-
-    new_user = UserModel(
-        email=user_data.email,
-        auth_salt=user_data.auth_salt,
-        auth_verifier=user_data.auth_verifier,
-        vault=user_data.vault,
-    )
-
-    new_user_dict = new_user.model_dump(by_alias=True, mode="python")
-    created_user: InsertOneResult = await user_collection.insert_one(new_user_dict)
-    created_user_obj = await user_collection.find_one({"_id": created_user.inserted_id})
-
-    if created_user_obj is None:
-        raise UserCreationFailedException()
-
-    return UserResponse(**created_user_obj)
 
 
 @user_router.patch(
