@@ -30,7 +30,8 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 )
 @limiter.limit("5/minute")
 async def register(
-    _request: Request, payload: Annotated[UserCreateRequest, Body()]
+    request: Request,  # noqa: ARG001
+    payload: Annotated[UserCreateRequest, Body()],
 ) -> UserResponse:
     """
     Register new user.
@@ -61,7 +62,7 @@ async def register(
     status_code=status.HTTP_200_OK,
 )
 @limiter.limit("5/minute")
-async def init(_request: Request, payload: Annotated[AuthInitRequest, Body()]) -> AuthInitResponse:
+async def init(request: Request, payload: Annotated[AuthInitRequest, Body()]) -> AuthInitResponse:  # noqa: ARG001
     """
     Look up user by email.
     - Verify that user exists.
@@ -86,7 +87,7 @@ async def init(_request: Request, payload: Annotated[AuthInitRequest, Body()]) -
     status_code=status.HTTP_200_OK,
 )
 @limiter.limit("5/minute")
-async def verify(_request: Request, payload: Annotated[AuthRequest, Body()]) -> AuthResponse:
+async def verify(request: Request, payload: Annotated[AuthRequest, Body()]) -> AuthResponse:  # noqa: ARG001
     """
     Return a JWT token for a valid `auth_verifier`.
     - Verifies that user exists.
