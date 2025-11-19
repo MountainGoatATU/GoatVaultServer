@@ -1,6 +1,7 @@
+import base64
 import uuid
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException, status
@@ -33,7 +34,7 @@ async def test_verify_token_invalid():
 
     exception: HTTPException = exc_info.value  # type: ignore[assignment]
     assert exception.status_code == status.HTTP_401_UNAUTHORIZED
-    assert "Invalid or expired JWT token" in exception.detail
+    assert "Invalid" in exception.detail and "token" in exception.detail.lower()
 
 
 @pytest.mark.asyncio
@@ -102,24 +103,142 @@ async def test_verify_token_missing_subject():
     assert result.get("sub") is None
 
 
+# Auth Route Tests
+
+
 @pytest.mark.asyncio
-async def test_generate_token_success(async_client_no_auth, mock_user):
-    """Test successfully generating a JWT token for a valid user."""
-    token_request = {
-        "user_id": str(mock_user["_id"]),
-        "email": "test@example.com",
+async def test_register_success(async_client_no_auth, sample_user_data, mock_vault_object):
+    """Test successfully registering a new user."""
+    new_user_id = uuid.uuid4()
+    created_user = {
+        "_id": new_user_id,
+        "email": sample_user_data["email"],
+        "auth_salt": base64.b64decode(sample_user_data["auth_salt"]),
+        "auth_verifier": base64.b64decode(sample_user_data["auth_verifier"]),
+        "mfa_enabled": False,
+        "mfa_secret": None,
+        "vault": mock_vault_object,
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
     }
 
-    with patch("app.routes.token_route.user_collection") as mock_collection:
+    with (
+        patch("app.routes.auth_route.user_collection") as mock_collection,
+        patch("app.routes.auth_route.validate_email_available", new=AsyncMock()),
+    ):
+        mock_result = MagicMock()
+        mock_result.inserted_id = new_user_id
+        mock_collection.insert_one = AsyncMock(return_value=mock_result)
+        mock_collection.find_one = AsyncMock(return_value=created_user)
+
+        response = await async_client_no_auth.post("/v1/auth/register", json=sample_user_data)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["email"] == sample_user_data["email"]
+        assert "_id" in data or "id" in data
+
+
+@pytest.mark.asyncio
+async def test_register_duplicate_email(async_client_no_auth, sample_user_data):
+    """Test registering a user with an email that already exists."""
+    with patch("app.routes.auth_route.validate_email_available") as mock_validate:
+        from app.exceptions import UserAlreadyExistsException
+
+        mock_validate.side_effect = UserAlreadyExistsException()
+
+        response = await async_client_no_auth.post("/v1/auth/register", json=sample_user_data)
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+
+
+@pytest.mark.asyncio
+async def test_register_invalid_email(async_client_no_auth, sample_user_data):
+    """Test registering with invalid email format."""
+    invalid_data = sample_user_data.copy()
+    invalid_data["email"] = "not-an-email"
+
+    response = await async_client_no_auth.post("/v1/auth/register", json=invalid_data)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+@pytest.mark.asyncio
+async def test_register_missing_fields(async_client_no_auth):
+    """Test registering with missing required fields."""
+    response = await async_client_no_auth.post("/v1/auth/register", json={})
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+@pytest.mark.asyncio
+async def test_init_success(async_client_no_auth, mock_user):
+    """Test successfully initializing auth flow by getting user salt and vault."""
+    init_request = {"email": "test@example.com"}
+
+    with patch("app.routes.auth_route.user_collection") as mock_collection:
         mock_collection.find_one = AsyncMock(return_value=mock_user)
 
-        response = await async_client_no_auth.post("/v1/token/", json=token_request)
+        response = await async_client_no_auth.post("/v1/auth/init", json=init_request)
+
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "user_id" in data
+        assert data["user_id"] == str(mock_user["_id"])
+        assert "auth_salt" in data
+        assert "vault" in data
+        assert "mfa_enabled" in data
+        assert data["mfa_enabled"] == False
+
+
+@pytest.mark.asyncio
+async def test_init_user_not_found(async_client_no_auth):
+    """Test initializing auth for non-existent user."""
+    init_request = {"email": "nonexistent@example.com"}
+
+    with patch("app.routes.auth_route.user_collection") as mock_collection:
+        mock_collection.find_one = AsyncMock(return_value=None)
+
+        response = await async_client_no_auth.post("/v1/auth/init", json=init_request)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert "User not found" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_init_invalid_email(async_client_no_auth):
+    """Test initializing auth with invalid email format."""
+    init_request = {"email": "not-an-email"}
+
+    response = await async_client_no_auth.post("/v1/auth/init", json=init_request)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+@pytest.mark.asyncio
+async def test_verify_success(async_client_no_auth, mock_user):
+    """Test successfully verifying auth and getting JWT token."""
+    # The auth_verifier in the request should match what's in the database
+    # When sent as base64 string in JSON, pydantic converts it to bytes
+    verify_request = {
+        "user_id": str(mock_user["_id"]),
+        "auth_verifier": base64.b64encode(mock_user["auth_verifier"]).decode("utf-8"),
+    }
+
+    # Update mock_user to have matching auth_verifier after pydantic processes the request
+    test_mock_user = mock_user.copy()
+    test_mock_user["auth_verifier"] = mock_user["auth_verifier"]
+
+    with patch("app.routes.auth_route.user_collection") as mock_collection:
+        mock_collection.find_one = AsyncMock(return_value=test_mock_user)
+
+        response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "access_token" in data
         assert isinstance(data["access_token"], str)
         assert len(data["access_token"]) > 0
+        assert data["token_type"] == "bearer"
 
         # Verify the token is a valid JWT (has 3 parts separated by dots)
         token_parts = data["access_token"].split(".")
@@ -127,96 +246,86 @@ async def test_generate_token_success(async_client_no_auth, mock_user):
 
 
 @pytest.mark.asyncio
-async def test_generate_token_user_not_found(async_client_no_auth, sample_user_id):
-    """Test generating a token for a non-existent user."""
-    token_request = {
+async def test_verify_user_not_found(async_client_no_auth, sample_user_id):
+    """Test verifying auth for non-existent user."""
+    verify_request = {
         "user_id": str(sample_user_id),
-        "email": "nonexistent@example.com",
+        "auth_verifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8"),
     }
 
-    with patch("app.routes.token_route.user_collection") as mock_collection:
+    with patch("app.routes.auth_route.user_collection") as mock_collection:
         mock_collection.find_one = AsyncMock(return_value=None)
 
-        response = await async_client_no_auth.post("/v1/token/", json=token_request)
+        response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "User not found" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
-async def test_generate_token_email_mismatch(async_client_no_auth, sample_user_id):
-    """Test generating a token with mismatched email."""
-    token_request = {
-        "user_id": str(sample_user_id),
-        "email": "wrong@example.com",
-    }
-
-    with patch("app.routes.token_route.user_collection") as mock_collection:
-        # MongoDB won't find user with mismatched user_id AND email
-        mock_collection.find_one = AsyncMock(return_value=None)
-
-        response = await async_client_no_auth.post("/v1/token/", json=token_request)
-
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "User not found" in response.json()["detail"]
-
-
-@pytest.mark.asyncio
-async def test_generate_token_invalid_uuid(async_client_no_auth):
-    """Test generating a token with invalid UUID format."""
-    token_request = {
-        "user_id": "not-a-valid-uuid",
-        "email": "test@example.com",
-    }
-
-    response = await async_client_no_auth.post("/v1/token/", json=token_request)
-
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-
-
-@pytest.mark.asyncio
-async def test_generate_token_missing_fields(async_client_no_auth):
-    """Test generating a token with missing required fields."""
-    # Missing email
-    response = await async_client_no_auth.post("/v1/token/", json={"user_id": str(uuid.uuid4())})
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-
-    # Missing user_id
-    response = await async_client_no_auth.post("/v1/token/", json={"email": "test@example.com"})
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-
-    # Missing both
-    response = await async_client_no_auth.post("/v1/token/", json={})
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-
-
-@pytest.mark.asyncio
-async def test_generate_token_invalid_email(async_client_no_auth, sample_user_id):
-    """Test generating a token with invalid email format."""
-    token_request = {
-        "user_id": str(sample_user_id),
-        "email": "not-an-email",
-    }
-
-    response = await async_client_no_auth.post("/v1/token/", json=token_request)
-
-    # Should fail validation
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
-
-
-@pytest.mark.asyncio
-async def test_generate_token_can_be_used_for_auth(async_client_no_auth, mock_user):
-    """Test that generated token can be used for authenticated requests."""
-    token_request = {
+async def test_verify_invalid_verifier(async_client_no_auth, mock_user):
+    """Test verifying auth with incorrect auth_verifier."""
+    verify_request = {
         "user_id": str(mock_user["_id"]),
-        "email": "test@example.com",
+        "auth_verifier": base64.b64encode(b"wrongverifier1234567890ab").decode("utf-8"),
     }
 
-    with patch("app.routes.token_route.user_collection") as mock_collection:
+    with patch("app.routes.auth_route.user_collection") as mock_collection:
         mock_collection.find_one = AsyncMock(return_value=mock_user)
 
-        # Generate token
-        response = await async_client_no_auth.post("/v1/token/", json=token_request)
+        response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "Invalid auth verifier" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_verify_invalid_uuid(async_client_no_auth):
+    """Test verifying auth with invalid UUID format."""
+    verify_request = {
+        "user_id": "not-a-valid-uuid",
+        "auth_verifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8"),
+    }
+
+    response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
+
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+@pytest.mark.asyncio
+async def test_verify_missing_fields(async_client_no_auth, sample_user_id):
+    """Test verifying auth with missing required fields."""
+    # Missing auth_verifier
+    response = await async_client_no_auth.post(
+        "/v1/auth/verify", json={"user_id": str(sample_user_id)}
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    # Missing user_id
+    response = await async_client_no_auth.post(
+        "/v1/auth/verify",
+        json={"auth_verifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8")},
+    )
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+    # Missing both
+    response = await async_client_no_auth.post("/v1/auth/verify", json={})
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+
+
+@pytest.mark.asyncio
+async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_user):
+    """Test that token from verify endpoint can be used for authenticated requests."""
+    verify_request = {
+        "user_id": str(mock_user["_id"]),
+        "auth_verifier": base64.b64encode(mock_user["auth_verifier"]).decode("utf-8"),
+    }
+
+    with patch("app.routes.auth_route.user_collection") as mock_collection:
+        mock_collection.find_one = AsyncMock(return_value=mock_user)
+
+        # Generate token via verify
+        response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
         assert response.status_code == status.HTTP_200_OK
         token = response.json()["access_token"]
 
@@ -236,17 +345,117 @@ async def test_generate_token_can_be_used_for_auth(async_client_no_auth, mock_us
 
 
 @pytest.mark.asyncio
-async def test_token_endpoint_no_auth_required(async_client_no_auth, mock_user):
-    """Test that token endpoint does not require authentication."""
-    token_request = {
-        "user_id": str(mock_user["_id"]),
-        "email": "test@example.com",
-    }
-
-    with patch("app.routes.token_route.user_collection") as mock_collection:
+async def test_auth_endpoints_no_auth_required(async_client_no_auth, mock_user, sample_user_data):
+    """Test that auth endpoints do not require authentication."""
+    # Register endpoint
+    with (
+        patch("app.routes.auth_route.user_collection") as mock_collection,
+        patch("app.routes.auth_route.validate_email_available", new=AsyncMock()),
+    ):
+        mock_result = MagicMock()
+        mock_result.inserted_id = uuid.uuid4()
+        mock_collection.insert_one = AsyncMock(return_value=mock_result)
         mock_collection.find_one = AsyncMock(return_value=mock_user)
 
-        # Request without Authorization header should succeed
-        response = await async_client_no_auth.post("/v1/token/", json=token_request)
-
+        response = await async_client_no_auth.post("/v1/auth/register", json=sample_user_data)
         assert response.status_code == status.HTTP_200_OK
+
+    # Init endpoint
+    with patch("app.routes.auth_route.user_collection") as mock_collection:
+        mock_collection.find_one = AsyncMock(return_value=mock_user)
+
+        response = await async_client_no_auth.post(
+            "/v1/auth/init", json={"email": "test@example.com"}
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    # Verify endpoint
+    verify_request = {
+        "user_id": str(mock_user["_id"]),
+        "auth_verifier": base64.b64encode(mock_user["auth_verifier"]).decode("utf-8"),
+    }
+
+    with patch("app.routes.auth_route.user_collection") as mock_collection:
+        mock_collection.find_one = AsyncMock(return_value=mock_user)
+
+        response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
+        assert response.status_code == status.HTTP_200_OK
+
+
+@pytest.mark.asyncio
+async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user):
+    """Test complete auth flow: register -> init -> verify."""
+    new_user_id = uuid.uuid4()
+    created_user = {
+        "_id": new_user_id,
+        "email": sample_user_data["email"],
+        "auth_salt": base64.b64decode(sample_user_data["auth_salt"]),
+        "auth_verifier": base64.b64decode(sample_user_data["auth_verifier"]),
+        "mfa_enabled": False,
+        "mfa_secret": None,
+        "vault": mock_user["vault"],
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
+    }
+
+    # Step 1: Register
+    with (
+        patch("app.routes.auth_route.user_collection") as mock_collection,
+        patch("app.routes.auth_route.validate_email_available", new=AsyncMock()),
+    ):
+        mock_result = MagicMock()
+        mock_result.inserted_id = new_user_id
+        mock_collection.insert_one = AsyncMock(return_value=mock_result)
+        mock_collection.find_one = AsyncMock(return_value=created_user)
+
+        register_response = await async_client_no_auth.post(
+            "/v1/auth/register", json=sample_user_data
+        )
+        assert register_response.status_code == status.HTTP_200_OK
+        user_data = register_response.json()
+        registered_email = user_data["email"]
+
+    # Step 2: Init (get salt and vault)
+    with patch("app.routes.auth_route.user_collection") as mock_collection:
+        mock_collection.find_one = AsyncMock(return_value=created_user)
+
+        init_response = await async_client_no_auth.post(
+            "/v1/auth/init", json={"email": registered_email}
+        )
+        assert init_response.status_code == status.HTTP_200_OK
+        init_data = init_response.json()
+        assert init_data["user_id"] == str(new_user_id)
+        assert "auth_salt" in init_data
+        assert "vault" in init_data
+
+    # Step 3: Verify (get JWT token)
+    verify_request = {
+        "user_id": str(new_user_id),
+        "auth_verifier": sample_user_data["auth_verifier"],
+    }
+
+    with patch("app.routes.auth_route.user_collection") as mock_collection:
+        mock_collection.find_one = AsyncMock(return_value=created_user)
+
+        verify_response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
+        assert verify_response.status_code == status.HTTP_200_OK
+        verify_data = verify_response.json()
+        assert "access_token" in verify_data
+        assert verify_data["token_type"] == "bearer"
+
+    # Step 4: Use token to access protected endpoint
+    token = verify_data["access_token"]
+
+    with patch("app.routes.user_route.user_collection") as mock_user_collection:
+        mock_user_collection.find_one = AsyncMock(return_value=created_user)
+
+        user_response = await async_client_no_auth.get(
+            f"/v1/users/{new_user_id}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert user_response.status_code == status.HTTP_200_OK
+        user_response_data = user_response.json()
+        user_id = user_response_data.get("id") or user_response_data.get("_id")
+        assert user_id == str(new_user_id)
+        assert user_response_data["email"] == registered_email

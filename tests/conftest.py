@@ -108,17 +108,16 @@ def sample_user_data(sample_vault_data: dict) -> dict:
     """Return sample user creation data (with base64 encoded bytes for JSON)."""
     return {
         "email": "test@example.com",
-        "auth_salt": base64.b64encode(b"random_salt_1234").decode("utf-8"),
-        "auth_verifier": base64.b64encode(b"auth_verifier_").decode("utf-8"),
+        "auth_salt": base64.b64encode(b"salt1234567890ab").decode("utf-8"),  # 16 bytes
+        "auth_verifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8"),  # 24 bytes
         "vault": sample_vault_data,
     }
 
 
 @pytest.fixture
-def sample_vault_data(sample_vault_id: uuid.UUID) -> dict:
+def sample_vault_data() -> dict:
     """Return sample vault creation data (with base64 encoded bytes for JSON)."""
     return {
-        "_id": str(sample_vault_id),
         "vault_salt": base64.b64encode(b"vault_salt_12345").decode("utf-8"),
         "encrypted_blob": base64.b64encode(b"encrypted_data_blob").decode("utf-8"),
         "nonce": base64.b64encode(b"random_nonce_123").decode("utf-8"),

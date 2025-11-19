@@ -33,52 +33,6 @@ async def test_get_user_not_found(async_client, sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_create_user_success(async_client, sample_user_data, mock_vault_object):
-    """Test successfully creating a new user."""
-    new_user_id = uuid.uuid4()
-    created_user = {
-        "_id": new_user_id,
-        "email": sample_user_data["email"],
-        "auth_salt": b"salt1234567890ab",  # 16 bytes
-        "auth_verifier": b"authverifier1234567890ab",  # 24 bytes
-        "mfa_enabled": False,
-        "mfa_secret": None,
-        "vault": mock_vault_object,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
-    }
-
-    with (
-        patch("app.routes.user_route.user_collection") as mock_collection,
-        patch("app.routes.user_route.validate_email_available", new=AsyncMock()),
-    ):
-        mock_result = MagicMock()
-        mock_result.inserted_id = new_user_id
-        mock_collection.insert_one = AsyncMock(return_value=mock_result)
-        mock_collection.find_one = AsyncMock(return_value=created_user)
-
-        response = await async_client.post("/v1/users/", json=sample_user_data)
-
-        assert response.status_code == status.HTTP_201_CREATED
-        data = response.json()
-        assert data["email"] == sample_user_data["email"]
-        assert "id" in data
-
-
-@pytest.mark.asyncio
-async def test_create_user_duplicate_email(async_client, sample_user_data):
-    """Test creating a user with an email that already exists."""
-    with patch("app.routes.user_route.validate_email_available") as mock_validate:
-        from app.exceptions import UserAlreadyExistsException
-
-        mock_validate.side_effect = UserAlreadyExistsException()
-
-        response = await async_client.post("/v1/users/", json=sample_user_data)
-
-        assert response.status_code == status.HTTP_409_CONFLICT
-
-
-@pytest.mark.asyncio
 async def test_update_user_success(async_client, sample_user_id, mock_vault_object):
     """Test successfully updating a user."""
     update_data = {"email": "newemail@example.com"}
