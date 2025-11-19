@@ -18,7 +18,7 @@ class AuthInitResponse(BaseModel):
     user_id: uuid.UUID = Field(...)
     auth_salt: bytes = Field(..., min_length=16, max_length=64)
     vault: VaultModel = Field(...)
-    mfa_enabled: bool = Field(default=False)
+    mfa_enabled: bool = Field(...)
 
 
 class AuthRequest(BaseModel):
