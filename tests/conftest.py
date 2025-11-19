@@ -19,8 +19,17 @@ os.environ["TOKEN_EXP_HOURS"] = "1"
 
 from app.auth import create_jwt_token
 from app.main import app
+from app.routes.auth_route import limiter
 
 bearer_scheme = HTTPBearer(auto_error=True)
+
+
+@pytest.fixture(autouse=True)
+def reset_rate_limiter():
+    """Reset the rate limiter before each test."""
+    limiter.reset()
+    yield
+    limiter.reset()
 
 
 @pytest.fixture
