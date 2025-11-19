@@ -29,7 +29,7 @@ class AuthRequest(BaseModel):
         ..., min_length=16, max_length=128, description="Verifier for authentication"
     )
     mfa_secret: str | None = Field(
-        ..., min_length=6, max_length=6, description="Multi-factor authentication code"
+        None, min_length=6, max_length=6, description="Multi-factor authentication code"
     )
 
 
