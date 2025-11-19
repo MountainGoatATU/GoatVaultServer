@@ -1,9 +1,11 @@
 from typing import ClassVar
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+
+from app.models.base import Base64BytesModel
 
 
-class VaultModel(BaseModel):
+class VaultModel(Base64BytesModel):
     """
     Object representing a user's vault.
     """

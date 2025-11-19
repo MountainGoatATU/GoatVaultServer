@@ -1,11 +1,15 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Body, HTTPException, status
+from fastapi import APIRouter, Body, status
 from pymongo.results import InsertOneResult
 
 from app.auth import create_jwt_token
 from app.database import user_collection
-from app.exceptions import UserCreationFailedException
+from app.exceptions import (
+    InvalidAuthVerifierException,
+    UserCreationFailedException,
+    UserNotFoundByEmailException,
+)
 from app.models.auth_model import AuthInitRequest, AuthInitResponse, AuthRequest, AuthResponse
 from app.models.user_model import UserCreateRequest, UserModel, UserResponse
 from app.validators import validate_email_available
@@ -56,7 +60,7 @@ async def init(payload: Annotated[AuthInitRequest, Body()]) -> AuthInitResponse:
     """
     user = await user_collection.find_one({"email": payload.email})
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise UserNotFoundByEmailException()
 
     return AuthInitResponse(
         user_id=user["_id"],
@@ -80,12 +84,10 @@ async def verify(payload: Annotated[AuthRequest, Body()]) -> AuthResponse:
     """
     user = await user_collection.find_one({"_id": payload.user_id})
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise UserNotFoundByEmailException()
 
     if payload.auth_verifier != user["auth_verifier"]:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth verifier"
-        )
+        raise InvalidAuthVerifierException()
 
     token: str = create_jwt_token(payload.user_id)
     return AuthResponse(access_token=token)

@@ -2,16 +2,13 @@ import uuid
 from datetime import UTC, datetime
 from typing import ClassVar
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import ConfigDict, EmailStr, Field
 
+from app.models.base import Base64BytesModel
 from app.models.vault_model import VaultModel
 
-#
-# DATABASE MODEL
-#
 
-
-class UserModel(BaseModel):
+class UserModel(Base64BytesModel):
     """
     Container for a single user record.
     """
@@ -35,12 +32,7 @@ class UserModel(BaseModel):
     )
 
 
-#
-# REQUEST MODELS
-#
-
-
-class UserCreateRequest(BaseModel):
+class UserCreateRequest(Base64BytesModel):
     """
     Request model for creating a new user.
     """
@@ -67,7 +59,7 @@ class UserCreateRequest(BaseModel):
     )
 
 
-class UserUpdateRequest(BaseModel):
+class UserUpdateRequest(Base64BytesModel):
     """
     Request model for updating a user.
     All fields are optional - only provided fields will be updated.
@@ -96,12 +88,7 @@ class UserUpdateRequest(BaseModel):
     )
 
 
-#
-# RESPONSE MODEL
-#
-
-
-class UserResponse(BaseModel):
+class UserResponse(Base64BytesModel):
     """
     Response model for user data.
     """
