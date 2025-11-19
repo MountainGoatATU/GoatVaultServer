@@ -160,14 +160,14 @@ async def test_register_invalid_email(async_client_no_auth, sample_user_data):
 
     response = await async_client_no_auth.post("/v1/auth/register", json=invalid_data)
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
 async def test_register_missing_fields(async_client_no_auth):
     """Test registering with missing required fields."""
     response = await async_client_no_auth.post("/v1/auth/register", json={})
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
@@ -211,7 +211,7 @@ async def test_init_invalid_email(async_client_no_auth):
 
     response = await async_client_no_auth.post("/v1/auth/init", json=init_request)
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
@@ -289,7 +289,7 @@ async def test_verify_invalid_uuid(async_client_no_auth):
 
     response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
 
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
@@ -299,18 +299,18 @@ async def test_verify_missing_fields(async_client_no_auth, sample_user_id):
     response = await async_client_no_auth.post(
         "/v1/auth/verify", json={"user_id": str(sample_user_id)}
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     # Missing user_id
     response = await async_client_no_auth.post(
         "/v1/auth/verify",
         json={"auth_verifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8")},
     )
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
     # Missing both
     response = await async_client_no_auth.post("/v1/auth/verify", json={})
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
