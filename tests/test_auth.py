@@ -84,7 +84,7 @@ async def test_create_jwt_token(sample_user_id):
 async def test_verify_token_missing_subject():
     """Test that JWT token without subject raises HTTPException."""
     import os
-    from datetime import UTC, datetime, timedelta
+    from datetime import timedelta
 
     import jwt
 

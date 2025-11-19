@@ -8,7 +8,7 @@ from starlette.middleware.exceptions import ExceptionMiddleware
 
 # from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from app.database import create_indexes
-from app.routes import token_route, user_route
+from app.routes import auth_route, user_route
 
 _ = load_dotenv()
 
@@ -38,7 +38,7 @@ app.add_middleware(ExceptionMiddleware)
 
 
 app.include_router(user_route.user_router, prefix="/v1")
-app.include_router(token_route.token_router, prefix="/v1")
+app.include_router(auth_route.token_router, prefix="/v1")
 
 
 @app.get("/")
