@@ -13,12 +13,18 @@ from jwt import PyJWTError
 load_dotenv()
 
 JWT_SECRET = os.getenv("JWT_SECRET")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
-ISSUER = os.getenv("ISSUER")
-TOKEN_EXP_HOURS = int(os.getenv("TOKEN_EXP_HOURS", 12))
+if not JWT_SECRET:
+    raise ValueError("JWT_SECRET environment variable is required")
+if len(JWT_SECRET) < 32:
+    raise ValueError("JWT_SECRET must be at least 32 characters")
 
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
+
+ISSUER = os.getenv("ISSUER")
 if not ISSUER:
     raise ValueError("ISSUER environment variable is required.")
+
+TOKEN_EXP_HOURS = int(os.getenv("TOKEN_EXP_HOURS", 12))
 
 
 def create_jwt_token(user_id: UUID) -> str:
