@@ -16,7 +16,6 @@ from app.routes import auth_route, user_route
 
 _ = load_dotenv()
 
-# Environment configuration
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8000").split(",")
 
@@ -39,28 +38,25 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Add rate limiter state
 app.state.limiter = auth_route.limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
-app.add_middleware(ServerErrorMiddleware)
-app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
-app.add_middleware(ExceptionMiddleware)
+app.add_middleware(ServerErrorMiddleware)  # type: ignore[arg-type]
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)  # type: ignore[arg-type]
+app.add_middleware(ExceptionMiddleware)  # type: ignore[arg-type]
 
-# Production-only middleware
 if ENVIRONMENT == "production":
-    app.add_middleware(HTTPSRedirectMiddleware)
+    app.add_middleware(HTTPSRedirectMiddleware)  # type: ignore[arg-type]
     app.add_middleware(
-        CORSMiddleware,
+        CORSMiddleware,  # type: ignore[arg-type]
         allow_origins=CORS_ORIGINS,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
     )
 else:
-    # Development: Allow all origins for easier testing
     app.add_middleware(
-        CORSMiddleware,
+        CORSMiddleware,  # type: ignore[arg-type]
         allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
