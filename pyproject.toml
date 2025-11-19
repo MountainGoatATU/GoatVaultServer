@@ -24,15 +24,27 @@ dev = [
 ]
 
 [tool.taskipy.tasks]
-dev = "python -m uvicorn app.main:app --reload"
-server = "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"
-test = "pytest -v"
-coverage = "pytest --cov=app --cov-report=term-missing"
+dev = "uvicorn app.main:app --reload"
+server = "uvicorn app.main:app --host 0.0.0.0 --port 8000"
+test = "pytest --cov=app --cov-report=term --cov-report=html --cov-report=xml"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+addopts = "-v"
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"
 
 [tool.ruff]
 line-length = 100
@@ -53,6 +65,12 @@ select = [
 ignore = [
     "E501",   # line too long
 ]
+
+[tool.ruff.lint.pylint]
+max-args = 15
+max-branches = 20
+max-returns = 10
+max-statements = 80
 
 [tool.ruff.format]
 quote-style = "double"
