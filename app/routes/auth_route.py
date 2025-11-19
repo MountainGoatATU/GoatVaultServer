@@ -87,5 +87,5 @@ async def verify(payload: Annotated[AuthRequest, Body()]) -> AuthResponse:
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid auth verifier"
         )
 
-    token = create_jwt_token(payload.user_id)
+    token: str = create_jwt_token(payload.user_id)
     return AuthResponse(access_token=token)
