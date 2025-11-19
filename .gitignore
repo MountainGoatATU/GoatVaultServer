@@ -10,5 +10,4 @@ wheels/
 .env
 
 # Coverage reports
-.reports/
 .coverage
