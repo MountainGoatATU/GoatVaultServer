@@ -38,7 +38,7 @@ app.add_middleware(ExceptionMiddleware)
 
 
 app.include_router(user_route.user_router, prefix="/v1")
-app.include_router(auth_route.token_router, prefix="/v1")
+app.include_router(auth_route.auth_router, prefix="/v1")
 
 
 @app.get("/")
