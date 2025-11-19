@@ -21,13 +21,11 @@ class UserModel(BaseModel):
     auth_salt: bytes = Field(..., min_length=16, max_length=64)
     auth_verifier: bytes = Field(..., min_length=16, max_length=128)
 
-    # Multi-factor authentication
     mfa_enabled: bool = Field(default=False)
     mfa_secret: str | None = Field(default=None)
 
     vault: VaultModel = Field(...)
 
-    # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
@@ -59,7 +57,6 @@ class UserCreateRequest(BaseModel):
                 "auth_salt": "cmFuZG9tc2FsdGJ5dGVz",
                 "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlcw==",
                 "vault": {
-                    "_id": "3f68b9b1-9b38-4f1d-a8e3-8d6a6fbc72d9",
                     "vault_salt": "cmFuZG9tc2FsdA==",
                     "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
                     "nonce": "cmFuZG9tbm9uY2U=",
@@ -79,9 +76,9 @@ class UserUpdateRequest(BaseModel):
     email: EmailStr | None = Field(None, max_length=254)
     auth_salt: bytes | None = Field(None, min_length=16, max_length=64)
     auth_verifier: bytes | None = Field(None, min_length=16, max_length=128)
-    vault: VaultModel | None = None
     mfa_enabled: bool | None = None
     mfa_secret: str | None = None
+    vault: VaultModel | None = None
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         json_schema_extra={
@@ -89,7 +86,6 @@ class UserUpdateRequest(BaseModel):
                 "email": "newemail@example.com",
                 "mfa_enabled": True,
                 "vault": {
-                    "_id": "3f68b9b1-9b38-4f1d-a8e3-8d6a6fbc72d9",
                     "vault_salt": "cmFuZG9tc2FsdA==",
                     "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
                     "nonce": "cmFuZG9tbm9uY2U=",
@@ -113,10 +109,9 @@ class UserResponse(BaseModel):
     id: uuid.UUID = Field(..., alias="_id")
     email: EmailStr
     auth_salt: bytes
-    auth_verifier: bytes
-    vault: VaultModel
     mfa_enabled: bool
     mfa_secret: str | None
+    vault: VaultModel
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         populate_by_name=True,
@@ -125,16 +120,14 @@ class UserResponse(BaseModel):
                 "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
                 "email": "user@example.com",
                 "auth_salt": "cmFuZG9tc2FsdGJ5dGVz",
-                "auth_verifier": "cmFuZG9tc2FsdGJ5dGVz",
+                "mfa_enabled": False,
+                "mfa_secret": None,
                 "vault": {
-                    "_id": "3f68b9b1-9b38-4f1d-a8e3-8d6a6fbc72d9",
                     "vault_salt": "cmFuZG9tc2FsdA==",
                     "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
                     "nonce": "cmFuZG9tbm9uY2U=",
                     "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
                 },
-                "mfa_enabled": False,
-                "mfa_secret": None,
             }
         },
     )
