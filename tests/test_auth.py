@@ -187,7 +187,7 @@ async def test_init_success(async_client_no_auth, mock_user):
         assert "auth_salt" in data
         assert "vault" in data
         assert "mfa_enabled" in data
-        assert data["mfa_enabled"] == False
+        assert not data["mfa_enabled"]
 
 
 @pytest.mark.asyncio
