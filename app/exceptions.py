@@ -61,3 +61,23 @@ class UserUpdateFailedException(HTTPException):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update user",
         )
+
+
+class UserNotFoundByEmailException(HTTPException):
+    """Raised when a user cannot be found by email (used in auth flows)."""
+
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+
+class InvalidAuthVerifierException(HTTPException):
+    """Raised when the provided auth verifier doesn't match."""
+
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid auth verifier",
+        )
