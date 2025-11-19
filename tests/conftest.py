@@ -12,7 +12,7 @@ from httpx import ASGITransport, AsyncClient
 # Test environment variables
 os.environ["MONGODB_URL"] = "mongodb://localhost:27017"
 os.environ["DATABASE_NAME"] = "test_goatvault"
-os.environ["JWT_SECRET"] = "test-jwt-secret-12345"
+os.environ["JWT_SECRET"] = "test-jwt-secret-123456789abcdefg"
 os.environ["JWT_ALGORITHM"] = "HS256"
 os.environ["ISSUER"] = "test-issuer"
 os.environ["TOKEN_EXP_HOURS"] = "1"
