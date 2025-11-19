@@ -103,21 +103,10 @@ async def test_verify_token_missing_subject():
 
 
 @pytest.mark.asyncio
-async def test_generate_token_success(async_client_no_auth, sample_user_id):
+async def test_generate_token_success(async_client_no_auth, mock_user):
     """Test successfully generating a JWT token for a valid user."""
-    mock_user = {
-        "_id": sample_user_id,
-        "email": "test@example.com",
-        "auth_salt": b"salt1234567890ab",
-        "auth_verifier": b"authverifier1234567890ab",
-        "mfa_enabled": False,
-        "mfa_secret": None,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
-    }
-
     token_request = {
-        "user_id": str(sample_user_id),
+        "user_id": str(mock_user["_id"]),
         "email": "test@example.com",
     }
 
@@ -216,21 +205,10 @@ async def test_generate_token_invalid_email(async_client_no_auth, sample_user_id
 
 
 @pytest.mark.asyncio
-async def test_generate_token_can_be_used_for_auth(async_client_no_auth, sample_user_id):
+async def test_generate_token_can_be_used_for_auth(async_client_no_auth, mock_user):
     """Test that generated token can be used for authenticated requests."""
-    mock_user = {
-        "_id": sample_user_id,
-        "email": "test@example.com",
-        "auth_salt": b"salt1234567890ab",
-        "auth_verifier": b"authverifier1234567890ab",
-        "mfa_enabled": False,
-        "mfa_secret": None,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
-    }
-
     token_request = {
-        "user_id": str(sample_user_id),
+        "user_id": str(mock_user["_id"]),
         "email": "test@example.com",
     }
 
@@ -247,32 +225,21 @@ async def test_generate_token_can_be_used_for_auth(async_client_no_auth, sample_
             mock_user_collection.find_one = AsyncMock(return_value=mock_user)
 
             auth_response = await async_client_no_auth.get(
-                f"/v1/users/{sample_user_id}",
+                f"/v1/users/{mock_user['_id']}",
                 headers={"Authorization": f"Bearer {token}"},
             )
 
             assert auth_response.status_code == status.HTTP_200_OK
             data = auth_response.json()
-            assert data["id"] == str(sample_user_id)
+            assert data["id"] == str(mock_user["_id"])
             assert data["email"] == "test@example.com"
 
 
 @pytest.mark.asyncio
-async def test_token_endpoint_no_auth_required(async_client_no_auth, sample_user_id):
+async def test_token_endpoint_no_auth_required(async_client_no_auth, mock_user):
     """Test that token endpoint does not require authentication."""
-    mock_user = {
-        "_id": sample_user_id,
-        "email": "test@example.com",
-        "auth_salt": b"salt1234567890ab",
-        "auth_verifier": b"authverifier1234567890ab",
-        "mfa_enabled": False,
-        "mfa_secret": None,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
-    }
-
     token_request = {
-        "user_id": str(sample_user_id),
+        "user_id": str(mock_user["_id"]),
         "email": "test@example.com",
     }
 

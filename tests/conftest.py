@@ -2,6 +2,7 @@ import base64
 import os
 import uuid
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -36,7 +37,7 @@ def sample_vault_id() -> uuid.UUID:
 
 @pytest.fixture
 def test_token(sample_user_id: uuid.UUID) -> str:
-    """Generate a valid JWT token for testing."""
+    """Return a valid JWT token for testing."""
     return create_jwt_token(sample_user_id)
 
 
@@ -91,23 +92,53 @@ def auth_headers(test_token: str) -> dict[str, str]:
 
 
 @pytest.fixture
-def sample_user_data() -> dict:
+def mock_vault_object(sample_vault_id: uuid.UUID) -> dict:
+    """Return a properly structured mock vault object (as stored in MongoDB)."""
+    return {
+        "_id": sample_vault_id,
+        "vault_salt": b"vault_salt_12345",  # 16 bytes
+        "encrypted_blob": b"encrypted_data_blob",
+        "nonce": b"random_nonce_123",  # 16 bytes
+        "auth_tag": b"auth_tag_1234567",  # 16 bytes
+    }
+
+
+@pytest.fixture
+def sample_user_data(sample_vault_data: dict) -> dict:
     """Return sample user creation data (with base64 encoded bytes for JSON)."""
     return {
         "email": "test@example.com",
         "auth_salt": base64.b64encode(b"random_salt_1234").decode("utf-8"),
         "auth_verifier": base64.b64encode(b"auth_verifier_").decode("utf-8"),
+        "vault": sample_vault_data,
     }
 
 
 @pytest.fixture
-def sample_vault_data() -> dict:
+def sample_vault_data(sample_vault_id: uuid.UUID) -> dict:
     """Return sample vault creation data (with base64 encoded bytes for JSON)."""
     return {
+        "_id": str(sample_vault_id),
         "vault_salt": base64.b64encode(b"vault_salt_12345").decode("utf-8"),
         "encrypted_blob": base64.b64encode(b"encrypted_data_blob").decode("utf-8"),
         "nonce": base64.b64encode(b"random_nonce_123").decode("utf-8"),
         "auth_tag": base64.b64encode(b"auth_tag_1234567").decode("utf-8"),
+    }
+
+
+@pytest.fixture
+def mock_user(sample_user_id: uuid.UUID, mock_vault_object: dict) -> dict:
+    """Return a complete mock user object as stored in MongoDB."""
+    return {
+        "_id": sample_user_id,
+        "email": "test@example.com",
+        "auth_salt": b"salt1234567890ab",  # 16 bytes
+        "auth_verifier": b"authverifier1234567890ab",  # 24 bytes
+        "mfa_enabled": False,
+        "mfa_secret": None,
+        "vault": mock_vault_object,
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
     }
 
 

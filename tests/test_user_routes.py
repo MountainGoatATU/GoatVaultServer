@@ -7,27 +7,16 @@ from fastapi import status
 
 
 @pytest.mark.asyncio
-async def test_get_user_success(async_client, sample_user_id):
+async def test_get_user_success(async_client, mock_user):
     """Test successfully retrieving a user."""
-    mock_user = {
-        "_id": sample_user_id,
-        "email": "test@example.com",
-        "auth_salt": b"salt1234567890ab",  # 16 bytes
-        "auth_verifier": b"authverifier1234567890ab",  # 16 bytes
-        "mfa_enabled": False,
-        "mfa_secret": None,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
-    }
-
     with patch("app.routes.user_route.user_collection") as mock_collection:
         mock_collection.find_one = AsyncMock(return_value=mock_user)
 
-        response = await async_client.get(f"/v1/users/{sample_user_id}")
+        response = await async_client.get(f"/v1/users/{mock_user['_id']}")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["id"] == str(sample_user_id)
+        assert data["id"] == str(mock_user["_id"])
         assert data["email"] == "test@example.com"
 
 
@@ -44,16 +33,17 @@ async def test_get_user_not_found(async_client, sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_create_user_success(async_client, sample_user_data):
+async def test_create_user_success(async_client, sample_user_data, mock_vault_object):
     """Test successfully creating a new user."""
     new_user_id = uuid.uuid4()
     created_user = {
         "_id": new_user_id,
         "email": sample_user_data["email"],
         "auth_salt": b"salt1234567890ab",  # 16 bytes
-        "auth_verifier": b"authverifier1234567890ab",  # 16 bytes
+        "auth_verifier": b"authverifier1234567890ab",  # 24 bytes
         "mfa_enabled": False,
         "mfa_secret": None,
+        "vault": mock_vault_object,
         "created_at": datetime.now(UTC),
         "updated_at": datetime.now(UTC),
     }
@@ -89,16 +79,17 @@ async def test_create_user_duplicate_email(async_client, sample_user_data):
 
 
 @pytest.mark.asyncio
-async def test_update_user_success(async_client, sample_user_id):
+async def test_update_user_success(async_client, sample_user_id, mock_vault_object):
     """Test successfully updating a user."""
     update_data = {"email": "newemail@example.com"}
     updated_user = {
         "_id": sample_user_id,
         "email": "newemail@example.com",
         "auth_salt": b"salt1234567890ab",  # 16 bytes
-        "auth_verifier": b"authverifier1234567890ab",  # 16 bytes
+        "auth_verifier": b"authverifier1234567890ab",  # 24 bytes
         "mfa_enabled": False,
         "mfa_secret": None,
+        "vault": mock_vault_object,
         "created_at": datetime.now(UTC),
         "updated_at": datetime.now(UTC),
     }
@@ -147,34 +138,23 @@ async def test_update_user_no_fields(async_client, sample_user_id):
 
 
 @pytest.mark.asyncio
-async def test_delete_user_success(async_client, sample_user_id):
+async def test_delete_user_success(async_client, mock_user):
     """Test successfully deleting a user."""
-    deleted_user = {
-        "_id": sample_user_id,
-        "email": "test@example.com",
-        "auth_salt": b"salt1234567890ab",  # 16 bytes
-        "auth_verifier": b"authverifier1234567890ab",  # 16 bytes
-        "mfa_enabled": False,
-        "mfa_secret": None,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
-    }
-
     with (
         patch("app.routes.user_route.user_collection") as mock_user_col,
         patch("app.routes.user_route.vault_collection") as mock_vault_col,
     ):
-        mock_user_col.find_one_and_delete = AsyncMock(return_value=deleted_user)
+        mock_user_col.find_one_and_delete = AsyncMock(return_value=mock_user)
         mock_vault_col.delete_many = AsyncMock()
 
-        response = await async_client.delete(f"/v1/users/{sample_user_id}")
+        response = await async_client.delete(f"/v1/users/{mock_user['_id']}")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["id"] == str(sample_user_id)
+        assert data["id"] == str(mock_user["_id"])
 
         # Verify vaults were deleted
-        mock_vault_col.delete_many.assert_called_once_with({"user_id": sample_user_id})
+        mock_vault_col.delete_many.assert_called_once_with({"user_id": mock_user["_id"]})
 
 
 @pytest.mark.asyncio
