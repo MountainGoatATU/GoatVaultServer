@@ -1,8 +1,10 @@
 import hmac
 from typing import Annotated
 
-from fastapi import APIRouter, Body, status
+from fastapi import APIRouter, Body, Request, status
 from pymongo.results import InsertOneResult
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.auth import create_jwt_token
 from app.database import user_collection
@@ -15,6 +17,8 @@ from app.models.auth_model import AuthInitRequest, AuthInitResponse, AuthRequest
 from app.models.user_model import UserCreateRequest, UserModel, UserResponse
 from app.validators import validate_email_available
 
+limiter = Limiter(key_func=get_remote_address)
+
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -24,7 +28,8 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
     response_model=UserResponse,
     status_code=status.HTTP_200_OK,
 )
-async def register(payload: Annotated[UserCreateRequest, Body()]) -> UserResponse:
+@limiter.limit("5/minute")
+async def register(request: Request, payload: Annotated[UserCreateRequest, Body()]) -> UserResponse:
     """
     Register new user.
     """
@@ -53,7 +58,8 @@ async def register(payload: Annotated[UserCreateRequest, Body()]) -> UserRespons
     response_model=AuthInitResponse,
     status_code=status.HTTP_200_OK,
 )
-async def init(payload: Annotated[AuthInitRequest, Body()]) -> AuthInitResponse:
+@limiter.limit("5/minute")
+async def init(request: Request, payload: Annotated[AuthInitRequest, Body()]) -> AuthInitResponse:
     """
     Look up user by email.
     - Verify that user exists.
@@ -77,7 +83,8 @@ async def init(payload: Annotated[AuthInitRequest, Body()]) -> AuthInitResponse:
     response_model=AuthResponse,
     status_code=status.HTTP_200_OK,
 )
-async def verify(payload: Annotated[AuthRequest, Body()]) -> AuthResponse:
+@limiter.limit("5/minute")
+async def verify(request: Request, payload: Annotated[AuthRequest, Body()]) -> AuthResponse:
     """
     Return a JWT token for a valid `auth_verifier`.
     - Verifies that user exists.
