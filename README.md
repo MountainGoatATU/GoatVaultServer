@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/MountainGoatATU/GoatVaultServer/branch/main/graph/badge.svg)](https://codecov.io/gh/MountainGoatATU/GoatVaultServer)
+
 # GoatVaultServer
 
 Development API server for GoatVault password manager.
