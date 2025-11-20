@@ -26,7 +26,7 @@ dev = [
 [tool.taskipy.tasks]
 dev = { cmd = "uvicorn app.main:app --reload", help = "Start the development server" }
 server = { cmd = "uvicorn app.main:app --host 0.0.0.0 --port 8000", help = "Start the production server" }
-test = { cmd = "pytest --cov=app --cov-report=term --cov-report=html --cov-report=xml", help = "Run tests with coverage" }
+test = { cmd = "pytest --cov=app --cov-report=term --cov-report=xml", help = "Run tests with coverage" }
 lint = { cmd = "ruff check", help = "Lint the code" }
 
 [tool.pytest.ini_options]
@@ -43,9 +43,6 @@ relative_files = true
 precision = 2
 show_missing = true
 skip_covered = false
-
-[tool.coverage.html]
-directory = "htmlcov"
 
 [tool.ruff]
 line-length = 100
