@@ -71,7 +71,8 @@ def sanitize_validation_error(error_dict: dict) -> dict:
 
 
 async def validation_exception_handler(
-    _request: Request, exc: RequestValidationError
+    request: Request,  # noqa: ARG001
+    exc: RequestValidationError,
 ) -> JSONResponse:
     """Custom handler for RequestValidationError that safely handles bytes in error details."""
     errors = exc.errors()
