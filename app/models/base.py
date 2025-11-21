@@ -1,7 +1,7 @@
 import base64
 from typing import Any
 
-from pydantic import BaseModel, field_validator, model_serializer
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
 
 
 class Base64BytesModel(BaseModel):
@@ -10,6 +10,11 @@ class Base64BytesModel(BaseModel):
     - On input: Decodes base64 strings to bytes
     - On output: Encodes bytes to base64 strings
     """
+
+    model_config = ConfigDict(
+        # This tells Pydantic to serialize bytes as base64 in JSON
+        json_encoders={bytes: lambda v: base64.b64encode(v).decode("utf-8")}
+    )
 
     @field_validator("*", mode="before")
     @classmethod
@@ -29,25 +34,9 @@ class Base64BytesModel(BaseModel):
                     pass
         return v
 
-    @staticmethod
-    def _encode_bytes_recursive(data: Any) -> Any:
-        """Recursively encode all bytes objects to base64 strings."""
-        if isinstance(data, bytes):
-            return base64.b64encode(data).decode("utf-8")
-        elif isinstance(data, dict):
-            return {
-                key: Base64BytesModel._encode_bytes_recursive(value) for key, value in data.items()
-            }
-        elif isinstance(data, list):
-            return [Base64BytesModel._encode_bytes_recursive(item) for item in data]
-        return data
-
-    @model_serializer(mode="wrap")
-    def serialize_with_base64(self, serializer: Any) -> dict[str, Any]:
-        """Serialize the model, encoding all bytes fields as base64 strings.
-
-        This makes the API responses JSON-compatible since raw bytes
-        cannot be directly serialized to JSON.
-        """
-        data = serializer(self)
-        return self._encode_bytes_recursive(data)
+    @field_serializer("*", when_used="json")
+    def serialize_bytes_fields(self, value: Any, _info) -> Any:
+        """Serialize bytes fields to base64 strings for JSON output."""
+        if isinstance(value, bytes):
+            return base64.b64encode(value).decode("utf-8")
+        return value
