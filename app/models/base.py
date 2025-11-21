@@ -1,7 +1,7 @@
 import base64
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
+from pydantic import BaseModel, field_serializer, field_validator
 
 
 class Base64BytesModel(BaseModel):
@@ -10,11 +10,6 @@ class Base64BytesModel(BaseModel):
     - On input: Decodes base64 strings to bytes
     - On output: Encodes bytes to base64 strings
     """
-
-    model_config = ConfigDict(
-        # This tells Pydantic to serialize bytes as base64 in JSON
-        json_encoders={bytes: lambda v: base64.b64encode(v).decode("utf-8")}
-    )
 
     @field_validator("*", mode="before")
     @classmethod
