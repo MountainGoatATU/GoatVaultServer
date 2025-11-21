@@ -9,7 +9,7 @@ from app.models.vault_model import VaultModel
 
 
 class AuthRegisterResponse(Base64BytesModel):
-    """Minimal response after registration - client already has vault data."""
+    """Response model for registration."""
 
     id: uuid.UUID = Field(..., alias="_id")
     email: EmailStr
