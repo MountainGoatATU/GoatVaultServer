@@ -188,7 +188,6 @@ async def test_init_success(async_client_no_auth, mock_user) -> None:
         assert "_id" in data
         assert data["_id"] == str(mock_user["_id"])
         assert "auth_salt" in data
-        assert "vault" in data
         assert "mfa_enabled" in data
         assert not data["mfa_enabled"]
 
@@ -435,7 +434,6 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
         init_data = init_response.json()
         assert init_data["_id"] == str(new_user_id)
         assert "auth_salt" in init_data
-        assert "vault" in init_data
 
     # Step 3: Verify (get JWT token)
     verify_request = {
@@ -450,6 +448,7 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
         assert verify_response.status_code == status.HTTP_200_OK
         verify_data = verify_response.json()
         assert "access_token" in verify_data
+        assert "vault" in verify_data
         assert verify_data["token_type"] == "bearer"
 
     # Step 4: Use token to access protected endpoint
