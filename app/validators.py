@@ -78,6 +78,6 @@ async def validation_exception_handler(
     sanitized_errors = [sanitize_validation_error(error) for error in errors]
 
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={"detail": sanitized_errors},
     )
