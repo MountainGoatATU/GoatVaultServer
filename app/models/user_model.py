@@ -90,7 +90,6 @@ class UserResponse(Base64BytesModel):
     email: EmailStr
     auth_salt: bytes
     mfa_enabled: bool
-    mfa_secret: str | None
     vault: VaultModel
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
