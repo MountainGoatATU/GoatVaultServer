@@ -76,7 +76,6 @@ async def init(request: Request, payload: Annotated[AuthInitRequest, Body()]) ->
     return AuthInitResponse(
         _id=user["_id"],
         auth_salt=user["auth_salt"],
-        vault=user["vault"],
         mfa_enabled=user["mfa_enabled"],
     )
 
@@ -100,4 +99,4 @@ async def verify(request: Request, payload: Annotated[AuthRequest, Body()]) -> A
         raise InvalidAuthVerifierException
 
     token: str = create_jwt_token(payload.id)
-    return AuthResponse(access_token=token)
+    return AuthResponse(access_token=token, vault=user["vault"])
