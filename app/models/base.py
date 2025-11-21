@@ -19,18 +19,28 @@ class Base64BytesModel(BaseModel):
         This validator runs before Pydantic's type validation, so it converts
         base64-encoded strings to bytes before the field type check.
         """
-        # Only process if the field type is bytes and the value is a string
         if info.field_name in cls.model_fields:
             field_info = cls.model_fields[info.field_name]
-            # Check if the annotation is bytes or Optional[bytes]
-            annotation = str(field_info.annotation)
+            annotation: str = str(field_info.annotation)
             if "bytes" in annotation and isinstance(v, str):
                 try:
                     return base64.b64decode(v)
                 except Exception:
-                    # If decoding fails, let Pydantic handle the error
                     pass
         return v
+
+    @staticmethod
+    def _encode_bytes_recursive(data: Any) -> Any:
+        """Recursively encode all bytes objects to base64 strings."""
+        if isinstance(data, bytes):
+            return base64.b64encode(data).decode("utf-8")
+        elif isinstance(data, dict):
+            return {
+                key: Base64BytesModel._encode_bytes_recursive(value) for key, value in data.items()
+            }
+        elif isinstance(data, list):
+            return [Base64BytesModel._encode_bytes_recursive(item) for item in data]
+        return data
 
     @model_serializer(mode="wrap")
     def serialize_with_base64(self, serializer: Any) -> dict[str, Any]:
@@ -40,10 +50,4 @@ class Base64BytesModel(BaseModel):
         cannot be directly serialized to JSON.
         """
         data = serializer(self)
-
-        # Encode all bytes fields to base64
-        for field_name, field_value in data.items():
-            if isinstance(field_value, bytes):
-                data[field_name] = base64.b64encode(field_value).decode("utf-8")
-
-        return data
+        return self._encode_bytes_recursive(data)
