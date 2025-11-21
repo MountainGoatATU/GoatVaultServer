@@ -73,7 +73,7 @@ async def init(request: Request, payload: Annotated[AuthInitRequest, Body()]) ->
         raise UserNotFoundByEmailException
 
     return AuthInitResponse(
-        user_id=user["_id"],
+        _id=user["_id"],
         auth_salt=user["auth_salt"],
         vault=user["vault"],
         mfa_enabled=user["mfa_enabled"],
@@ -91,12 +91,12 @@ async def verify(request: Request, payload: Annotated[AuthRequest, Body()]) -> A
     - Verifies that user exists.
     - Returns a signed JWT containing the authority claim.
     """
-    user = await user_collection.find_one({"_id": payload.user_id})
+    user = await user_collection.find_one({"_id": payload.id})
     if not user:
         raise UserNotFoundByEmailException
 
     if not hmac.compare_digest(payload.auth_verifier, user["auth_verifier"]):
         raise InvalidAuthVerifierException
 
-    token: str = create_jwt_token(payload.user_id)
+    token: str = create_jwt_token(payload.id)
     return AuthResponse(access_token=token)

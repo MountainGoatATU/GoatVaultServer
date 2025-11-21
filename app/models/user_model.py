@@ -41,14 +41,14 @@ class UserCreateRequest(Base64BytesModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(
         json_schema_extra={
             "example": {
+                "auth_salt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
+                "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
                 "email": "user@example.com",
-                "auth_salt": "cmFuZG9tc2FsdGJ5dGVz",
-                "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlcw==",
                 "vault": {
-                    "vault_salt": "cmFuZG9tc2FsdA==",
-                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
-                    "nonce": "cmFuZG9tbm9uY2U=",
-                    "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
+                    "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
+                    "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
             },
         },
@@ -73,10 +73,10 @@ class UserUpdateRequest(Base64BytesModel):
                 "email": "newemail@example.com",
                 "mfa_enabled": True,
                 "vault": {
-                    "vault_salt": "cmFuZG9tc2FsdA==",
-                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
-                    "nonce": "cmFuZG9tbm9uY2U=",
-                    "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
+                    "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
+                    "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
             },
         },
@@ -98,15 +98,14 @@ class UserResponse(Base64BytesModel):
         json_schema_extra={
             "example": {
                 "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
-                "email": "user@example.com",
                 "auth_salt": "cmFuZG9tc2FsdGJ5dGVz",
+                "email": "user@example.com",
                 "mfa_enabled": False,
-                "mfa_secret": None,
                 "vault": {
-                    "vault_salt": "cmFuZG9tc2FsdA==",
-                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
-                    "nonce": "cmFuZG9tbm9uY2U=",
-                    "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
+                    "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
+                    "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
             },
         },

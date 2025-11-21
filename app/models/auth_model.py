@@ -21,7 +21,7 @@ class AuthInitRequest(Base64BytesModel):
 class AuthInitResponse(Base64BytesModel):
     """Response model for initializing authentication."""
 
-    user_id: uuid.UUID = Field(...)
+    id: uuid.UUID = Field(..., alias="_id")
     auth_salt: bytes = Field(..., min_length=16, max_length=64)
     vault: VaultModel = Field(...)
     mfa_enabled: bool = Field(...)
@@ -29,15 +29,15 @@ class AuthInitResponse(Base64BytesModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(
         json_schema_extra={
             "example": {
-                "user_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
-                "auth_salt": "cmFuZG9tc2FsdGJ5dGVz",
-                "vault": {
-                    "vault_salt": "cmFuZG9tc2FsdA==",
-                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YQ==",
-                    "nonce": "cmFuZG9tbm9uY2U=",
-                    "auth_tag": "YXV0aHRhZwYXV0aHRhZw==",
-                },
+                "_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
+                "auth_salt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
                 "mfa_enabled": "false",
+                "vault": {
+                    "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
+                    "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
+                },
             },
         },
     )
@@ -46,7 +46,7 @@ class AuthInitResponse(Base64BytesModel):
 class AuthRequest(Base64BytesModel):
     """Request model for generating JWT token."""
 
-    user_id: UUID = Field(..., description="UUID of the user requesting a token")
+    id: UUID = Field(..., description="UUID of the user requesting a token", alias="_id")
     auth_verifier: bytes = Field(
         ...,
         min_length=16,
@@ -63,8 +63,8 @@ class AuthRequest(Base64BytesModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(
         json_schema_extra={
             "example": {
-                "user_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
-                "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlcw==",
+                "_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
+                "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
             },
         },
     )
