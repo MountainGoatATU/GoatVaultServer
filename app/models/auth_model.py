@@ -8,6 +8,20 @@ from app.models.base import Base64BytesModel
 from app.models.vault_model import VaultModel
 
 
+class AuthRegisterResponse(Base64BytesModel):
+    """Minimal response after registration - client already has vault data."""
+
+    id: uuid.UUID = Field(..., alias="_id")
+    email: EmailStr
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        populate_by_name=True,
+        json_schema_extra={
+            "example": {"_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742", "email": "user@example.com"}
+        },
+    )
+
+
 class AuthInitRequest(Base64BytesModel):
     """Request model for initializing authentication."""
 

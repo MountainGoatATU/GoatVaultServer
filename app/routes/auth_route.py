@@ -16,6 +16,7 @@ from app.exceptions import (
 from app.models.auth_model import (
     AuthInitRequest,
     AuthInitResponse,
+    AuthRegisterResponse,
     AuthRequest,
     AuthResponse,
 )
@@ -36,7 +37,7 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 async def register(
     request: Request,  # noqa: ARG001
     payload: Annotated[UserCreateRequest, Body()],
-) -> UserResponse:
+) -> AuthRegisterResponse:
     """Register new user."""
     await validate_email_available(payload.email)
 
@@ -54,7 +55,7 @@ async def register(
     if created_user_obj is None:
         raise UserCreationFailedException
 
-    return UserResponse(**created_user_obj)
+    return AuthRegisterResponse(**created_user_obj)
 
 
 @auth_router.post(
