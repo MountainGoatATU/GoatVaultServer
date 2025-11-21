@@ -96,10 +96,8 @@ async def test_delete_user_success(async_client, mock_user) -> None:
     """Test successfully deleting a user."""
     with (
         patch("app.routes.user_route.user_collection") as mock_user_col,
-        patch("app.routes.user_route.vault_collection") as mock_vault_col,
     ):
         mock_user_col.find_one_and_delete = AsyncMock(return_value=mock_user)
-        mock_vault_col.delete_many = AsyncMock()
 
         response = await async_client.delete(f"/v1/users/{mock_user['_id']}")
 
@@ -107,19 +105,14 @@ async def test_delete_user_success(async_client, mock_user) -> None:
         data = response.json()
         assert data["id"] == str(mock_user["_id"])
 
-        # Verify vaults were deleted
-        mock_vault_col.delete_many.assert_called_once_with({"user_id": mock_user["_id"]})
-
 
 @pytest.mark.asyncio
 async def test_delete_user_not_found(async_client, sample_user_id) -> None:
     """Test deleting a non-existent user."""
     with (
         patch("app.routes.user_route.user_collection") as mock_user_col,
-        patch("app.routes.user_route.vault_collection") as mock_vault_col,
     ):
         mock_user_col.find_one_and_delete = AsyncMock(return_value=None)
-        mock_vault_col.delete_many = AsyncMock()
 
         response = await async_client.delete(f"/v1/users/{sample_user_id}")
 

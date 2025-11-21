@@ -16,7 +16,6 @@ if not MONGODB_URL or not DATABASE_NAME:
 client: AsyncMongoClient = AsyncMongoClient(MONGODB_URL, uuidRepresentation="standard")
 db: AsyncDatabase = client.get_database(DATABASE_NAME)
 
-vault_collection: AsyncCollection = db.get_collection("vaults")
 user_collection: AsyncCollection = db.get_collection("users")
 
 
@@ -30,10 +29,3 @@ async def create_indexes() -> None:
         IndexModel([("email", ASCENDING)], unique=True, name="email_unique_idx"),
     ]
     await user_collection.create_indexes(user_indexes)
-
-    # Vault collection indexes
-    vault_indexes = [
-        IndexModel([("user_id", ASCENDING)], name="user_id_idx"),
-        IndexModel([("user_id", ASCENDING), ("_id", ASCENDING)], name="user_id_vault_id_idx"),
-    ]
-    await vault_collection.create_indexes(vault_indexes)

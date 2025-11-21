@@ -3,10 +3,10 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, status
-from pymongo.results import DeleteResult, UpdateResult
+from pymongo.results import UpdateResult
 
 from app.auth import verify_token
-from app.database import user_collection, vault_collection
+from app.database import user_collection
 from app.exceptions import (
     NoFieldsToUpdateException,
     UserNotFoundException,
@@ -80,7 +80,6 @@ async def update_user(
 )
 async def delete_user(userId: UUID) -> UserModel:
     """Delete the record for a specific user, looked up by `userId`."""
-    _: DeleteResult = await vault_collection.delete_many({"user_id": userId})
 
     deleted_user = await user_collection.find_one_and_delete({"_id": userId})
     if deleted_user is None:
