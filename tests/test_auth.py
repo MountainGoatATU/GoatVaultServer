@@ -185,8 +185,8 @@ async def test_init_success(async_client_no_auth, mock_user) -> None:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert "user_id" in data
-        assert data["user_id"] == str(mock_user["_id"])
+        assert "_id" in data
+        assert data["_id"] == str(mock_user["_id"])
         assert "auth_salt" in data
         assert "vault" in data
         assert "mfa_enabled" in data
@@ -223,7 +223,7 @@ async def test_verify_success(async_client_no_auth, mock_user) -> None:
     # The auth_verifier in the request should match what's in the database
     # When sent as base64 string in JSON, pydantic converts it to bytes
     verify_request = {
-        "user_id": str(mock_user["_id"]),
+        "_id": str(mock_user["_id"]),
         "auth_verifier": base64.b64encode(mock_user["auth_verifier"]).decode("utf-8"),
     }
 
@@ -252,7 +252,7 @@ async def test_verify_success(async_client_no_auth, mock_user) -> None:
 async def test_verify_user_not_found(async_client_no_auth, sample_user_id) -> None:
     """Test verifying auth for non-existent user."""
     verify_request = {
-        "user_id": str(sample_user_id),
+        "_id": str(sample_user_id),
         "auth_verifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8"),
     }
 
@@ -269,7 +269,7 @@ async def test_verify_user_not_found(async_client_no_auth, sample_user_id) -> No
 async def test_verify_invalid_verifier(async_client_no_auth, mock_user) -> None:
     """Test verifying auth with incorrect auth_verifier."""
     verify_request = {
-        "user_id": str(mock_user["_id"]),
+        "_id": str(mock_user["_id"]),
         "auth_verifier": base64.b64encode(b"wrongverifier1234567890ab").decode("utf-8"),
     }
 
@@ -286,7 +286,7 @@ async def test_verify_invalid_verifier(async_client_no_auth, mock_user) -> None:
 async def test_verify_invalid_uuid(async_client_no_auth) -> None:
     """Test verifying auth with invalid UUID format."""
     verify_request = {
-        "user_id": "not-a-valid-uuid",
+        "_id": "not-a-valid-uuid",
         "auth_verifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8"),
     }
 
@@ -301,7 +301,7 @@ async def test_verify_missing_fields(async_client_no_auth, sample_user_id) -> No
     # Missing auth_verifier
     response = await async_client_no_auth.post(
         "/v1/auth/verify",
-        json={"user_id": str(sample_user_id)},
+        json={"_id": str(sample_user_id)},
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
@@ -321,7 +321,7 @@ async def test_verify_missing_fields(async_client_no_auth, sample_user_id) -> No
 async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_user) -> None:
     """Test that token from verify endpoint can be used for authenticated requests."""
     verify_request = {
-        "user_id": str(mock_user["_id"]),
+        "_id": str(mock_user["_id"]),
         "auth_verifier": base64.b64encode(mock_user["auth_verifier"]).decode("utf-8"),
     }
 
@@ -378,7 +378,7 @@ async def test_auth_endpoints_no_auth_required(
 
     # Verify endpoint
     verify_request = {
-        "user_id": str(mock_user["_id"]),
+        "_id": str(mock_user["_id"]),
         "auth_verifier": base64.b64encode(mock_user["auth_verifier"]).decode("utf-8"),
     }
 
@@ -433,13 +433,13 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
         )
         assert init_response.status_code == status.HTTP_200_OK
         init_data = init_response.json()
-        assert init_data["user_id"] == str(new_user_id)
+        assert init_data["_id"] == str(new_user_id)
         assert "auth_salt" in init_data
         assert "vault" in init_data
 
     # Step 3: Verify (get JWT token)
     verify_request = {
-        "user_id": str(new_user_id),
+        "_id": str(new_user_id),
         "auth_verifier": sample_user_data["auth_verifier"],
     }
 
