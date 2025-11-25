@@ -36,6 +36,7 @@ app = FastAPI(
         "persistAuthorization": True,
     },
     lifespan=lifespan,
+    version="1.2.1",
 )
 
 app.state.limiter = auth_route.limiter
