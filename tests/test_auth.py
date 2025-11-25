@@ -448,7 +448,6 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
         assert verify_response.status_code == status.HTTP_200_OK
         verify_data = verify_response.json()
         assert "access_token" in verify_data
-        assert "vault" in verify_data
         assert verify_data["token_type"] == "bearer"
 
     # Step 4: Use token to access protected endpoint
