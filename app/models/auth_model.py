@@ -82,19 +82,12 @@ class AuthResponse(Base64BytesModel):
 
     access_token: str = Field(..., description="Generated JWT token")
     token_type: str = Field(default="bearer", description="Token type (always 'bearer')")
-    vault: VaultModel
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         json_schema_extra={
             "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
                 "token_type": "bearer",
-                "vault": {
-                    "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
-                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
-                    "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
-                    "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
-                },
             },
         },
     )

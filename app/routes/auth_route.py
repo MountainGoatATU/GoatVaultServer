@@ -99,4 +99,4 @@ async def verify(request: Request, payload: Annotated[AuthRequest, Body()]) -> A
         raise InvalidAuthVerifierException
 
     token: str = create_jwt_token(payload.id)
-    return AuthResponse(access_token=token, vault=user["vault"])
+    return AuthResponse(access_token=token)
