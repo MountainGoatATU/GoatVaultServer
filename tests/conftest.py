@@ -135,6 +135,17 @@ def sample_vault_data() -> dict:
 
 
 @pytest.fixture
+def sample_register_payload(sample_vault_data: dict) -> dict:
+    """Return sample registration payload (alias for sample_user_data)."""
+    return {
+        "email": "test@example.com",
+        "auth_salt": base64.b64encode(b"salt1234567890ab").decode("utf-8"),
+        "auth_verifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8"),
+        "vault": sample_vault_data,
+    }
+
+
+@pytest.fixture
 def mock_user(sample_user_id: uuid.UUID, mock_vault_object: dict) -> dict:
     """Return a complete mock user object as stored in MongoDB."""
     return {
