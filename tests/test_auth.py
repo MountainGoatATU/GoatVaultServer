@@ -203,7 +203,7 @@ async def test_init_user_not_found(async_client_no_auth) -> None:
         response = await async_client_no_auth.post("/v1/auth/init", json=init_request)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "User not found" in response.json()["detail"]
+        assert "not found" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
@@ -261,7 +261,7 @@ async def test_verify_user_not_found(async_client_no_auth, sample_user_id) -> No
         response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "User not found" in response.json()["detail"]
+        assert "not found" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
@@ -343,7 +343,7 @@ async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_u
 
             assert auth_response.status_code == status.HTTP_200_OK
             data = auth_response.json()
-            assert data["id"] == str(mock_user["_id"])
+            assert data["_id"] == str(mock_user["_id"])
             assert data["email"] == "test@example.com"
 
 

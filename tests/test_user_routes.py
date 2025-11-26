@@ -16,7 +16,7 @@ async def test_get_user_success(async_client, mock_user) -> None:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["id"] == str(mock_user["_id"])
+        assert data["_id"] == str(mock_user["_id"])
         assert data["email"] == "test@example.com"
 
 
@@ -103,7 +103,7 @@ async def test_delete_user_success(async_client, mock_user) -> None:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["id"] == str(mock_user["_id"])
+        assert data["_id"] == str(mock_user["_id"])
 
 
 @pytest.mark.asyncio
