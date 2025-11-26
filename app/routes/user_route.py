@@ -30,7 +30,6 @@ user_router: APIRouter = APIRouter(
     "/{userId}",
     response_description="Get a single user",
     status_code=status.HTTP_200_OK,
-    response_model_by_alias=False,
 )
 async def get_user(userId: UUID) -> UserResponse:
     """Get the record for a specific user, looked up by `id`."""
@@ -45,7 +44,6 @@ async def get_user(userId: UUID) -> UserResponse:
     "/{userId}",
     response_description="Update a user",
     status_code=status.HTTP_200_OK,
-    response_model_by_alias=False,
 )
 async def update_user(
     userId: UUID,
@@ -76,7 +74,6 @@ async def update_user(
 @user_router.delete(
     "/{userId}",
     response_description="Delete a user",
-    response_model_by_alias=False,
 )
 async def delete_user(userId: UUID) -> UserModel:
     """Delete the record for a specific user, looked up by `userId`."""
