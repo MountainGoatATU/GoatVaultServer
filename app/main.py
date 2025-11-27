@@ -13,7 +13,7 @@ from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.middleware.exceptions import ExceptionMiddleware
 
 from app.database import create_indexes
-from app.middleware.logging_middleware import RequestLoggingMiddleware
+from app.middleware.logging import RequestLoggingMiddleware
 from app.routes import auth_route, user_route
 from app.validators import validation_exception_handler
 
