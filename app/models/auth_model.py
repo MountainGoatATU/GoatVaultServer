@@ -5,7 +5,6 @@ from uuid import UUID
 from pydantic import ConfigDict, EmailStr, Field
 
 from app.models.base import Base64BytesModel
-from app.models.vault_model import VaultModel
 
 
 class AuthRegisterResponse(Base64BytesModel):
@@ -44,7 +43,7 @@ class AuthInitResponse(Base64BytesModel):
             "example": {
                 "_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
                 "auth_salt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
-                "mfa_enabled": "false",
+                "mfa_enabled": False,
             },
         },
     )
@@ -62,8 +61,6 @@ class AuthRequest(Base64BytesModel):
     )
     mfa_secret: str | None = Field(
         None,
-        min_length=6,
-        max_length=6,
         description="Multi-factor authentication code",
     )
 

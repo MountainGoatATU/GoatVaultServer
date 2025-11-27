@@ -203,7 +203,7 @@ async def test_init_user_not_found(async_client_no_auth) -> None:
         response = await async_client_no_auth.post("/v1/auth/init", json=init_request)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "User not found" in response.json()["detail"]
+        assert "not found" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
@@ -261,7 +261,7 @@ async def test_verify_user_not_found(async_client_no_auth, sample_user_id) -> No
         response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "User not found" in response.json()["detail"]
+        assert "not found" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
@@ -343,7 +343,7 @@ async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_u
 
             assert auth_response.status_code == status.HTTP_200_OK
             data = auth_response.json()
-            assert data["id"] == str(mock_user["_id"])
+            assert data["_id"] == str(mock_user["_id"])
             assert data["email"] == "test@example.com"
 
 
@@ -466,3 +466,27 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
         user_id = user_response_data.get("id") or user_response_data.get("_id")
         assert user_id == str(new_user_id)
         assert user_response_data["email"] == registered_email
+
+
+@pytest.mark.asyncio
+async def test_register_creation_failure(async_client_no_auth, sample_register_payload):
+    """Test user registration when database insert fails."""
+    with (
+        patch("app.validators.user_collection") as mock_validators_collection,
+        patch("app.routes.auth_route.user_collection") as mock_auth_collection,
+    ):
+        # Mock successful validation in validators module
+        mock_validators_collection.find_one = AsyncMock(return_value=None)
+
+        # Mock successful insert but failed retrieval in auth_route module
+        mock_result = MagicMock()
+        mock_result.inserted_id = uuid.uuid4()
+        mock_auth_collection.insert_one = AsyncMock(return_value=mock_result)
+        mock_auth_collection.find_one = AsyncMock(return_value=None)  # Fails to find created user
+
+        response = await async_client_no_auth.post(
+            "/v1/auth/register", json=sample_register_payload
+        )
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert "Failed to create user" in response.json()["detail"]

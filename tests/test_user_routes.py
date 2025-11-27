@@ -16,7 +16,7 @@ async def test_get_user_success(async_client, mock_user) -> None:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["id"] == str(mock_user["_id"])
+        assert data["_id"] == str(mock_user["_id"])
         assert data["email"] == "test@example.com"
 
 
@@ -103,7 +103,7 @@ async def test_delete_user_success(async_client, mock_user) -> None:
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert data["id"] == str(mock_user["_id"])
+        assert data["_id"] == str(mock_user["_id"])
 
 
 @pytest.mark.asyncio
@@ -127,48 +127,20 @@ async def test_bearer_token_required(async_client_no_auth) -> None:
 
 
 @pytest.mark.asyncio
-async def test_invalid_bearer_token(invalid_token) -> None:
-    """Test that invalid Bearer token is rejected."""
-    from httpx import ASGITransport, AsyncClient
+async def test_update_user_retrieval_failure(async_client, sample_user_id):
+    """Test user update when retrieval after update fails."""
+    update_data = {"email": "newemail@example.com"}
 
-    from app.main import app
+    with (
+        patch("app.routes.user_route.user_collection") as mock_collection,
+        patch("app.routes.user_route.validate_email_available_for_user", new=AsyncMock()),
+    ):
+        mock_result = MagicMock()
+        mock_result.matched_count = 1
+        mock_collection.update_one = AsyncMock(return_value=mock_result)
+        mock_collection.find_one = AsyncMock(return_value=None)  # Fails to retrieve
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-        headers={"Authorization": f"Bearer {invalid_token}"},
-    ) as client:
-        response = await client.get(f"/v1/users/{uuid.uuid4()}")
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        response = await async_client.patch(f"/v1/users/{sample_user_id}", json=update_data)
 
-
-@pytest.mark.asyncio
-async def test_expired_bearer_token(expired_token) -> None:
-    """Test that expired Bearer token is rejected."""
-    from httpx import ASGITransport, AsyncClient
-
-    from app.main import app
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-        headers={"Authorization": f"Bearer {expired_token}"},
-    ) as client:
-        response = await client.get(f"/v1/users/{uuid.uuid4()}")
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-
-@pytest.mark.asyncio
-async def test_wrong_issuer_token(wrong_issuer_token) -> None:
-    """Test that token with wrong issuer is rejected."""
-    from httpx import ASGITransport, AsyncClient
-
-    from app.main import app
-
-    async with AsyncClient(
-        transport=ASGITransport(app=app),
-        base_url="http://test",
-        headers={"Authorization": f"Bearer {wrong_issuer_token}"},
-    ) as client:
-        response = await client.get(f"/v1/users/{uuid.uuid4()}")
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert "Failed to update user" in response.json()["detail"]

@@ -12,6 +12,7 @@ from app.exceptions import (
     InvalidAuthVerifierException,
     UserCreationFailedException,
     UserNotFoundByEmailException,
+    UserNotFoundException,
 )
 from app.models.auth_model import (
     AuthInitRequest,
@@ -20,7 +21,7 @@ from app.models.auth_model import (
     AuthRequest,
     AuthResponse,
 )
-from app.models.user_model import UserCreateRequest, UserModel, UserResponse
+from app.models.user_model import UserCreateRequest, UserModel
 from app.validators import validate_email_available
 
 limiter = Limiter(key_func=get_remote_address)
@@ -93,7 +94,7 @@ async def verify(request: Request, payload: Annotated[AuthRequest, Body()]) -> A
     """
     user = await user_collection.find_one({"_id": payload.id})
     if not user:
-        raise UserNotFoundByEmailException
+        raise UserNotFoundException(payload.id)
 
     if not hmac.compare_digest(payload.auth_verifier, user["auth_verifier"]):
         raise InvalidAuthVerifierException
