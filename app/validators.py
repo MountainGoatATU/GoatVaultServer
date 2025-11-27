@@ -1,4 +1,6 @@
 import base64
+import json
+import logging
 from uuid import UUID
 
 from fastapi import Request, status
@@ -10,6 +12,8 @@ from app.exceptions import (
     EmailAlreadyInUseException,
     UserAlreadyExistsException,
 )
+
+logger = logging.getLogger(__name__)
 
 
 async def validate_email_available(email: str) -> None:
@@ -77,6 +81,13 @@ async def validation_exception_handler(
     """Custom handler for RequestValidationError that safely handles bytes in error details."""
     errors = exc.errors()
     sanitized_errors = [sanitize_validation_error(error) for error in errors]
+
+    # Log detailed validation error information
+    logger.error("=" * 80)
+    logger.error(f"VALIDATION ERROR on {request.method} {request.url.path}")
+    logger.error(f"Number of validation errors: {len(errors)}")
+    logger.error(f"Validation errors: {json.dumps(sanitized_errors, indent=2)}")
+    logger.error("=" * 80)
 
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
