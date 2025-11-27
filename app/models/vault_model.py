@@ -10,7 +10,7 @@ class VaultModel(Base64BytesModel):
 
     vault_salt: bytes = Field(..., min_length=16, max_length=64)
     encrypted_blob: bytes = Field(...)
-    nonce: bytes = Field(..., min_length=16, max_length=64)
+    nonce: bytes = Field(..., min_length=12, max_length=64)
     auth_tag: bytes = Field(..., min_length=16, max_length=64)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
