@@ -7,7 +7,7 @@ import pytest
 from fastapi import HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 
-from app.auth import create_jwt_token, verify_token
+from app.utils import UserAlreadyExistsException, create_jwt_token, verify_token
 
 
 @pytest.mark.asyncio
@@ -146,8 +146,6 @@ async def test_register_success(async_client_no_auth, sample_user_data, mock_vau
 async def test_register_duplicate_email(async_client_no_auth, sample_user_data) -> None:
     """Test registering a user with an email that already exists."""
     with patch("app.routes.auth_route.validate_email_available") as mock_validate:
-        from app.exceptions import UserAlreadyExistsException
-
         mock_validate.side_effect = UserAlreadyExistsException()
 
         response = await async_client_no_auth.post("/v1/auth/register", json=sample_user_data)
@@ -472,7 +470,7 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
 async def test_register_creation_failure(async_client_no_auth, sample_register_payload):
     """Test user registration when database insert fails."""
     with (
-        patch("app.validators.user_collection") as mock_validators_collection,
+        patch("app.utils.validators.user_collection") as mock_validators_collection,
         patch("app.routes.auth_route.user_collection") as mock_auth_collection,
     ):
         # Mock successful validation in validators module

@@ -12,19 +12,19 @@ from jwt import PyJWTError
 # Load environment variables
 load_dotenv()
 
-JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_SECRET: str | None = os.getenv("JWT_SECRET")
 if not JWT_SECRET:
     raise ValueError("JWT_SECRET environment variable is required")
 if len(JWT_SECRET) < 32:
     raise ValueError("JWT_SECRET must be at least 32 characters")
 
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
+JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
 
-ISSUER = os.getenv("ISSUER")
+ISSUER: str | None = os.getenv("ISSUER")
 if not ISSUER:
     raise ValueError("ISSUER environment variable is required.")
 
-TOKEN_EXP_HOURS = int(os.getenv("TOKEN_EXP_HOURS", 12))
+TOKEN_EXP_HOURS: int = int(os.getenv("TOKEN_EXP_HOURS", 12))
 
 
 def create_jwt_token(user_id: UUID) -> str:
@@ -50,7 +50,7 @@ async def verify_token(
     """Verifies that the provided Bearer JWT token is valid and that its 'iss'
     (issuer) claim matches the SERVER_NAME environment variable.
     """
-    token = credentials.credentials
+    token: str = credentials.credentials
 
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])

@@ -13,14 +13,14 @@ from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.middleware.exceptions import ExceptionMiddleware
 
 from app.database import create_indexes
-from app.middleware.logging import RequestLoggingMiddleware
+from app.middleware import RequestLoggingMiddleware
 from app.routes import auth_route, user_route
-from app.validators import validation_exception_handler
+from app.utils import validation_exception_handler
 
 _ = load_dotenv()
 
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8000").split(",")
+ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
+CORS_ORIGINS: list[str] = os.getenv("CORS_ORIGINS", "http://localhost:8000").split(",")
 
 
 @asynccontextmanager
@@ -72,7 +72,7 @@ app.include_router(auth_route.auth_router, prefix="/v1")
 
 
 @app.get("/")
-async def root():
+async def root() -> dict[str, str]:
     """Root endpoint for GoatVault Server."""
     return {
         "message": "GoatVault API",

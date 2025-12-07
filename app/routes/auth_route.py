@@ -6,23 +6,24 @@ from pymongo.results import InsertOneResult
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.auth import create_jwt_token
 from app.database import user_collection
-from app.exceptions import (
-    InvalidAuthVerifierException,
-    UserCreationFailedException,
-    UserNotFoundByEmailException,
-    UserNotFoundException,
-)
-from app.models.auth_model import (
+from app.models import (
     AuthInitRequest,
     AuthInitResponse,
     AuthRegisterResponse,
     AuthRequest,
     AuthResponse,
+    UserCreateRequest,
+    UserModel,
 )
-from app.models.user_model import UserCreateRequest, UserModel
-from app.validators import validate_email_available
+from app.utils import (
+    InvalidAuthVerifierException,
+    UserCreationFailedException,
+    UserNotFoundByEmailException,
+    UserNotFoundException,
+    create_jwt_token,
+    validate_email_available,
+)
 
 limiter = Limiter(key_func=get_remote_address)
 

@@ -40,7 +40,7 @@ async def test_openapi_json() -> None:
 
 
 @pytest.mark.asyncio
-async def test_production_environment_config():
+async def test_production_environment_config() -> None:
     """Test that production environment enables HTTPS redirect."""
     import os
     from unittest.mock import patch
@@ -59,7 +59,7 @@ async def test_production_environment_config():
 
 
 @pytest.mark.asyncio
-async def test_lifespan_creates_indexes():
+async def test_lifespan_creates_indexes() -> None:
     """Test that app lifespan calls create_indexes on startup."""
     with patch("app.main.create_indexes", new=AsyncMock()) as mock_create:
         # Import app after patching to ensure patch is applied

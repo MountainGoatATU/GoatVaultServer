@@ -5,19 +5,19 @@ from uuid import UUID
 from fastapi import APIRouter, Body, Depends, status
 from pymongo.results import UpdateResult
 
-from app.auth import verify_token
 from app.database import user_collection
-from app.exceptions import (
-    NoFieldsToUpdateException,
-    UserNotFoundException,
-    UserUpdateFailedException,
-)
-from app.models.user_model import (
+from app.models import (
     UserModel,
     UserResponse,
     UserUpdateRequest,
 )
-from app.validators import validate_email_available_for_user
+from app.utils import (
+    NoFieldsToUpdateException,
+    UserNotFoundException,
+    UserUpdateFailedException,
+    validate_email_available_for_user,
+    verify_token,
+)
 
 user_router: APIRouter = APIRouter(
     prefix="/users",

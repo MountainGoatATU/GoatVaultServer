@@ -4,7 +4,7 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_create_indexes():
+async def test_create_indexes() -> None:
     """Test that create_indexes creates the expected indexes."""
     from app.database import create_indexes, user_collection
 

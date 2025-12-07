@@ -2,10 +2,10 @@ from contextlib import suppress
 
 from pydantic import Field, ValidationError
 
-from app.models.base import Base64BytesModel
+from app.models import Base64BytesModel
 
 
-def test_base64_decode_invalid_base64():
+def test_base64_decode_invalid_base64() -> None:
     """Test that invalid base64 strings are handled gracefully."""
 
     class TestModel(Base64BytesModel):

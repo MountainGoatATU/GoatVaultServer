@@ -8,10 +8,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
 
 from app.database import user_collection
-from app.exceptions import (
-    EmailAlreadyInUseException,
-    UserAlreadyExistsException,
-)
+from app.utils import EmailAlreadyInUseException, UserAlreadyExistsException
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +46,7 @@ def sanitize_validation_error(error_dict: dict) -> dict:
     Converts any bytes in the error 'input' field to base64 strings so they can
     be safely serialized to JSON.
     """
-    sanitized = error_dict.copy()
+    sanitized: dict = error_dict.copy()
 
     if "input" in sanitized and isinstance(sanitized["input"], bytes):
         try:

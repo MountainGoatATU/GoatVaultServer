@@ -1,7 +1,7 @@
 import base64
 import os
 import uuid
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Generator
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
@@ -17,15 +17,15 @@ os.environ["JWT_ALGORITHM"] = "HS256"
 os.environ["ISSUER"] = "test-issuer"
 os.environ["TOKEN_EXP_HOURS"] = "1"
 
-from app.auth import create_jwt_token
 from app.main import app
 from app.routes.auth_route import limiter
+from app.utils import create_jwt_token
 
 bearer_scheme = HTTPBearer(auto_error=True)
 
 
 @pytest.fixture(autouse=True)
-def reset_rate_limiter():
+def reset_rate_limiter() -> Generator[None]:
     """Reset the rate limiter before each test."""
     limiter.reset()
     yield

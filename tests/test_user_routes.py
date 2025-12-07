@@ -127,7 +127,7 @@ async def test_bearer_token_required(async_client_no_auth) -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_user_retrieval_failure(async_client, sample_user_id):
+async def test_update_user_retrieval_failure(async_client, sample_user_id) -> None:
     """Test user update when retrieval after update fails."""
     update_data = {"email": "newemail@example.com"}
 

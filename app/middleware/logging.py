@@ -1,6 +1,7 @@
 import json
 import logging
 from collections.abc import Callable
+from typing import Any
 
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -39,7 +40,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                 logger.info(f"Raw body (first 500 chars): {body[:500]}")
 
             # Restore body for endpoint
-            async def receive():
+            async def receive() -> dict[str, Any]:
                 return {"type": "http.request", "body": body}
 
             request._receive = receive
