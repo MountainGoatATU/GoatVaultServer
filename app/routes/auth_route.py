@@ -18,11 +18,14 @@ from app.models import (
 )
 from app.utils import (
     InvalidAuthVerifierException,
+    InvalidMfaCodeException,
+    MfaCodeRequiredException,
     UserCreationFailedException,
     UserNotFoundByEmailException,
     UserNotFoundException,
     create_jwt_token,
     validate_email_available,
+    verify_mfa,
 )
 
 limiter = Limiter(key_func=get_remote_address)
@@ -99,6 +102,13 @@ async def verify(request: Request, payload: Annotated[AuthRequest, Body()]) -> A
 
     if not hmac.compare_digest(payload.auth_verifier, user["auth_verifier"]):
         raise InvalidAuthVerifierException
+
+    if user.get("mfa_enabled", False):
+        if not payload.mfa_code:
+            raise MfaCodeRequiredException
+
+        if not verify_mfa(payload.mfa_code, user.get("mfa_secret")):
+            raise InvalidMfaCodeException
 
     token: str = create_jwt_token(payload.id)
     return AuthResponse(access_token=token)

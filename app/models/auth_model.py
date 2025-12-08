@@ -59,9 +59,12 @@ class AuthRequest(Base64BytesModel):
         max_length=128,
         description="Verifier for authentication",
     )
-    mfa_secret: str | None = Field(
+    mfa_code: str | None = Field(
         None,
-        description="Multi-factor authentication code",
+        description="6-digit multi-factor authentication code (required if MFA enabled)",
+        min_length=6,
+        max_length=6,
+        pattern="^[0-9]{6}$",
     )
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
@@ -69,6 +72,7 @@ class AuthRequest(Base64BytesModel):
             "example": {
                 "_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
                 "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
+                "mfa_code": "123456",
             },
         },
     )

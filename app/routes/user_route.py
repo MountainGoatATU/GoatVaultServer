@@ -17,6 +17,7 @@ from app.utils import (
     UserUpdateFailedException,
     validate_email_available_for_user,
     verify_token,
+    verify_user_access,
 )
 
 user_router: APIRouter = APIRouter(
@@ -31,8 +32,12 @@ user_router: APIRouter = APIRouter(
     response_description="Get a single user",
     status_code=status.HTTP_200_OK,
 )
-async def get_user(userId: UUID) -> UserResponse:
+async def get_user(
+    userId: UUID, token_payload: Annotated[dict, Depends(verify_token)]
+) -> UserResponse:
     """Get the record for a specific user, looked up by `id`."""
+    verify_user_access(token_payload, userId)
+
     user = await user_collection.find_one({"_id": userId})
     if user is None:
         raise UserNotFoundException(userId)
@@ -48,8 +53,11 @@ async def get_user(userId: UUID) -> UserResponse:
 async def update_user(
     userId: UUID,
     user_data: Annotated[UserUpdateRequest, Body()],
+    token_payload: Annotated[dict, Depends(verify_token)],
 ) -> UserResponse:
     """Update the record for a specific user, looked up by `userId`."""
+    verify_user_access(token_payload, userId)
+
     update_data = user_data.model_dump(exclude_unset=True, mode="python")
     if not update_data:
         raise NoFieldsToUpdateException
@@ -75,8 +83,11 @@ async def update_user(
     "/{userId}",
     response_description="Delete a user",
 )
-async def delete_user(userId: UUID) -> UserModel:
+async def delete_user(
+    userId: UUID, token_payload: Annotated[dict, Depends(verify_token)]
+) -> UserModel:
     """Delete the record for a specific user, looked up by `userId`."""
+    verify_user_access(token_payload, userId)
 
     deleted_user = await user_collection.find_one_and_delete({"_id": userId})
     if deleted_user is None:

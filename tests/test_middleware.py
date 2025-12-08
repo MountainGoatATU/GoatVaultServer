@@ -1,11 +1,8 @@
-import json
-from io import StringIO
-from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
+from unittest.mock import PropertyMock, patch
 
 import pytest
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from starlette.responses import JSONResponse
 
 from app.middleware import RequestLoggingMiddleware
 
@@ -14,7 +11,7 @@ from app.middleware import RequestLoggingMiddleware
 def app_with_logging() -> FastAPI:
     """Create a FastAPI app with logging middleware for testing."""
     app = FastAPI()
-    app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(RequestLoggingMiddleware)  # type: ignore[arg-type]
 
     @app.get("/test-get")
     async def test_get() -> dict:

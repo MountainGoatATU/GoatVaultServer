@@ -8,6 +8,7 @@ dependencies = [
     "fastapi[standard]>=0.119.0",
     "pyjwt>=2.10.1",
     "pymongo>=4.15.3",
+    "pyotp>=2.9.0",
     "python-dotenv>=1.1.1",
     "slowapi>=0.1.9",
 ]

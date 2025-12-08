@@ -81,3 +81,23 @@ class InvalidAuthVerifierException(HTTPException):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid auth verifier",
         )
+
+
+class InvalidMfaCodeException(HTTPException):
+    """Raised when the provided MFA code doesn't match."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid MFA code",
+        )
+
+
+class MfaCodeRequiredException(HTTPException):
+    """Raised when MFA code is required but not provided."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="MFA code is required for this account",
+        )

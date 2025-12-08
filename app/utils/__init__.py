@@ -1,10 +1,9 @@
-from app.utils.auth import (
-    create_jwt_token,
-    verify_token,
-)
+from app.utils.auth import create_jwt_token, verify_mfa, verify_token, verify_user_access
 from app.utils.exceptions import (
     EmailAlreadyInUseException,
     InvalidAuthVerifierException,
+    InvalidMfaCodeException,
+    MfaCodeRequiredException,
     NoFieldsToUpdateException,
     UserAlreadyExistsException,
     UserCreationFailedException,
@@ -22,8 +21,12 @@ from app.utils.validators import (
 __all__: list[str] = [
     "create_jwt_token",
     "verify_token",
+    "verify_mfa",
+    "verify_user_access",
     "EmailAlreadyInUseException",
     "InvalidAuthVerifierException",
+    "InvalidMfaCodeException",
+    "MfaCodeRequiredException",
     "NoFieldsToUpdateException",
     "UserAlreadyExistsException",
     "UserCreationFailedException",

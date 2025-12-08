@@ -4,6 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 import jwt
+import pyotp
 from dotenv import load_dotenv
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -80,3 +81,24 @@ async def verify_token(
         )
 
     return payload
+
+
+def verify_mfa(otp: str | None, secret_key: str | None) -> bool:
+    """Verify the user's multi-factor authentication token."""
+    if not otp or not secret_key:
+        return False
+
+    try:
+        totp = pyotp.TOTP(secret_key)
+        return totp.verify(otp, valid_window=1)
+    except Exception:
+        return False
+
+
+def verify_user_access(token_payload: dict, user_id: UUID) -> None:
+    """Verify that the authenticated user is accessing their own resources."""
+    requesting_user_id = UUID(token_payload["sub"])
+    if requesting_user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="You can only access your own resources"
+        )
