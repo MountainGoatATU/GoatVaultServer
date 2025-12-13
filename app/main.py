@@ -20,7 +20,10 @@ from app.utils import validation_exception_handler
 _ = load_dotenv()
 
 ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
-CORS_ORIGINS: list[str] = os.getenv("CORS_ORIGINS", "http://localhost:8000").split(",")
+
+PROD_SERVER_URL: str | None = os.getenv("PROD_SERVER_URL")
+DEV_SERVER_URL: str | None = os.getenv("DEV_SERVER_URL")
+LOCAL_SERVER_URL: str = os.getenv("LOCAL_SERVER_URL", "http://localhost:8000")
 
 
 @asynccontextmanager
@@ -37,11 +40,11 @@ app = FastAPI(
         "persistAuthorization": True,
     },
     lifespan=lifespan,
-    version="1.2.1",
+    version="1.3.0",
     servers=[
-        {"url": "https://api.mountaingoat.dev", "description": "Production"},
-        {"url": "https://dev-api.mountaingoat.dev", "description": "Development"},
-        {"url": "http://localhost:8000", "description": "Local development"},
+        {"url": PROD_SERVER_URL, "description": "Production"},
+        {"url": DEV_SERVER_URL, "description": "Development"},
+        {"url": LOCAL_SERVER_URL, "description": "Local development"},
     ],
 )
 
@@ -54,23 +57,8 @@ app.add_middleware(ExceptionMiddleware)  # type: ignore[arg-type]
 
 if ENVIRONMENT == "production":
     app.add_middleware(HTTPSRedirectMiddleware)  # type: ignore[arg-type]
-    app.add_middleware(
-        CORSMiddleware,  # type: ignore[arg-type]
-        allow_origins=CORS_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH", "DELETE"],
-        allow_headers=["Authorization", "Content-Type"],
-    )
 else:
-    app.add_middleware(
-        CORSMiddleware,  # type: ignore[arg-type]
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
     app.add_middleware(RequestLoggingMiddleware)  # type: ignore[arg-type]
-
 
 app.include_router(user_route.user_router, prefix="/v1")
 app.include_router(auth_route.auth_router, prefix="/v1")
