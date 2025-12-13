@@ -38,6 +38,11 @@ app = FastAPI(
     },
     lifespan=lifespan,
     version="1.2.1",
+    servers=[
+        {"url": "https://api.mountaingoat.dev", "description": "Production"},
+        {"url": "https://dev-api.mountaingoat.dev", "description": "Development"},
+        {"url": "http://localhost:8000", "description": "Local development"},
+    ],
 )
 
 app.state.limiter = auth_route.limiter
