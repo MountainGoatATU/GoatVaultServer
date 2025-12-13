@@ -32,6 +32,14 @@ async def lifespan(_: FastAPI):
     yield
 
 
+servers: list = []
+if PROD_SERVER_URL:
+    servers.append({"url": PROD_SERVER_URL, "description": "Production"})
+if DEV_SERVER_URL:
+    servers.append({"url": DEV_SERVER_URL, "description": "Development"})
+if LOCAL_SERVER_URL:
+    servers.append({"url": LOCAL_SERVER_URL, "description": "Local development"})
+
 app = FastAPI(
     title="GoatVaultServer",
     description="A server for GoatVault",
@@ -40,11 +48,7 @@ app = FastAPI(
     },
     lifespan=lifespan,
     version="1.3.0",
-    servers=[
-        {"url": PROD_SERVER_URL, "description": "Production"},
-        {"url": DEV_SERVER_URL, "description": "Development"},
-        {"url": LOCAL_SERVER_URL, "description": "Local development"},
-    ],
+    servers=servers,
 )
 
 app.state.limiter = auth_route.limiter
