@@ -189,3 +189,36 @@ def mock_user_collection() -> MagicMock:
     mock.find_one_and_delete = AsyncMock()
     mock.create_indexes = AsyncMock()
     return mock
+
+
+@pytest.fixture
+def mfa_secret() -> str:
+    """Return a valid TOTP secret for MFA testing."""
+    import pyotp
+
+    return pyotp.random_base32()
+
+
+@pytest.fixture
+def mock_user_with_mfa(sample_user_id: uuid.UUID, mock_vault_object: dict, mfa_secret: str) -> dict:
+    """Return a complete mock user object with MFA enabled."""
+    return {
+        "_id": sample_user_id,
+        "email": "mfa@example.com",
+        "auth_salt": b"salt1234567890ab",
+        "auth_verifier": b"authverifier1234567890ab",
+        "mfa_enabled": True,
+        "mfa_secret": mfa_secret,
+        "vault": mock_vault_object,
+        "created_at": datetime.now(UTC),
+        "updated_at": datetime.now(UTC),
+    }
+
+
+@pytest.fixture
+def valid_mfa_code(mfa_secret: str) -> str:
+    """Generate a valid MFA code for the given secret."""
+    import pyotp
+
+    totp = pyotp.TOTP(mfa_secret)
+    return totp.now()
