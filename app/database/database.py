@@ -1,31 +1,27 @@
 import os
+from motor.motor_asyncio import AsyncIOMotorClient
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from motor.motor_asyncio import AsyncIOMotorCollection
 
-from dotenv import load_dotenv
-from pymongo import ASCENDING, AsyncMongoClient, IndexModel
-from pymongo.asynchronous.collection import AsyncCollection
-from pymongo.asynchronous.database import AsyncDatabase
-
-_ = load_dotenv()
-
-MONGODB_URL: str | None = os.getenv("MONGODB_URL")
-DATABASE_NAME: str | None = os.getenv("DATABASE_NAME")
-
-if not MONGODB_URL or not DATABASE_NAME:
-    raise ValueError("Missing required environment variables: MONGODB_URL and DATABASE_NAME")
-
-client: AsyncMongoClient = AsyncMongoClient(MONGODB_URL, uuidRepresentation="standard")
-db: AsyncDatabase = client.get_database(DATABASE_NAME)
-
-user_collection: AsyncCollection = db.get_collection("users")
+_client: AsyncIOMotorClient | None = None
+_db: AsyncIOMotorDatabase | None = None
 
 
-async def create_indexes() -> None:
-    """Create database indexes for optimal query performance.
+def get_client() -> AsyncIOMotorClient:
+    global _client
+    if _client is None:
+        _client = AsyncIOMotorClient(os.environ["MONGODB_URL"])
+    return _client
 
-    This function should be called during application startup.
-    """
-    # User collection indexes
-    user_indexes = [
-        IndexModel([("email", ASCENDING)], unique=True, name="email_unique_idx"),
-    ]
-    await user_collection.create_indexes(user_indexes)
+
+def get_db() -> AsyncIOMotorDatabase:
+    global _db
+    if _db is None:
+        _db = get_client()[os.environ["DATABASE_NAME"]]
+    return _db
+
+
+# Collections
+def get_user_collection() -> AsyncIOMotorCollection:
+    return get_db()["users"]
+

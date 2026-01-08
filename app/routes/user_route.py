@@ -2,10 +2,9 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, status
-from pymongo.results import UpdateResult
+from app.database import get_user_collection
+from fastapi import APIRouter, Body, Depends, status 
 
-from app.database import user_collection
 from app.models import (
     UserModel,
     UserResponse,
@@ -38,6 +37,7 @@ async def get_user(
     """Get the record for a specific user, looked up by `id`."""
     verify_user_access(token_payload, userId)
 
+    user_collection = get_user_collection()
     user = await user_collection.find_one({"_id": userId})
     if user is None:
         raise UserNotFoundException(userId)
@@ -67,7 +67,8 @@ async def update_user(
 
     update_data["updated_at"] = datetime.now(UTC)
 
-    result: UpdateResult = await user_collection.update_one({"_id": userId}, {"$set": update_data})
+    user_collection = get_user_collection()
+    result = await user_collection.update_one({"_id": userId}, {"$set": update_data})
 
     if result.matched_count == 0:
         raise UserNotFoundException(userId)
@@ -89,6 +90,7 @@ async def delete_user(
     """Delete the record for a specific user, looked up by `userId`."""
     verify_user_access(token_payload, userId)
 
+    user_collection = get_user_collection()
     deleted_user = await user_collection.find_one_and_delete({"_id": userId})
     if deleted_user is None:
         raise UserNotFoundException(userId)
