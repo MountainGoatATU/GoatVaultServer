@@ -6,7 +6,7 @@ from pymongo.results import InsertOneResult
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.database import user_collection
+from app.database import get_user_collection
 from app.models import (
     AuthInitRequest,
     AuthInitResponse,
@@ -54,6 +54,8 @@ async def register(
     )
 
     new_user_dict = new_user.model_dump(by_alias=True, mode="python")
+    
+    user_collection = get_user_collection()
     created_user: InsertOneResult = await user_collection.insert_one(new_user_dict)
     created_user_obj = await user_collection.find_one({"_id": created_user.inserted_id})
 
@@ -74,6 +76,8 @@ async def init(request: Request, payload: Annotated[AuthInitRequest, Body()]) ->
     - Verify that user exists.
     - Return details including `auth_salt` and encrypted `vault`.
     """
+    
+    user_collection = get_user_collection()
     user = await user_collection.find_one({"email": payload.email})
     if not user:
         raise UserNotFoundByEmailException
@@ -96,6 +100,8 @@ async def verify(request: Request, payload: Annotated[AuthRequest, Body()]) -> A
     - Verifies that user exists.
     - Returns a signed JWT containing the authority claim.
     """
+    
+    user_collection = get_user_collection()
     user = await user_collection.find_one({"_id": payload.id})
     if not user:
         raise UserNotFoundException(payload.id)

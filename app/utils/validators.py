@@ -7,7 +7,7 @@ from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
 
-from app.database import user_collection
+from app.database import get_user_collection
 from app.utils import EmailAlreadyInUseException, UserAlreadyExistsException
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,8 @@ async def validate_email_available(email: str) -> None:
         UserAlreadyExistsException: If email is already in use.
 
     """
+    
+    user_collection = get_user_collection()
     existing = await user_collection.find_one({"email": email})
     if existing:
         raise UserAlreadyExistsException
@@ -35,6 +37,8 @@ async def validate_email_available_for_user(email: str, user_id: UUID) -> None:
         EmailAlreadyInUseException: If email is in use by another user.
 
     """
+    
+    user_collection = get_user_collection()
     existing = await user_collection.find_one({"email": email, "_id": {"$ne": user_id}})
     if existing:
         raise EmailAlreadyInUseException
