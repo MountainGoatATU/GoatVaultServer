@@ -41,16 +41,26 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            # Install Python & UV to generate requirements.txt
+            - uses: actions/setup-python@v5 
+              with:
+                python-version: "3.11"
+
+            - uses: astral-sh/setup-uv@v6
+              with:
+                enable-cache: true
+            
+            - name: Generate requirements.txt
+              run: uv export --format requirements-txt --no-dev -o requirements.txt
+
             - name: Build Lambda artifact
-              # docker build - builds the image
-              # docker create - creates a container from the image
-              # docker cp - copies the deployment.zip from the container to the host
-              # docker rm - removes the container
               run: |
-                docker build -f Dockerfile.build -t lambda-build .
-                docker create --name extract lambda-build
-                docker cp extract:/deployment.zip deployment.zip
-                docker rm extract
+                docker run --rm -v ${{ github.workspace }}:/var/task public.ecr.aws/lambda/python:3.11 bash -c "
+                mkdir -p /var/task/lambda_package
+                pip install -r /var/task/requirements.txt -t /var/task/lambda_package
+                cp -r /var/task/app /var/task/lambda_package/
+                cd /var/task/lambda_package
+                python3 -m zipfile -c /var/task/deployment.zip ."
 
             - uses: actions/upload-artifact@v4
               with:
