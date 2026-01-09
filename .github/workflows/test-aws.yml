@@ -69,7 +69,7 @@ jobs:
 
                     echo 'Compiling requirements.txt from pyproject.toml'
                     uv sync --locked --all-extras
-                    uv export --format requirements-txt --without-hashes -o /var/task/requirements.txt
+                    uv export --format requirements-txt -o /var/task/requirements.txt
 
                     echo 'Creating Lambda package directory'
                     mkdir -p /var/task/lambda_package
