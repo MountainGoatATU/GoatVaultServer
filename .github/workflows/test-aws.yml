@@ -60,15 +60,18 @@ jobs:
                 docker run --rm \
                 -v "${{ github.workspace }}:/var/task" \
                 --entrypoint /bin/bash \
-                public.ecr.aws/lambda/python:3.11 <<'EOF'
-                set -e
+                public.ecr.aws/lambda/python:3.11 \
+                -c "set -e \
+                && mkdir -p /var/task/lambda_package \
+                && pip install -r /var/task/requirements.txt -t /var/task/lambda_package \
+                && cp -r /var/task/app /var/task/lambda_package/ \
+                && cd /var/task/lambda_package \
+                && python3 -m zipfile -c /var/task/deployment.zip ."
 
-                mkdir -p /var/task/lambda_package
-                pip install -r /var/task/requirements.txt -t /var/task/lambda_package
-                cp -r /var/task/app /var/task/lambda_package/
-                cd /var/task/lambda_package
-                python3 -m zipfile -c /var/task/deployment.zip .
-                EOF
+            - name: Verify deployment.zip
+              run: |
+                ls -lh deployment.zip
+                unzip -l deployment.zip | head -30
 
             - uses: actions/upload-artifact@v4
               with:
