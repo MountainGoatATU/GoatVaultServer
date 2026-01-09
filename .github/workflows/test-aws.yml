@@ -52,11 +52,26 @@ jobs:
             - name: Sync dependencies (from uv.lock)
               run: uv sync --locked --all-extras
 
-            - name: Export requirements.txt
-              run: uv export --format requirements-txt -o requirements.txt
+            - name: Export production requirements.txt
+              run: uv export --format requirements-txt --no-dev -o requirements.txt
 
-            - name: Show requirements.txt in logs
-              run: cat requirements.txt
+            - name: Build Lambda deployment package
+              run: |
+                docker run --rm \
+                -v ${{ github.workspace }}:/var/task \
+                --entrypoint /bin/bash \
+                public.ecr.aws/lambda/python:3.11 \
+                -c "
+                    set -e
+                    mkdir -p /var/task/lambda_package
+                    pip install -r /var/task/requirements.txt -t /var/task/lambda_package
+                    cp -r /var/task/app /var/task/lambda_package/
+                    cd /var/task/lambda_package
+                    python3 -m zipfile -c /var/task/deployment.zip .
+
+            
+
+
             # - uses: actions/upload-artifact@v4
             #   with:
             #     name: lambda-zip
