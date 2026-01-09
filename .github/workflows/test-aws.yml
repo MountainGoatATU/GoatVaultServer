@@ -1,0 +1,106 @@
+name: Test AWS Deployment
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "*.md"
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "*.md"
+
+env:
+  TERRAFORM_WORKING_DIRECTORY: terraform
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v4
+
+        - uses: actions/setup-python@v5
+          with:
+            python-version: "3.11"
+
+        - uses: astral-sh/setup-uv@v6
+          with:
+            enable-cache: true
+
+        - run: uv sync --locked --all-extras --dev
+        - run: uv run ruff check app tests
+        - run: uv run pytest tests
+
+    build:
+        needs: test
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Build Lambda artifact
+              # docker build - builds the image
+              # docker create - creates a container from the image
+              # docker cp - copies the deployment.zip from the container to the host
+              # docker rm - removes the container
+              run: |
+                docker build -f Dockerfile.build -t lambda-build .
+                docker create --name extract lambda-build
+                docker cp extract:/deployment.zip deployment.zip
+                docker rm extract
+
+            - uses: actions/upload-artifact@v4
+              with:
+                name: lambda-zip
+                path: deployment.zip
+
+    terraform:
+        needs: build
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: aws-actions/configure-aws-credentials@v4
+              with:
+                role-to-assume: arn:aws:iam::905418129504:role/github-deploy
+                aws-region: eu-west-1
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+              with:
+                terraform_version: 1.14.3
+                terraform_wrapper: false
+
+            - run: terraform init
+              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+
+            - name: Terraform Validate
+              # ensures that terraform validate runs regardless of the success or failure of the previous step
+              if: success() || failure()
+              run: terraform validate
+              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+
+            - name: Terraform Plan and Apply
+              run: |
+                terraform plan -out=tfplan.out
+                terraform apply tfplan.out
+              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+
+    deploy:
+        needs: [build, terraform]
+        runs-on: ubuntu-latest
+        steps:
+         - uses: actions/download-artifact@v4
+           with:
+            name: lambda-zip
+
+         - uses: aws-actions/configure-aws-credentials@v4
+           with:
+            role-to-assume: arn:aws:iam::905418129504:role/github-deploy
+            aws-region: eu-west-1
+
+         - run: |
+            aws lambda update-function-code \
+                --function-name goatvault-api \
+                --zip-file fileb://deployment.zip

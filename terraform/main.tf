@@ -35,8 +35,10 @@ resource "aws_lambda_function" "api" {
   timeout     = 30
   memory_size = 512
 
-  filename         = "${path.module}/deployment/deployment.zip"
-  source_code_hash = filebase64sha256("${path.module}/deployment/deployment.zip")
+  // Uncomment below to use local zip file for deployment
+  // Comment out the 'filename' and 'source_code_hash' in 'aws_lambda_function' resource to use Pipeline deployment
+  //filename         = "${path.module}/deployment/deployment.zip"
+  //source_code_hash = filebase64sha256("${path.module}/deployment/deployment.zip")
 
   environment {
     variables = {

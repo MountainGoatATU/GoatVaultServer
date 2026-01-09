@@ -1,0 +1,22 @@
+# Dockerfile.build
+FROM public.ecr.aws/lambda/python:3.11
+
+WORKDIR /build
+
+# Install uv
+RUN pip install uv
+
+# Copy dependency definitions
+COPY pyproject.toml uv.lock ./
+
+# Export requirements.txt
+RUN uv export --format requirements-txt --no-dev -o requirements.txt
+
+# Install dependencies into /python (Lambda expects this)
+RUN pip install -r requirements.txt -t /python
+
+# Copy app code
+COPY app ./app
+
+# Package
+RUN zip -r /deployment.zip app python
