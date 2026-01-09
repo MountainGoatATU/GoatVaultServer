@@ -55,7 +55,7 @@ jobs:
 
             - name: Build Lambda artifact
               run: |
-                docker run --rm -v ${{ github.workspace }}:/var/task public.ecr.aws/lambda/python:3.11 bash -c "
+                docker run --rm -v ${{ github.workspace }}:/var/task --entrypoint /bin/bash public.ecr.aws/lambda/python:3.11 bash -c "
                 mkdir -p /var/task/lambda_package
                 pip install -r /var/task/requirements.txt -t /var/task/lambda_package
                 cp -r /var/task/app /var/task/lambda_package/
