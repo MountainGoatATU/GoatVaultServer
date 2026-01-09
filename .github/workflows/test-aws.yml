@@ -58,16 +58,17 @@ jobs:
             - name: Build Lambda deployment package
               run: |
                 docker run --rm \
-                -v ${{ github.workspace }}:/var/task \
+                -v "${{ github.workspace }}:/var/task" \
                 --entrypoint /bin/bash \
-                public.ecr.aws/lambda/python:3.11 \
-                -c "
-                    set -e
-                    mkdir -p /var/task/lambda_package
-                    pip install -r /var/task/requirements.txt -t /var/task/lambda_package
-                    cp -r /var/task/app /var/task/lambda_package/
-                    cd /var/task/lambda_package
-                    python3 -m zipfile -c /var/task/deployment.zip .
+                public.ecr.aws/lambda/python:3.11 <<'EOF'
+                set -e
+
+                mkdir -p /var/task/lambda_package
+                pip install -r /var/task/requirements.txt -t /var/task/lambda_package
+                cp -r /var/task/app /var/task/lambda_package/
+                cd /var/task/lambda_package
+                python3 -m zipfile -c /var/task/deployment.zip .
+                EOF
 
             
 
