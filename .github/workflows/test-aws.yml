@@ -45,96 +45,69 @@ jobs:
             - uses: actions/setup-python@v5 
               with:
                 python-version: "3.11"
-
-            - uses: astral-sh/setup-uv@v6
-              with:
-                enable-cache: true
             
-            - name: Generate requirements.txt
-              run: uv export --format requirements-txt --no-dev -o requirements.txt
+            - name: Install UV
+              run: pip install uv
 
-            - name: Build Lambda artifact in Docker
-              run: |
-                docker run --rm \
-                -v ${{ github.workspace }}:/var/task \
-                --entrypoint /bin/bash \
-                public.ecr.aws/lambda/python:3.11 -c "
-                    set -e
+            - name: Sync dependencies (from uv.lock)
+              run: uv sync --locked --all-extras
 
-                    echo 'Installing build tools...'
-                    pip install --upgrade pip setuptools wheel
+            - name: Export requirements.txt
+              run: uv export --format requirements-txt -o requirements.txt
 
-                    echo 'Installing uv to handle pyproject.toml'
-                    pip install uv
+            - name: Show requirements.txt in logs
+              run: cat requirements.txt
+            # - uses: actions/upload-artifact@v4
+            #   with:
+            #     name: lambda-zip
+            #     path: deployment.zip
 
-                    echo 'Compiling requirements.txt from pyproject.toml'
-                    uv sync --locked --all-extras
-                    uv export --format requirements-txt -o /var/task/requirements.txt
+    # terraform:
+    #     needs: build
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #         - uses: actions/checkout@v4
 
-                    echo 'Creating Lambda package directory'
-                    mkdir -p /var/task/lambda_package
+    #         - uses: aws-actions/configure-aws-credentials@v4
+    #           with:
+    #             role-to-assume: arn:aws:iam::905418129504:role/github-deploy
+    #             aws-region: eu-west-1
 
-                    echo 'Installing dependencies into lambda_package'
-                    pip install -r /var/task/requirements.txt -t /var/task/lambda_package
+    #         - name: Setup Terraform
+    #           uses: hashicorp/setup-terraform@v3
+    #           with:
+    #             terraform_version: 1.14.3
+    #             terraform_wrapper: false
 
-                    echo 'Copying application code'
-                    cp -r /var/task/app /var/task/lambda_package/
+    #         - run: terraform init
+    #           working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
 
-                    echo 'Creating deployment zip'
-                    cd /var/task/lambda_package
-                    python3 -m zipfile -c /var/task/deployment.zip ."
+    #         - name: Terraform Validate
+    #           # ensures that terraform validate runs regardless of the success or failure of the previous step
+    #           if: success() || failure()
+    #           run: terraform validate
+    #           working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
 
-            - uses: actions/upload-artifact@v4
-              with:
-                name: lambda-zip
-                path: deployment.zip
+    #         - name: Terraform Plan and Apply
+    #           run: |
+    #             terraform plan -out=tfplan.out
+    #             terraform apply tfplan.out
+    #           working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
 
-    terraform:
-        needs: build
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+    # deploy:
+    #     needs: [build, terraform]
+    #     runs-on: ubuntu-latest
+    #     steps:
+    #      - uses: actions/download-artifact@v4
+    #        with:
+    #         name: lambda-zip
 
-            - uses: aws-actions/configure-aws-credentials@v4
-              with:
-                role-to-assume: arn:aws:iam::905418129504:role/github-deploy
-                aws-region: eu-west-1
+    #      - uses: aws-actions/configure-aws-credentials@v4
+    #        with:
+    #         role-to-assume: arn:aws:iam::905418129504:role/github-deploy
+    #         aws-region: eu-west-1
 
-            - name: Setup Terraform
-              uses: hashicorp/setup-terraform@v3
-              with:
-                terraform_version: 1.14.3
-                terraform_wrapper: false
-
-            - run: terraform init
-              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
-
-            - name: Terraform Validate
-              # ensures that terraform validate runs regardless of the success or failure of the previous step
-              if: success() || failure()
-              run: terraform validate
-              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
-
-            - name: Terraform Plan and Apply
-              run: |
-                terraform plan -out=tfplan.out
-                terraform apply tfplan.out
-              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
-
-    deploy:
-        needs: [build, terraform]
-        runs-on: ubuntu-latest
-        steps:
-         - uses: actions/download-artifact@v4
-           with:
-            name: lambda-zip
-
-         - uses: aws-actions/configure-aws-credentials@v4
-           with:
-            role-to-assume: arn:aws:iam::905418129504:role/github-deploy
-            aws-region: eu-west-1
-
-         - run: |
-            aws lambda update-function-code \
-                --function-name goatvault-api \
-                --zip-file fileb://deployment.zip
+    #      - run: |
+    #         aws lambda update-function-code \
+    #             --function-name goatvault-api \
+    #             --zip-file fileb://deployment.zip
