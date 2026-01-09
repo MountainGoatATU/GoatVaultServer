@@ -53,14 +53,36 @@ jobs:
             - name: Generate requirements.txt
               run: uv export --format requirements-txt --no-dev -o requirements.txt
 
-            - name: Build Lambda artifact
+            - name: Build Lambda artifact in Docker
               run: |
-                docker run --rm -v ${{ github.workspace }}:/var/task --entrypoint /bin/bash public.ecr.aws/lambda/python:3.11 bash -c "
-                mkdir -p /var/task/lambda_package
-                pip install -r /var/task/requirements.txt -t /var/task/lambda_package
-                cp -r /var/task/app /var/task/lambda_package/
-                cd /var/task/lambda_package
-                python3 -m zipfile -c /var/task/deployment.zip ."
+                docker run --rm \
+                -v ${{ github.workspace }}:/var/task \
+                --entrypoint /bin/bash \
+                public.ecr.aws/lambda/python:3.11 -c "
+                    set -e
+
+                    echo 'Installing build tools...'
+                    pip install --upgrade pip setuptools wheel
+
+                    echo 'Installing uv to handle pyproject.toml'
+                    pip install uv
+
+                    echo 'Compiling requirements.txt from pyproject.toml'
+                    uv sync --locked --all-extras
+                    uv export --format requirements-txt --without-hashes -o /var/task/requirements.txt
+
+                    echo 'Creating Lambda package directory'
+                    mkdir -p /var/task/lambda_package
+
+                    echo 'Installing dependencies into lambda_package'
+                    pip install -r /var/task/requirements.txt -t /var/task/lambda_package
+
+                    echo 'Copying application code'
+                    cp -r /var/task/app /var/task/lambda_package/
+
+                    echo 'Creating deployment zip'
+                    cd /var/task/lambda_package
+                    python3 -m zipfile -c /var/task/deployment.zip ."
 
             - uses: actions/upload-artifact@v4
               with:
