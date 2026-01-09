@@ -70,13 +70,10 @@ jobs:
                 python3 -m zipfile -c /var/task/deployment.zip .
                 EOF
 
-            
-
-
-            # - uses: actions/upload-artifact@v4
-            #   with:
-            #     name: lambda-zip
-            #     path: deployment.zip
+            - uses: actions/upload-artifact@v4
+              with:
+                name: lambda-zip
+                path: deployment.zip
 
     # terraform:
     #     needs: build
