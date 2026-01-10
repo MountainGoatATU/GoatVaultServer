@@ -94,6 +94,19 @@ jobs:
               with:
                 name: lambda-zip
                 path: deployment.zip
+                          
+            - name: Verify uploaded zip exists
+              run: |
+                echo "Current working directory:"
+                pwd
+                echo "Listing files in current directory:"
+                ls -lah
+                echo "Check if deployment.zip exists:"
+                if [ -f deployment.zip ]; then
+                  echo "✅ deployment.zip found!"
+                else
+                  echo "❌ deployment.zip NOT found!"
+                fi
 
     terraform:
         needs: build
