@@ -136,7 +136,7 @@ jobs:
             - uses: actions/download-artifact@v4
               with:
                 name: lambda-zip
-                path: ${{ env.TERRAFORM_WORKING_DIRECTORY }}/deployment
+                path: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
 
             - name: Terraform Plan and Apply
               run: |
@@ -150,9 +150,9 @@ jobs:
 
                 # List all files in the deployment directory
                 echo "Contents of deployment directory:"
-                ls -lah ${{ env.TERRAFORM_WORKING_DIRECTORY }}/deployment
+                ls -lah ${{ env.TERRAFORM_WORKING_DIRECTORY }}
 
-                ZIP_PATH="${{ env.TERRAFORM_WORKING_DIRECTORY }}/deployment/deployment.zip"
+                ZIP_PATH="${{ env.TERRAFORM_WORKING_DIRECTORY }}/deployment.zip"
                 echo "Using Lambda zip at $ZIP_PATH"
 
                 terraform plan \
