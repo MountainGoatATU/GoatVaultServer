@@ -49,35 +49,30 @@ jobs:
             - name: Install UV
               run: pip install uv
 
-            - name: Sync dependencies (from uv.lock)
-              run: uv sync --locked --all-extras
-
-            - name: Export production requirements.txt
-              run: uv export --format requirements-txt --no-dev -o requirements.txt
-
-            - name: Build Lambda deployment package
+            - name: Create build directories
               run: |
-                docker run --rm \
-                -v "${{ github.workspace }}:/var/task" \
-                --entrypoint /bin/bash \
-                public.ecr.aws/lambda/python:3.11 \
-                -c "set -e \
-                && mkdir -p /var/task/lambda_package \
-                && pip install -r /var/task/requirements.txt -t /var/task/lambda_package \
-                && cp -r /var/task/app /var/task/lambda_package/ \
-                && cd /var/task/lambda_package \
-                && python3 -m zipfile -c /var/task/deployment.zip ."
+                    mkdir -p build/package
 
-            - name: Verify deployment.zip
+            - name: Install production dependencies into build/package
               run: |
-                ls -lh deployment.zip
-                unzip -l deployment.zip | head -30
+                    uv pip install \
+                    --system \
+                    --no-dev \
+                    --target build/package
+
+            - name: Copy application code
+              run: |
+                    cp -r app build/package/app
+
+            - name: Create deployment zip
+              run: |
+                    cd build/package
+                    zip -r ../../deployment.zip .
 
             - uses: actions/upload-artifact@v4
               with:
-                name: lambda-zip
-                path: deployment.zip
-
+                    name: lambda-zip
+                    path: deployment.zip
     # terraform:
     #     needs: build
     #     runs-on: ubuntu-latest
