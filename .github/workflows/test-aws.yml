@@ -148,10 +148,6 @@ jobs:
                 echo "Contents of current directory:"
                 ls -lah
 
-                # List all files in the deployment directory
-                echo "Contents of deployment directory:"
-                ls -lah ${{ env.TERRAFORM_WORKING_DIRECTORY }}
-
                 ZIP_PATH="${{ env.TERRAFORM_WORKING_DIRECTORY }}/deployment.zip"
                 echo "Using Lambda zip at $ZIP_PATH"
 
