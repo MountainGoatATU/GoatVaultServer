@@ -74,6 +74,17 @@ jobs:
             - name: Copy application code
               run: cp -r app build/package/app
 
+            - name: Check contents before upload
+              run: |
+                echo "Current working directory:"
+                pwd
+                echo "Listing all files recursively from repo root:"
+                ls -lah ../..   # go up two levels to see where deployment.zip is
+                echo "Listing build folder contents:"
+                ls -lah build
+                echo "Listing build/package folder contents:"
+                ls -lah build/package
+
             - name: Create deployment zip
               run: |
                 cd build/package
@@ -82,7 +93,7 @@ jobs:
             - uses: actions/upload-artifact@v4
               with:
                 name: lambda-zip
-                path: build/deployment.zip
+                path: deployment.zip
 
     terraform:
         needs: build
