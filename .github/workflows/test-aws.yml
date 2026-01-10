@@ -44,42 +44,27 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
-            
-            - uses: astral-sh/setup-uv@v6
-              with:
-                enable-cache: true
-
-            - name: Export production requirements.txt
-              run: |
-                uv export \
-                --format requirements-txt \
-                --no-dev \
-                -o requirements.txt
 
             - name: Create build directories
               run: mkdir -p build/package
 
-
             - name: Build Lambda package inside AWS Lambda image
               run: |
-                docker run --rm \
-                  --entrypoint "" \
-                  -v "$PWD:/var/task" \
-                  public.ecr.aws/lambda/python:3.11 \
-                  bash -c "
-                    python -m pip install --upgrade pip &&
-                    pip install \
-                      --only-binary=:all: \
-                      --no-cache-dir \
-                      -r requirements.txt \
-                      -t build/package &&
-                    cp -r app build/package &&
-                    cd build/package &&
-                    zip -r /var/task/deployment.zip .
-                  "
-
-            - name: Copy application code
-              run: cp -r app build/package/app
+                    docker run --rm \
+                      --entrypoint "" \
+                      -v "$PWD:/var/task" \
+                      public.ecr.aws/lambda/python:3.11 \
+                      bash -c "
+                        python -m pip install --upgrade pip &&
+                        pip install \
+                          --only-binary=:all: \
+                          --no-cache-dir \
+                          -r /var/task/requirements.txt \
+                          -t /var/task/build/package &&
+                        cp -r /var/task/app /var/task/build/package &&
+                        cd /var/task/build/package &&
+                        zip -r /var/task/deployment.zip .
+                      "
 
             - name: Check contents before upload
               run: |
@@ -91,11 +76,6 @@ jobs:
                 ls -lah build
                 echo "Listing build/package folder contents:"
                 ls -lah build/package
-
-            - name: Create deployment zip
-              run: |
-                cd build/package
-                zip -r ../../deployment.zip .
 
             - uses: actions/upload-artifact@v4
               with:
