@@ -115,7 +115,7 @@ jobs:
 
             - name: Terraform Plan and Apply
               run: |
-                HASH=$(openssl dgst -sha256 -binary lambda-zip | openssl base64)
+                HASH=$(openssl dgst -sha256 -binary deployment.zip | openssl base64)
 
                 terraform plan \
                 -var="lambda_s3_key=deployment.zip" \
