@@ -8,5 +8,5 @@ output "lambda_arn" {
 
 output "lambda_function_name" {
   description = "Name of the deployed Lambda function"
-  value       = aws_lambda_function.this.function_name
+  value       = aws_lambda_function.api.function_name
 }

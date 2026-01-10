@@ -111,8 +111,14 @@ jobs:
 
             - name: Terraform Plan and Apply
               run: |
-                 terraform plan -out=tfplan.out
-                 terraform apply tfplan.out
+                HASH=$(openssl dgst -sha256 -binary deployment.zip | openssl base64)
+
+                terraform plan \
+                -var="lambda_s3_key=deployment.zip" \
+                -var="lambda_source_code_hash=$HASH" \
+                -out=tfplan.out
+
+                terraform apply tfplan.out
               working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
             
             - name: Export Terraform outputs
@@ -120,21 +126,3 @@ jobs:
               run: |
                 echo "LAMBDA_FUNCTION_NAME=$(terraform output -raw lambda_function_name)" >> $GITHUB_ENV
               working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
-
-    deploy:
-        needs: [build, terraform]
-        runs-on: ubuntu-latest
-        steps:
-         - uses: actions/download-artifact@v4
-           with:
-            name: lambda-zip
-
-         - uses: aws-actions/configure-aws-credentials@v4
-           with:
-            role-to-assume: arn:aws:iam::905418129504:role/github-deploy
-            aws-region: eu-west-1
-
-         - run: |
-            aws lambda update-function-code \
-                --function-name "$LAMBDA_FUNCTION_NAME" \
-                --zip-file fileb://deployment.zip
