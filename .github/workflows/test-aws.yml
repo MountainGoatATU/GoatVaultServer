@@ -138,6 +138,11 @@ jobs:
                 name: lambda-zip
                 path: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
 
+            - name: Force-unlock previous state (if exists)
+              run: |
+                echo "Attempting to force-unlock previous Terraform state..."
+                terraform force-unlock -force d3fb6828-fa11-2caf-9a2d-650cef97c46d || echo "No lock found or already released"
+              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
             - name: Terraform Plan and Apply
               run: |
                 # Show current working directory
