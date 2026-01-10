@@ -5,3 +5,8 @@ output "api_endpoint" {
 output "lambda_arn" {
   value = aws_lambda_function.api.arn
 }
+
+output "lambda_function_name" {
+  description = "Name of the deployed Lambda function"
+  value       = aws_lambda_function.this.function_name
+}

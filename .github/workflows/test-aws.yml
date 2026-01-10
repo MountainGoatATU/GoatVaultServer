@@ -114,6 +114,12 @@ jobs:
                  terraform plan -out=tfplan.out
                  terraform apply tfplan.out
               working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+            
+            - name: Export Terraform outputs
+              id: tf_outputs
+              run: |
+                echo "LAMBDA_FUNCTION_NAME=$(terraform output -raw lambda_function_name)" >> $GITHUB_ENV
+              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
 
     deploy:
         needs: [build, terraform]
@@ -130,5 +136,5 @@ jobs:
 
          - run: |
             aws lambda update-function-code \
-                --function-name goatvault-api \
+                --function-name "$LAMBDA_FUNCTION_NAME" \
                 --zip-file fileb://deployment.zip
