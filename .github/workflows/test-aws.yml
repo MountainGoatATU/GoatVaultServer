@@ -62,6 +62,7 @@ jobs:
             - name: Install dependencies using Lambda Docker image
               run: |
                 docker run --rm \
+                  --entrypoint "" \
                   -v "$PWD":/var/task \
                   public.ecr.aws/lambda/python:3.11 \
                   bash -c "
@@ -70,6 +71,7 @@ jobs:
                       -r /var/task/requirements.txt \
                       -t /var/task/build/package
                   "
+
 
             - name: Copy application code
               run: cp -r app build/package/app
