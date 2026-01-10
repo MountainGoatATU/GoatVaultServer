@@ -149,7 +149,9 @@ jobs:
                 ls -lah
 
                 # Calculate SHA256 hash of deployment.zip
+                echo "Calculate SHA256 hash of deployment.zip:"
                 HASH=$(openssl dgst -sha256 -binary ./deployment.zip | openssl base64)
+                echo "Calculated hash: $HASH"
 
                 # Terraform plan and apply
                 terraform plan \
