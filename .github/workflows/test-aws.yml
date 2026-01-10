@@ -59,19 +59,23 @@ jobs:
             - name: Create build directories
               run: mkdir -p build/package
 
-            - name: Install dependencies using Lambda Docker image
+
+            - name: Build Lambda package inside AWS Lambda image
               run: |
                 docker run --rm \
-                  --entrypoint "" \
-                  -v "$PWD":/var/task \
+                  -v "$PWD:/var/task" \
                   public.ecr.aws/lambda/python:3.11 \
                   bash -c "
+                    python -m pip install --upgrade pip &&
                     pip install \
+                      --only-binary=:all: \
                       --no-cache-dir \
-                      -r /var/task/requirements.txt \
-                      -t /var/task/build/package
+                      -r requirements.txt \
+                      -t build/package &&
+                    cp -r app build/package &&
+                    cd build/package &&
+                    zip -r /var/task/deployment.zip .
                   "
-
 
             - name: Copy application code
               run: cp -r app build/package/app
