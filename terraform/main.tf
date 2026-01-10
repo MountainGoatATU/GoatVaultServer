@@ -25,10 +25,6 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
 # LAMBDAS
 # ============================
 
-resource "aws_s3_bucket" "lambda_artifacts" {
-  bucket = "goatvault-lambda-artifacts"
-}
-
 # One Lambda
 resource "aws_lambda_function" "api" {
   function_name = var.aws_lambda_function_name

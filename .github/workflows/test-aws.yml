@@ -107,6 +107,22 @@ jobs:
                 else
                   echo "❌ deployment.zip NOT found!"
                 fi
+    deploy:
+      needs: build
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+
+        - uses: aws-actions/configure-aws-credentials@v4
+          with:
+            role-to-assume: arn:aws:iam::905418129504:role/github-deploy
+            aws-region: eu-west-1
+          
+        - name: Upload Lambda zip to S3
+          run: |
+            aws s3 cp deployment.zip s3://goatvault-lambda-artifacts/deployment.zip
+          env:
+            AWS_REGION: eu-west-1
 
     terraform:
         needs: build
