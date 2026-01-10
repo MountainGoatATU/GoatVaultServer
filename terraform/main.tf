@@ -25,10 +25,6 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
 # LAMBDAS
 # ============================
 
-resource "aws_s3_bucket" "lambda_artifacts" {
-  bucket = "goatvault-lambda-artifacts"
-}
-
 # One Lambda
 resource "aws_lambda_function" "api" {
   function_name = var.aws_lambda_function_name
@@ -39,15 +35,10 @@ resource "aws_lambda_function" "api" {
   timeout     = 30
   memory_size = 512
 
-  s3_bucket = aws_s3_bucket.lambda_artifacts.id
-  s3_key    = var.lambda_s3_key
-
-  source_code_hash = var.lambda_source_code_hash
-
   // Uncomment below to use local zip file for deployment
   // Comment out the 'filename' and 'source_code_hash' in 'aws_lambda_function' resource to use Pipeline deployment
-  //filename         = "${path.module}/deployment/deployment.zip"
-  //source_code_hash = filebase64sha256("${path.module}/deployment/deployment.zip")
+  filename         = var.lambda_zip_path
+  source_code_hash = filebase64sha256(var.lambda_zip_path)
 
   environment {
     variables = {

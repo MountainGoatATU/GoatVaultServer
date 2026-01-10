@@ -152,13 +152,8 @@ jobs:
             - uses: actions/download-artifact@v4
               with:
                 name: lambda-zip
-                path: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+                path: ${{ env.TERRAFORM_WORKING_DIRECTORY }}/deployment
 
-            - name: Force-unlock previous state (if exists)
-              run: |
-                echo "Attempting to force-unlock previous Terraform state..."
-                terraform force-unlock -force d3fb6828-fa11-2caf-9a2d-650cef97c46d || echo "No lock found or already released"
-              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
             - name: Terraform Plan and Apply
               run: |
                 # Show current working directory
@@ -169,15 +164,11 @@ jobs:
                 echo "Contents of current directory:"
                 ls -lah
 
-                # Calculate SHA256 hash of deployment.zip
-                echo "Calculate SHA256 hash of deployment.zip:"
-                HASH=$(openssl dgst -sha256 -binary ./deployment.zip | openssl base64)
-                echo "Calculated hash: $HASH"
+                ZIP_PATH="${{ env.TERRAFORM_WORKING_DIRECTORY }}/deployment/deployment.zip"
+                echo "Using Lambda zip at $ZIP_PATH"
 
-                # Terraform plan and apply
                 terraform plan \
-                  -var="lambda_s3_key=deployment.zip" \
-                  -var="lambda_source_code_hash=$HASH" \
+                  -var="lambda_zip_path=$ZIP_PATH" \
                   -out=tfplan.out
 
                 terraform apply tfplan.out

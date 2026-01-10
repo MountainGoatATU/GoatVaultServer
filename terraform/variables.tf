@@ -59,13 +59,8 @@ variable "api_gateway_name" {
   default     = "goatvault-api"
 }
 
-
-variable "lambda_s3_key" {
-  description = "S3 key for Lambda zip"
+variable "lambda_zip_path" {
   type        = string
+  description = "Path to the local Lambda deployment zip file"
 }
 
-variable "lambda_source_code_hash" {
-  description = "Base64-encoded SHA256 of Lambda zip"
-  type        = string
-}
