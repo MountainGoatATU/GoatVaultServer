@@ -148,11 +148,8 @@ jobs:
                 echo "Contents of current directory:"
                 ls -lah
 
-                ZIP_PATH="${{ env.TERRAFORM_WORKING_DIRECTORY }}/deployment.zip"
-                echo "Using Lambda zip at $ZIP_PATH"
-
                 terraform plan \
-                  -var="lambda_zip_path=$ZIP_PATH" \
+                  -var="lambda_zip_path=deployment.zip" \
                   -out=tfplan.out
 
                 terraform apply tfplan.out
