@@ -112,21 +112,25 @@ jobs:
             - uses: actions/download-artifact@v4
               with:
                 name: lambda-zip
-
+                
             - name: Terraform Plan and Apply
               run: |
+                # Show current working directory
+                echo "Current working directory:"
+                pwd
+
+                # List all files and folders
+                echo "Contents of current directory:"
+                ls -lah
+
+                # Calculate SHA256 hash of deployment.zip
                 HASH=$(openssl dgst -sha256 -binary ./deployment.zip | openssl base64)
 
+                # Terraform plan and apply
                 terraform plan \
-                -var="lambda_s3_key=deployment.zip" \
-                -var="lambda_source_code_hash=$HASH" \
-                -out=tfplan.out
+                  -var="lambda_s3_key=deployment.zip" \
+                  -var="lambda_source_code_hash=$HASH" \
+                  -out=tfplan.out
 
                 terraform apply tfplan.out
-              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
-            
-            - name: Export Terraform outputs
-              id: tf_outputs
-              run: |
-                echo "LAMBDA_FUNCTION_NAME=$(terraform output -raw lambda_function_name)" >> $GITHUB_ENV
               working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
