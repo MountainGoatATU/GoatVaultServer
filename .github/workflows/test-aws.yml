@@ -40,60 +40,51 @@ jobs:
     #     - run: uv run pytest tests
 
     build:
-        #needs: test
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+      runs-on: ubuntu-latest
+      steps:
+        - name: Checkout repo
+          uses: actions/checkout@v4
 
-            - name: Create build directories
-              run: mkdir -p build/package
+        - name: Ensure uv is installed (if needed)
+          uses: astral-sh/setup-uv@v6
+          with:
+            enable-cache: true
 
-            - name: Build Lambda package inside AWS Lambda image
-              run: |
-                    docker run --rm \
-                      --entrypoint "" \
-                      -v "$PWD:/var/task" \
-                      public.ecr.aws/lambda/python:3.11 \
-                      bash -c "
-                        python -m pip install --upgrade pip &&
-                        pip install \
-                          --only-binary=:all: \
-                          --no-cache-dir \
-                          -r /var/task/requirements.txt \
-                          -t /var/task/build/package &&
-                        cp -r /var/task/app /var/task/build/package &&
-                        cd /var/task/build/package &&
-                        zip -r /var/task/deployment.zip .
-                      "
+        - name: Create build directories
+          run: mkdir -p build/package
 
-            - name: Check contents before upload
-              run: |
-                echo "Current working directory:"
-                pwd
-                echo "Listing all files recursively from repo root:"
-                ls -lah ../..   # go up two levels to see where deployment.zip is
-                echo "Listing build folder contents:"
-                ls -lah build
-                echo "Listing build/package folder contents:"
-                ls -lah build/package
+        - name: Build Lambda package inside AWS Lambda Docker image
+          run: |
+            docker run --rm \
+              --entrypoint "" \
+              -v "$PWD:/var/task" \
+              public.ecr.aws/lambda/python:3.11 \
+              bash -c "
+                python -m pip install --upgrade pip &&
+                pip install --no-cache-dir -r requirements.txt -t build/package &&
+                cp -r app build/package &&
+                cd build/package &&
+                python3 -m zipfile -c /var/task/deployment.zip .
+              "
 
-            - uses: actions/upload-artifact@v4
-              with:
-                name: lambda-zip
-                path: deployment.zip
-                          
-            - name: Verify uploaded zip exists
-              run: |
-                echo "Current working directory:"
-                pwd
-                echo "Listing files in current directory:"
-                ls -lah
-                echo "Check if deployment.zip exists:"
-                if [ -f deployment.zip ]; then
-                  echo "✅ deployment.zip found!"
-                else
-                  echo "❌ deployment.zip NOT found!"
-                fi
+        - name: Verify contents of deployment.zip
+          run: |
+            echo "Listing files in root:"
+            ls -lah
+            echo "Check deployment.zip exists:"
+            if [ -f deployment.zip ]; then
+              echo "✅ deployment.zip found!"
+              unzip -l deployment.zip | head -20
+            else
+              echo "❌ deployment.zip NOT found!"
+              exit 1
+            fi
+
+        - name: Upload artifact for deploy
+          uses: actions/upload-artifact@v4
+          with:
+            name: lambda-zip
+            path: deployment.zip
 
     terraform:
         needs: build
