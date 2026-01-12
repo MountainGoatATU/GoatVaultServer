@@ -117,6 +117,13 @@ jobs:
                 path: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
 
             - name: Terraform Plan and Apply
+              env:
+                TF_VAR_mongodb_url: ${{ secrets.MONGODB_URL }}
+                TF_VAR_database_name: ${{ secrets.DATABASE_NAME }}
+                TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+                TF_VAR_jwt_algorithm: ${{ secrets.JWT_ALGORITHM }}
+                TF_VAR_issuer: ${{ secrets.ISSUER }}
+                TF_VAR_token_exp_hours: ${{ secrets.TOKEN_EXP_HOURS }}
               run: |
                 # Show current working directory
                 echo "Current working directory:"
