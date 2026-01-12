@@ -84,25 +84,33 @@ async def test_logging_middleware_post_request_with_json(app_with_logging: FastA
 
 
 @pytest.mark.asyncio
-async def test_logging_middleware_request_without_client(app_with_logging: FastAPI) -> None:
+async def test_logging_middleware_request_without_client(
+    app_with_logging: FastAPI,
+) -> None:
     """Test middleware handles requests without client info."""
-    with patch("app.middleware.logging.logger") as mock_logger:
-        # We need to patch at the middleware level before the request is processed
-        with patch("starlette.requests.Request.client", new_callable=PropertyMock) as mock_client:
-            mock_client.return_value = None
+    with (
+        patch("app.middleware.logging.logger") as mock_logger,
+        patch(
+            "starlette.requests.Request.client",
+            new_callable=PropertyMock,
+        ) as mock_client,
+    ):
+        mock_client.return_value = None
 
-            async with AsyncClient(
-                transport=ASGITransport(app=app_with_logging), base_url="http://test"
-            ) as client:
-                # Make a request
-                response = await client.get("/test-no-client")
+        async with AsyncClient(
+            transport=ASGITransport(app=app_with_logging),
+            base_url="http://test",
+        ) as client:
+            # Make a request
+            response = await client.get("/test-no-client")
 
-                assert response.status_code == 200
+        assert response.status_code == 200
 
-                # Check that "Client: Unknown" was logged
-                calls = [str(call) for call in mock_logger.info.call_args_list]
-                assert any("Client: Unknown" in str(call) for call in calls)
-
+        # Check that "Client: Unknown" was logged
+        assert any(
+            "Client: Unknown" in str(call)
+            for call in mock_logger.info.call_args_list
+        )
 
 @pytest.mark.asyncio
 async def test_logging_middleware_invalid_json_body(app_with_logging: FastAPI) -> None:
@@ -194,9 +202,12 @@ async def test_logging_middleware_error_response(app_with_logging: FastAPI) -> N
             transport=ASGITransport(app=app_with_logging), base_url="http://test"
         ) as client:
             # This should trigger a 500 error
-            with pytest.raises(Exception):
-                await client.get("/test-error")
-
+            #with pytest.raises(Exception):
+                #await client.get("/test-error")
+            response = await client.get("/test-error")
+            
+            assert response.status_code == 500
+            
             # Verify request was logged
             calls = [str(call) for call in mock_logger.info.call_args_list]
             assert any("REQUEST: GET" in str(call) for call in calls)
