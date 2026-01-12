@@ -41,6 +41,7 @@ jobs:
         - run: uv run pytest tests
 
     build:
+      needs: test
       runs-on: ubuntu-latest
       steps:
         - name: Checkout repo
