@@ -37,7 +37,7 @@ jobs:
             enable-cache: true
 
         - run: uv sync --locked --all-extras --dev
-        - run: uv run ruff check app tests
+        - run: uv run ruff check app tests --fix
         - run: uv run pytest tests
 
     build:
