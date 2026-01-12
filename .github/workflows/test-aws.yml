@@ -20,24 +20,25 @@ permissions:
 
 env:
   TERRAFORM_WORKING_DIRECTORY: terraform
+  NAME_OF_PACKAGE: deployment.zip
 
 jobs:
-    # test:
-    #     runs-on: ubuntu-latest
-    #     steps:
-    #     - uses: actions/checkout@v4
+    test:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v4
 
-    #     - uses: actions/setup-python@v5
-    #       with:
-    #         python-version: "3.11"
+        - uses: actions/setup-python@v5
+          with:
+            python-version: "3.11"
 
-    #     - uses: astral-sh/setup-uv@v6
-    #       with:
-    #         enable-cache: true
+        - uses: astral-sh/setup-uv@v6
+          with:
+            enable-cache: true
 
-    #     - run: uv sync --locked --all-extras --dev
-    #     - run: uv run ruff check app tests
-    #     - run: uv run pytest tests
+        - run: uv sync --locked --all-extras --dev
+        - run: uv run ruff check app tests
+        - run: uv run pytest tests
 
     build:
       runs-on: ubuntu-latest
@@ -45,14 +46,18 @@ jobs:
         - name: Checkout repo
           uses: actions/checkout@v4
 
-        - name: Ensure uv is installed (if needed)
-          uses: astral-sh/setup-uv@v6
-          with:
-            enable-cache: true
-
         - name: Create build directories
           run: mkdir -p build/package
 
+          # --entrypoint "" is used to override the default entrypoint of the AWS Lambda Docker image
+          # --v option mounts the current working directory to /var/task inside the container
+          # public.ecr.aws/lambda/python:3.11 is the official AWS Lambda Docker image for Python 3.11
+          # The bash -c command runs a series of commands inside the container to install dependencies and create the deployment package
+          # python -m pip install --upgrade pip upgrades pip to the latest version
+          # pip install --no-cache-dir -r requirements.txt -t build/package installs the dependencies listed in requirements.txt into the build/package directory
+          # cp -r app build/package copies the application code into the build/package directory
+          # cd build/package changes the working directory to build/package
+          # python3 -m zipfile -c /var/task/deployment.zip . creates a zip file of the contents of the build/package directory and saves it as deployment.zip in the host machine's current working directory
         - name: Build Lambda package inside AWS Lambda Docker image
           run: |
             docker run --rm \
@@ -67,6 +72,8 @@ jobs:
                 python3 -m zipfile -c /var/task/deployment.zip .
               "
 
+        # Verifies that deployment.zip was created successfully and lists its contents
+        # If deployment.zip is not found, the step fails the job
         - name: Verify contents of deployment.zip
           run: |
             echo "Listing files in root:"
@@ -84,7 +91,7 @@ jobs:
           uses: actions/upload-artifact@v4
           with:
             name: lambda-zip
-            path: deployment.zip
+            path: ${{ env.NAME_OF_PACKAGE }}
 
     terraform:
         needs: build
@@ -92,6 +99,8 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            # Configure AWS Credentials using OIDC
+            # github-deploy is the IAM role created in the AWS account to allow GitHub Actions to deploy resources
             - uses: aws-actions/configure-aws-credentials@v4
               with:
                 role-to-assume: arn:aws:iam::905418129504:role/github-deploy
@@ -134,7 +143,7 @@ jobs:
                 ls -lah
 
                 terraform plan \
-                  -var="lambda_zip_path=deployment.zip" \
+                  -var="lambda_zip_path=${{ env.NAME_OF_PACKAGE }}" \
                   -out=tfplan.out
 
                 terraform apply tfplan.out
