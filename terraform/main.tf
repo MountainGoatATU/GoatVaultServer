@@ -163,6 +163,13 @@ resource "aws_lambda_function" "api" {
 resource "aws_apigatewayv2_api" "goatvault_api" {
   name          = var.api_gateway_name
   protocol_type = "HTTP"
+
+  cors_configuration {
+    allow_origins = ["https://jndcnpfikeicinhkifkgbokgplpmhnna.chromiumapp.org"]
+    allow_methods = ["*"]
+    allow_headers = ["*"]
+    max_age       = 3600
+  }
 }
 
 # Connect API Gateway to Lambda
