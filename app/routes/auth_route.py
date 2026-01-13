@@ -6,6 +6,7 @@ from pymongo.results import InsertOneResult
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from motor.motor_asyncio import AsyncIOMotorCollection
+from uuid import UUID
 
 from app.database import get_user_collection
 from app.models import (
@@ -107,10 +108,16 @@ async def verify(
     - Verifies that user exists.
     - Returns a signed JWT containing the authority claim.
     """
+    user_id_raw = payload["_id"]
     
-    user = await user_collection.find_one({"_id": payload.id})
+    if isinstance(user_id_raw, UUID):
+        user_id = user_id_raw
+    else:
+        user_id = UUID(user_id_raw)
+    
+    user = await user_collection.find_one({"_id": user_id})
     if not user:
-        raise UserNotFoundException(payload.id)
+        raise UserNotFoundException(user_id)
 
     if not hmac.compare_digest(payload.auth_verifier, user["auth_verifier"]):
         raise InvalidAuthVerifierException
@@ -122,5 +129,5 @@ async def verify(
         if not verify_mfa(payload.mfa_code, user.get("mfa_secret")):
             raise InvalidMfaCodeException
 
-    token: str = create_jwt_token(payload.id)
+    token: str = create_jwt_token(user_id)
     return AuthResponse(access_token=token)
