@@ -1,27 +1,24 @@
+# database.py
 import os
-from motor.motor_asyncio import AsyncIOMotorClient
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from motor.motor_asyncio import AsyncIOMotorCollection
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
+from fastapi import FastAPI, Request
 
-_client: AsyncIOMotorClient | None = None
-_db: AsyncIOMotorDatabase | None = None
+def init_db(app: FastAPI):
+    """
+    Attach Mongo client and database to FastAPI app state.
+    Should be called in FastAPI lifespan.
+    """
+    app.state.mongo_client = AsyncIOMotorClient(os.environ["MONGODB_URL"])
+    app.state.db = app.state.mongo_client[os.environ["DATABASE_NAME"]]
 
+def close_db(app: FastAPI):
+    """
+    Close the Mongo client when the app shuts down.
+    """
+    client = getattr(app.state, "mongo_client", None)
+    if client:
+        client.close()
 
-def get_client() -> AsyncIOMotorClient:
-    global _client
-    if _client is None:
-        _client = AsyncIOMotorClient(os.environ["MONGODB_URL"])
-    return _client
-
-
-def get_db() -> AsyncIOMotorDatabase:
-    global _db
-    if _db is None:
-        _db = get_client()[os.environ["DATABASE_NAME"]]
-    return _db
-
-
-# Collections
-def get_user_collection() -> AsyncIOMotorCollection:
-    return get_db()["users"]
-
+# Dependency to get user collection
+def get_user_collection(request: Request) -> AsyncIOMotorCollection:
+    return request.app.state.db["users"]

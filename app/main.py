@@ -1,5 +1,7 @@
+from contextlib import asynccontextmanager
 import os
 
+from app.database.database import close_db, init_db
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -17,10 +19,17 @@ _ = load_dotenv()
 
 ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db(app)      # create Mongo client and db bound to this event loop
+    yield
+    close_db(app)     # close client when Lambda container freezes or shuts down
+
 app = FastAPI(
     title="GoatVaultServer",
     description="A server for GoatVault",
     version="1.3.0",
+    lifespan=lifespan
 )
 
 app.state.limiter = auth_route.limiter

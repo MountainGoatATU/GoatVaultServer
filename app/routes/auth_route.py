@@ -1,10 +1,11 @@
 import hmac
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Request, status
+from fastapi import APIRouter, Body, Request, status, Depends
 from pymongo.results import InsertOneResult
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from motor.motor_asyncio import AsyncIOMotorCollection
 
 from app.database import get_user_collection
 from app.models import (
@@ -42,6 +43,7 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 async def register(
     request: Request,  # noqa: ARG001
     payload: Annotated[UserCreateRequest, Body()],
+    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]
 ) -> AuthRegisterResponse:
     """Register new user."""
     await validate_email_available(payload.email)
@@ -55,7 +57,6 @@ async def register(
 
     new_user_dict = new_user.model_dump(by_alias=True, mode="python")
     
-    user_collection = get_user_collection()
     created_user: InsertOneResult = await user_collection.insert_one(new_user_dict)
     created_user_obj = await user_collection.find_one({"_id": created_user.inserted_id})
 
@@ -71,13 +72,15 @@ async def register(
     status_code=status.HTTP_200_OK,
 )
 @limiter.limit("5/minute")
-async def init(request: Request, payload: Annotated[AuthInitRequest, Body()]) -> AuthInitResponse:  # noqa: ARG001
+async def init(
+    request: Request, 
+    payload: Annotated[AuthInitRequest, Body()],
+    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]) -> AuthInitResponse:  # noqa: ARG001
     """Look up user by email.
     - Verify that user exists.
     - Return details including `auth_salt` and encrypted `vault`.
     """
-    
-    user_collection = get_user_collection()
+
     user = await user_collection.find_one({"email": payload.email})
     if not user:
         raise UserNotFoundByEmailException
@@ -95,13 +98,16 @@ async def init(request: Request, payload: Annotated[AuthInitRequest, Body()]) ->
     status_code=status.HTTP_200_OK,
 )
 @limiter.limit("5/minute")
-async def verify(request: Request, payload: Annotated[AuthRequest, Body()]) -> AuthResponse:  # noqa: ARG001
+async def verify(
+    request: Request, 
+    payload: Annotated[AuthRequest, Body()],
+    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]
+) -> AuthResponse:  # noqa: ARG001
     """Return a JWT token for a valid `auth_verifier`.
     - Verifies that user exists.
     - Returns a signed JWT containing the authority claim.
     """
     
-    user_collection = get_user_collection()
     user = await user_collection.find_one({"_id": payload.id})
     if not user:
         raise UserNotFoundException(payload.id)
