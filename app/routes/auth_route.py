@@ -108,7 +108,7 @@ async def verify(
     - Verifies that user exists.
     - Returns a signed JWT containing the authority claim.
     """
-    user_id_raw = payload._id
+    user_id_raw = payload.id
     
     if isinstance(user_id_raw, UUID):
         user_id = user_id_raw
