@@ -3,7 +3,7 @@ from typing import Annotated
 from uuid import UUID
 
 from app.database import get_user_collection
-from fastapi import APIRouter, Body, Depends, status 
+from fastapi import APIRouter, Body, Depends, Request, status 
 from motor.motor_asyncio import AsyncIOMotorCollection
 
 from app.models import (
