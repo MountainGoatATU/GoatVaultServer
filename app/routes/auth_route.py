@@ -6,8 +6,6 @@ from pymongo.results import InsertOneResult
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from motor.motor_asyncio import AsyncIOMotorCollection
-from bson import Binary
-from bson.binary import UuidRepresentation
 
 from app.database import get_user_collection
 from app.models import (
