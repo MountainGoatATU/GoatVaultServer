@@ -1,7 +1,7 @@
 # database.py
 import os
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 
 def init_db(app: FastAPI):
     """
@@ -20,5 +20,6 @@ def close_db(app: FastAPI):
         client.close()
 
 # Dependency to get user collection
-def get_user_collection(request: Request) -> AsyncIOMotorCollection:
+def get_user_collection(request: Request = Depends()) -> AsyncIOMotorCollection:
+    """Always works, FastAPI will inject Request automatically."""
     return request.app.state.db["users"]
