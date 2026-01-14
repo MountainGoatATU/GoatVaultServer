@@ -13,7 +13,7 @@ from app.utils import EmailAlreadyInUseException, UserAlreadyExistsException
 logger = logging.getLogger(__name__)
 
 
-async def validate_email_available(email: str) -> None:
+async def validate_email_available(email: str, request: Request) -> None:
     """Validate that an email is not already registered.
 
     Raises:
@@ -21,13 +21,13 @@ async def validate_email_available(email: str) -> None:
 
     """
     
-    user_collection = get_user_collection()
+    user_collection = get_user_collection(request)
     existing = await user_collection.find_one({"email": email})
     if existing:
         raise UserAlreadyExistsException
 
 
-async def validate_email_available_for_user(email: str, user_id: UUID) -> None:
+async def validate_email_available_for_user(email: str, user_id: UUID, request: Request) -> None:
     """Validate that an email is available for a specific user to use.
 
     Allows the user to keep their own email, but prevents using
@@ -38,7 +38,7 @@ async def validate_email_available_for_user(email: str, user_id: UUID) -> None:
 
     """
     
-    user_collection = get_user_collection()
+    user_collection = get_user_collection(request)
     existing = await user_collection.find_one({"email": email, "_id": {"$ne": user_id}})
     if existing:
         raise EmailAlreadyInUseException

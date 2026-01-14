@@ -41,12 +41,12 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 )
 @limiter.limit("5/minute")
 async def register(
-    request: Request,  # noqa: ARG001
+    request: Request,
     payload: Annotated[UserCreateRequest, Body()],
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]
 ) -> AuthRegisterResponse:
     """Register new user."""
-    await validate_email_available(payload.email)
+    await validate_email_available(payload.email, request)
 
     new_user = UserModel(
         email=payload.email,

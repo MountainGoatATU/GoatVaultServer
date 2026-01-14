@@ -54,6 +54,7 @@ async def get_user(
 )
 async def update_user(
     userId: UUID,
+    request: Request,
     user_data: Annotated[UserUpdateRequest, Body()],
     token_payload: Annotated[dict, Depends(verify_token)],
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]
@@ -66,7 +67,7 @@ async def update_user(
         raise NoFieldsToUpdateException
 
     if "email" in update_data:
-        await validate_email_available_for_user(update_data["email"], userId)
+        await validate_email_available_for_user(update_data["email"], userId, request)
 
     update_data["updated_at"] = datetime.now(UTC)
 
