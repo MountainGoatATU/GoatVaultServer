@@ -110,11 +110,7 @@ async def verify(
     - Returns a signed JWT containing the authority claim.
     """
     
-    #user = await user_collection.find_one({"_id": payload.id})
-
-    user = await user_collection.find_one({
-        "_id": Binary.from_uuid(payload.id, UuidRepresentation.STANDARD)
-    })
+    user = await user_collection.find_one({"_id": payload.id})
 
     if not user:
         raise UserNotFoundException(payload.id)
