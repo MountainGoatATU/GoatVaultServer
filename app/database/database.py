@@ -2,13 +2,18 @@
 import os
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 from fastapi import FastAPI, Request
+from bson.codec_options import CodecOptions
+from bson.binary import UuidRepresentation
 
 def init_db(app: FastAPI):
     """
     Attach Mongo client and database to FastAPI app state.
     Should be called in FastAPI lifespan.
     """
-    app.state.mongo_client = AsyncIOMotorClient(os.environ["MONGODB_URL"])
+    app.state.mongo_client = AsyncIOMotorClient(
+        os.environ["MONGODB_URL"],
+        uuidRepresentation="standard"
+    )
     app.state.db = app.state.mongo_client[os.environ["DATABASE_NAME"]]
 
 def close_db(app: FastAPI):
