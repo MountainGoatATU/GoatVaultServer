@@ -166,7 +166,7 @@ resource "aws_apigatewayv2_api" "goatvault_api" {
   protocol_type = "HTTP"
 
   cors_configuration {
-    allow_origins = ["https://jndcnpfikeicinhkifkgbokgplpmhnna.chromiumapp.org"]
+    allow_origins = ["https://jndcnpfikeicinhkifkgbokgplpmhnna.chromiumapp.org", "http://localhost:5173"]
     allow_methods = ["*"]
     allow_headers = ["*"]
     max_age       = 3600
