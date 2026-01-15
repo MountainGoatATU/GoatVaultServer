@@ -30,7 +30,7 @@ resource "aws_iam_role_policy_attachment" "vpc_access" {
 # VPC + Subnets + Internet/NAT
 # ==================================
 
-resource "aws_vpc" "lambda_vpc" {
+/*resource "aws_vpc" "lambda_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support   = true
@@ -108,12 +108,13 @@ resource "aws_route_table_association" "private_assoc" {
   subnet_id      = aws_subnet.private_subnet.id
   route_table_id = aws_route_table.private_rt.id
 }
+*/
 
 # ============================
 # LAMBDA AND API GATEWAY
 # ============================
 
-resource "aws_security_group" "lambda_sg" {
+/*resource "aws_security_group" "lambda_sg" {
   name   = "lambda-sg"
   vpc_id = aws_vpc.lambda_vpc.id
 
@@ -125,7 +126,7 @@ resource "aws_security_group" "lambda_sg" {
   }
 
   tags = { Name = "lambda-sg" }
-}
+}*/
 
 # One Lambda
 resource "aws_lambda_function" "api" {
@@ -153,10 +154,10 @@ resource "aws_lambda_function" "api" {
     }
   }
 
-  vpc_config {
+  /*vpc_config {
     subnet_ids         = [aws_subnet.private_subnet.id]
     security_group_ids = [aws_security_group.lambda_sg.id]
-  }
+  }*/
 }
 
 # API Gateway
