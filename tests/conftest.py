@@ -25,6 +25,28 @@ bearer_scheme = HTTPBearer(auto_error=True)
 
 
 @pytest.fixture(autouse=True)
+def mock_database() -> Generator[None]:
+    """Mock the database for all tests."""
+    # Create mock database and attach to app state
+    mock_db = MagicMock()
+    mock_collection = MagicMock()
+    # Default to None so validators don't think a user exists
+    mock_collection.find_one = AsyncMock(return_value=None)
+    mock_collection.insert_one = AsyncMock()
+    mock_collection.update_one = AsyncMock()
+    mock_collection.find_one_and_delete = AsyncMock()
+
+    mock_db.__getitem__ = MagicMock(return_value=mock_collection)
+    app.state.db = mock_db
+
+    yield
+
+    # Clean
+    if hasattr(app.state, "db"):
+        delattr(app.state, "db")
+
+
+@pytest.fixture(autouse=True)
 def reset_rate_limiter() -> Generator[None]:
     """Reset the rate limiter before each test."""
     limiter.reset()
@@ -222,3 +244,17 @@ def valid_mfa_code(mfa_secret: str) -> str:
 
     totp = pyotp.TOTP(mfa_secret)
     return totp.now()
+
+
+@pytest.fixture
+def mock_request() -> MagicMock:
+    """Create a mock request object with app.state.db for validator tests."""
+    mock_req = MagicMock()
+    mock_req.app.state.db = MagicMock()
+    mock_collection = AsyncMock()
+    mock_collection.find_one = AsyncMock()
+    mock_collection.insert_one = AsyncMock()
+    mock_collection.update_one = AsyncMock()
+    mock_collection.find_one_and_delete = AsyncMock()
+    mock_req.app.state.db.__getitem__ = MagicMock(return_value=mock_collection)
+    return mock_req

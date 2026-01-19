@@ -107,10 +107,8 @@ async def test_logging_middleware_request_without_client(
         assert response.status_code == 200
 
         # Check that "Client: Unknown" was logged
-        assert any(
-            "Client: Unknown" in str(call)
-            for call in mock_logger.info.call_args_list
-        )
+        assert any("Client: Unknown" in str(call) for call in mock_logger.info.call_args_list)
+
 
 @pytest.mark.asyncio
 async def test_logging_middleware_invalid_json_body(app_with_logging: FastAPI) -> None:
@@ -201,13 +199,10 @@ async def test_logging_middleware_error_response(app_with_logging: FastAPI) -> N
         async with AsyncClient(
             transport=ASGITransport(app=app_with_logging), base_url="http://test"
         ) as client:
-            # This should trigger a 500 error
-            #with pytest.raises(Exception):
-                #await client.get("/test-error")
-            response = await client.get("/test-error")
-            
-            assert response.status_code == 500
-            
+            # This should trigger an error - we expect it to raise
+            with pytest.raises(ValueError, match="Test error"):
+                await client.get("/test-error")
+
             # Verify request was logged
             calls = [str(call) for call in mock_logger.info.call_args_list]
             assert any("REQUEST: GET" in str(call) for call in calls)

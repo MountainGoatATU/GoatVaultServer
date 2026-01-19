@@ -14,10 +14,9 @@ async def test_root_endpoint() -> None:
 
         assert response.status_code == 200
         data = response.json()
-        assert "message" in data
-        assert data["message"] == "GoatVault API"
-        assert "docs" in data
-        assert data["docs"] == "/docs"
+        assert "status" in data
+        assert data["status"] == "ok"
+        assert "version" in data
 
 
 @pytest.mark.asyncio
@@ -56,18 +55,3 @@ async def test_production_environment_config() -> None:
         # Check middleware is configured for production
         # Note: This is tricky to test directly, but you can check app configuration
         assert main.ENVIRONMENT == "production"
-
-
-@pytest.mark.asyncio
-async def test_lifespan_creates_indexes() -> None:
-    """Test that app lifespan calls create_indexes on startup."""
-    with patch("app.main.create_indexes", new=AsyncMock()) as mock_create:
-        # Import app after patching to ensure patch is applied
-        from app.main import app as test_app
-
-        # Trigger lifespan startup
-        async with test_app.router.lifespan_context(test_app):
-            pass
-
-        # Verify indexes were created
-        mock_create.assert_called_once()

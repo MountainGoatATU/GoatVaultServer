@@ -1,13 +1,16 @@
 import base64
 import uuid
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 
+from app.database import get_user_collection
+from app.main import app
 from app.utils import UserAlreadyExistsException, create_jwt_token, verify_token
+from app.utils.validators import validate_email_available
 
 
 @pytest.mark.asyncio
@@ -125,32 +128,44 @@ async def test_register_success(async_client_no_auth, sample_user_data, mock_vau
         "updated_at": datetime.now(UTC),
     }
 
-    with (
-        patch("app.routes.auth_route.user_collection") as mock_collection,
-        patch("app.routes.auth_route.validate_email_available", new=AsyncMock()),
-    ):
+    def override_get_user_collection():
+        mock = AsyncMock()
         mock_result = MagicMock()
         mock_result.inserted_id = new_user_id
-        mock_collection.insert_one = AsyncMock(return_value=mock_result)
-        mock_collection.find_one = AsyncMock(return_value=created_user)
+        mock.insert_one = AsyncMock(return_value=mock_result)
+        mock.find_one = AsyncMock(return_value=created_user)
+        return mock
 
+    async def mock_validate_email(email: str, request):
+        pass  # Email is available
+
+    app.dependency_overrides[get_user_collection] = override_get_user_collection
+    app.dependency_overrides[validate_email_available] = mock_validate_email
+    try:
         response = await async_client_no_auth.post("/v1/auth/register", json=sample_user_data)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert data["email"] == sample_user_data["email"]
         assert "_id" in data or "id" in data
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
-async def test_register_duplicate_email(async_client_no_auth, sample_user_data) -> None:
+async def test_register_duplicate_email(async_client_no_auth, sample_user_data, mock_user) -> None:
     """Test registering a user with an email that already exists."""
-    with patch("app.routes.auth_route.validate_email_available") as mock_validate:
-        mock_validate.side_effect = UserAlreadyExistsException()
 
-        response = await async_client_no_auth.post("/v1/auth/register", json=sample_user_data)
+    # Configure app.state.db mock to return existing user for validator
+    mock_collection = AsyncMock()
+    mock_collection.find_one = AsyncMock(return_value=mock_user)
 
-        assert response.status_code == status.HTTP_409_CONFLICT
+    # Update the mock_database fixture's collection for this test
+    app.state.db.__getitem__.return_value = mock_collection
+
+    response = await async_client_no_auth.post("/v1/auth/register", json=sample_user_data)
+
+    assert response.status_code == status.HTTP_409_CONFLICT
 
 
 @pytest.mark.asyncio
@@ -176,17 +191,22 @@ async def test_init_success(async_client_no_auth, mock_user) -> None:
     """Test successfully initializing auth flow by getting user salt and vault."""
     init_request = {"email": "test@example.com"}
 
-    with patch("app.routes.auth_route.user_collection") as mock_collection:
-        mock_collection.find_one = AsyncMock(return_value=mock_user)
+    def override_get_user_collection():
+        mock = AsyncMock()
+        mock.find_one = AsyncMock(return_value=mock_user)
+        return mock
 
+    app.dependency_overrides[get_user_collection] = override_get_user_collection
+    try:
         response = await async_client_no_auth.post("/v1/auth/init", json=init_request)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
-        assert "_id" in data
         assert data["_id"] == str(mock_user["_id"])
         assert "auth_salt" in data
         assert "mfa_enabled" in data
+    finally:
+        app.dependency_overrides.clear()
         assert not data["mfa_enabled"]
 
 
@@ -195,13 +215,19 @@ async def test_init_user_not_found(async_client_no_auth) -> None:
     """Test initializing auth for non-existent user."""
     init_request = {"email": "nonexistent@example.com"}
 
-    with patch("app.routes.auth_route.user_collection") as mock_collection:
-        mock_collection.find_one = AsyncMock(return_value=None)
+    def override_get_user_collection():
+        mock = AsyncMock()
+        mock.find_one = AsyncMock(return_value=None)
+        return mock
 
+    app.dependency_overrides[get_user_collection] = override_get_user_collection
+    try:
         response = await async_client_no_auth.post("/v1/auth/init", json=init_request)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "not found" in response.json()["detail"].lower()
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
@@ -228,14 +254,22 @@ async def test_verify_success(async_client_no_auth, mock_user) -> None:
     test_mock_user = mock_user.copy()
     test_mock_user["auth_verifier"] = mock_user["auth_verifier"]
 
-    with patch("app.routes.auth_route.user_collection") as mock_collection:
-        mock_collection.find_one = AsyncMock(return_value=test_mock_user)
+    def override_get_user_collection():
+        mock = AsyncMock()
+        mock.find_one = AsyncMock(return_value=test_mock_user)
+        return mock
 
+    app.dependency_overrides[get_user_collection] = override_get_user_collection
+    try:
         response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "access_token" in data
+        token = data["access_token"]
+        assert len(token) > 0
+    finally:
+        app.dependency_overrides.clear()
         assert isinstance(data["access_token"], str)
         assert len(data["access_token"]) > 0
         assert data["token_type"] == "bearer"
@@ -253,12 +287,18 @@ async def test_verify_user_not_found(async_client_no_auth, sample_user_id) -> No
         "auth_verifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8"),
     }
 
-    with patch("app.routes.auth_route.user_collection") as mock_collection:
-        mock_collection.find_one = AsyncMock(return_value=None)
+    def override_get_user_collection():
+        mock = AsyncMock()
+        mock.find_one = AsyncMock(return_value=None)
+        return mock
 
+    app.dependency_overrides[get_user_collection] = override_get_user_collection
+    try:
         response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
+    finally:
+        app.dependency_overrides.clear()
         assert "not found" in response.json()["detail"].lower()
 
 
@@ -270,12 +310,18 @@ async def test_verify_invalid_verifier(async_client_no_auth, mock_user) -> None:
         "auth_verifier": base64.b64encode(b"wrongverifier1234567890ab").decode("utf-8"),
     }
 
-    with patch("app.routes.auth_route.user_collection") as mock_collection:
-        mock_collection.find_one = AsyncMock(return_value=mock_user)
+    def override_get_user_collection():
+        mock = AsyncMock()
+        mock.find_one = AsyncMock(return_value=mock_user)
+        return mock
 
+    app.dependency_overrides[get_user_collection] = override_get_user_collection
+    try:
         response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
 
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    finally:
+        app.dependency_overrides.clear()
         assert "Invalid auth verifier" in response.json()["detail"]
 
 
@@ -322,27 +368,30 @@ async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_u
         "auth_verifier": base64.b64encode(mock_user["auth_verifier"]).decode("utf-8"),
     }
 
-    with patch("app.routes.auth_route.user_collection") as mock_collection:
-        mock_collection.find_one = AsyncMock(return_value=mock_user)
+    def override_get_user_collection():
+        mock = AsyncMock()
+        mock.find_one = AsyncMock(return_value=mock_user)
+        return mock
 
+    app.dependency_overrides[get_user_collection] = override_get_user_collection
+    try:
         # Generate token via verify
         response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
         assert response.status_code == status.HTTP_200_OK
         token = response.json()["access_token"]
 
         # Try to use the token for an authenticated request
-        with patch("app.routes.user_route.user_collection") as mock_user_collection:
-            mock_user_collection.find_one = AsyncMock(return_value=mock_user)
+        auth_response = await async_client_no_auth.get(
+            f"/v1/users/{mock_user['_id']}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
 
-            auth_response = await async_client_no_auth.get(
-                f"/v1/users/{mock_user['_id']}",
-                headers={"Authorization": f"Bearer {token}"},
-            )
-
-            assert auth_response.status_code == status.HTTP_200_OK
-            data = auth_response.json()
-            assert data["_id"] == str(mock_user["_id"])
-            assert data["email"] == "test@example.com"
+        assert auth_response.status_code == status.HTTP_200_OK
+        data = auth_response.json()
+        assert data["_id"] == str(mock_user["_id"])
+        assert data["email"] == "test@example.com"
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
@@ -350,40 +399,43 @@ async def test_auth_endpoints_no_auth_required(
     async_client_no_auth, mock_user, sample_user_data
 ) -> None:
     """Test that auth endpoints do not require authentication."""
+
     # Register endpoint
-    with (
-        patch("app.routes.auth_route.user_collection") as mock_collection,
-        patch("app.routes.auth_route.validate_email_available", new=AsyncMock()),
-    ):
+    def override_get_user_collection():
+        mock = AsyncMock()
         mock_result = MagicMock()
         mock_result.inserted_id = uuid.uuid4()
-        mock_collection.insert_one = AsyncMock(return_value=mock_result)
-        mock_collection.find_one = AsyncMock(return_value=mock_user)
+        mock.insert_one = AsyncMock(return_value=mock_result)
+        mock.find_one = AsyncMock(return_value=mock_user)
+        return mock
 
+    async def mock_validate_email(email: str, request):
+        pass  # Email is available
+
+    app.dependency_overrides[get_user_collection] = override_get_user_collection
+    app.dependency_overrides[validate_email_available] = mock_validate_email
+    try:
+        # Test register endpoint
         response = await async_client_no_auth.post("/v1/auth/register", json=sample_user_data)
         assert response.status_code == status.HTTP_200_OK
 
-    # Init endpoint
-    with patch("app.routes.auth_route.user_collection") as mock_collection:
-        mock_collection.find_one = AsyncMock(return_value=mock_user)
-
+        # Test init endpoint
         response = await async_client_no_auth.post(
             "/v1/auth/init",
-            json={"email": "test@example.com"},
+            json={"email": mock_user["email"]},
         )
         assert response.status_code == status.HTTP_200_OK
 
-    # Verify endpoint
-    verify_request = {
-        "_id": str(mock_user["_id"]),
-        "auth_verifier": base64.b64encode(mock_user["auth_verifier"]).decode("utf-8"),
-    }
-
-    with patch("app.routes.auth_route.user_collection") as mock_collection:
-        mock_collection.find_one = AsyncMock(return_value=mock_user)
+        # Test verify endpoint
+        verify_request = {
+            "_id": str(mock_user["_id"]),
+            "auth_verifier": base64.b64encode(mock_user["auth_verifier"]).decode("utf-8"),
+        }
 
         response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
         assert response.status_code == status.HTTP_200_OK
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
@@ -403,56 +455,56 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
     }
 
     # Step 1: Register
-    with (
-        patch("app.routes.auth_route.user_collection") as mock_collection,
-        patch("app.routes.auth_route.validate_email_available", new=AsyncMock()),
-    ):
+    def override_get_user_collection():
+        mock = AsyncMock()
         mock_result = MagicMock()
         mock_result.inserted_id = new_user_id
-        mock_collection.insert_one = AsyncMock(return_value=mock_result)
-        mock_collection.find_one = AsyncMock(return_value=created_user)
+        mock.insert_one = AsyncMock(return_value=mock_result)
+        mock.find_one = AsyncMock(return_value=created_user)
+        return mock
 
+    async def mock_validate_email(email: str, request):
+        pass  # Email is available
+
+    app.dependency_overrides[get_user_collection] = override_get_user_collection
+    app.dependency_overrides[validate_email_available] = mock_validate_email
+    try:
+        # Step 1: Register
         register_response = await async_client_no_auth.post(
             "/v1/auth/register",
             json=sample_user_data,
         )
+
         assert register_response.status_code == status.HTTP_200_OK
-        user_data = register_response.json()
-        registered_email = user_data["email"]
+        assert "email" in register_response.json()
 
-    # Step 2: Init (get salt and vault)
-    with patch("app.routes.auth_route.user_collection") as mock_collection:
-        mock_collection.find_one = AsyncMock(return_value=created_user)
-
+        # Step 2: Init (get user's auth_salt and vault)
         init_response = await async_client_no_auth.post(
             "/v1/auth/init",
-            json={"email": registered_email},
+            json={"email": sample_user_data["email"]},
         )
+
         assert init_response.status_code == status.HTTP_200_OK
         init_data = init_response.json()
-        assert init_data["_id"] == str(new_user_id)
         assert "auth_salt" in init_data
+        assert init_data["_id"] == str(created_user["_id"])
 
-    # Step 3: Verify (get JWT token)
-    verify_request = {
-        "_id": str(new_user_id),
-        "auth_verifier": sample_user_data["auth_verifier"],
-    }
-
-    with patch("app.routes.auth_route.user_collection") as mock_collection:
-        mock_collection.find_one = AsyncMock(return_value=created_user)
+        # Step 3: Verify (get JWT token)
+        verify_request = {
+            "_id": str(created_user["_id"]),
+            "auth_verifier": sample_user_data["auth_verifier"],
+        }
 
         verify_response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
+
         assert verify_response.status_code == status.HTTP_200_OK
         verify_data = verify_response.json()
         assert "access_token" in verify_data
+        assert len(verify_data["access_token"]) > 0
         assert verify_data["token_type"] == "bearer"
 
-    # Step 4: Use token to access protected endpoint
-    token = verify_data["access_token"]
-
-    with patch("app.routes.user_route.user_collection") as mock_user_collection:
-        mock_user_collection.find_one = AsyncMock(return_value=created_user)
+        # Step 4: Use token to access protected endpoint
+        token = verify_data["access_token"]
 
         user_response = await async_client_no_auth.get(
             f"/v1/users/{new_user_id}",
@@ -463,28 +515,35 @@ async def test_full_auth_flow(async_client_no_auth, sample_user_data, mock_user)
         user_response_data = user_response.json()
         user_id = user_response_data.get("id") or user_response_data.get("_id")
         assert user_id == str(new_user_id)
-        assert user_response_data["email"] == registered_email
+        assert user_response_data["email"] == sample_user_data["email"]
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
 async def test_register_creation_failure(async_client_no_auth, sample_register_payload):
     """Test user registration when database insert fails."""
-    with (
-        patch("app.utils.validators.user_collection") as mock_validators_collection,
-        patch("app.routes.auth_route.user_collection") as mock_auth_collection,
-    ):
-        # Mock successful validation in validators module
-        mock_validators_collection.find_one = AsyncMock(return_value=None)
 
-        # Mock successful insert but failed retrieval in auth_route module
+    def override_get_user_collection():
+        mock = AsyncMock()
+        # Mock successful insert but failed retrieval
         mock_result = MagicMock()
         mock_result.inserted_id = uuid.uuid4()
-        mock_auth_collection.insert_one = AsyncMock(return_value=mock_result)
-        mock_auth_collection.find_one = AsyncMock(return_value=None)  # Fails to find created user
+        mock.insert_one = AsyncMock(return_value=mock_result)
+        mock.find_one = AsyncMock(return_value=None)  # Fails to find created user
+        return mock
 
+    async def mock_validate_email(email: str, request):
+        pass  # Email is available
+
+    app.dependency_overrides[get_user_collection] = override_get_user_collection
+    app.dependency_overrides[validate_email_available] = mock_validate_email
+    try:
         response = await async_client_no_auth.post(
             "/v1/auth/register", json=sample_register_payload
         )
 
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert "Failed to create user" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()
