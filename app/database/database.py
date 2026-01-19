@@ -1,9 +1,11 @@
 # database.py
 import os
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
-from fastapi import FastAPI, Request
-from bson.codec_options import CodecOptions
+
 from bson.binary import UuidRepresentation
+from bson.codec_options import CodecOptions
+from fastapi import FastAPI, Request
+from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
+
 
 def init_db(app: FastAPI):
     """
@@ -11,10 +13,10 @@ def init_db(app: FastAPI):
     Should be called in FastAPI lifespan.
     """
     app.state.mongo_client = AsyncIOMotorClient(
-        os.environ["MONGODB_URL"],
-        uuidRepresentation="standard"
+        os.environ["MONGODB_URL"], uuidRepresentation="standard"
     )
     app.state.db = app.state.mongo_client[os.environ["DATABASE_NAME"]]
+
 
 def close_db(app: FastAPI):
     """
@@ -23,6 +25,7 @@ def close_db(app: FastAPI):
     client = getattr(app.state, "mongo_client", None)
     if client:
         client.close()
+
 
 # Dependency to get user collection
 def get_user_collection(request: Request) -> AsyncIOMotorCollection:

@@ -20,7 +20,7 @@ async def validate_email_available(email: str, request: Request) -> None:
         UserAlreadyExistsException: If email is already in use.
 
     """
-    
+
     user_collection = get_user_collection(request)
     existing = await user_collection.find_one({"email": email})
     if existing:
@@ -37,7 +37,7 @@ async def validate_email_available_for_user(email: str, user_id: UUID, request: 
         EmailAlreadyInUseException: If email is in use by another user.
 
     """
-    
+
     user_collection = get_user_collection(request)
     existing = await user_collection.find_one({"email": email, "_id": {"$ne": user_id}})
     if existing:

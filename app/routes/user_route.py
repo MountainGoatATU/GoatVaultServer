@@ -2,10 +2,10 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
-from app.database import get_user_collection
-from fastapi import APIRouter, Body, Depends, Request, status 
+from fastapi import APIRouter, Body, Depends, Request, status
 from motor.motor_asyncio import AsyncIOMotorCollection
 
+from app.database import get_user_collection
 from app.models import (
     UserModel,
     UserResponse,
@@ -33,9 +33,9 @@ user_router: APIRouter = APIRouter(
     status_code=status.HTTP_200_OK,
 )
 async def get_user(
-    userId: UUID, 
+    userId: UUID,
     token_payload: Annotated[dict, Depends(verify_token)],
-    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]    
+    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
 ) -> UserResponse:
     """Get the record for a specific user, looked up by `id`."""
     verify_user_access(token_payload, userId)
@@ -57,7 +57,7 @@ async def update_user(
     request: Request,
     user_data: Annotated[UserUpdateRequest, Body()],
     token_payload: Annotated[dict, Depends(verify_token)],
-    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]
+    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
 ) -> UserResponse:
     """Update the record for a specific user, looked up by `userId`."""
     verify_user_access(token_payload, userId)
@@ -88,13 +88,13 @@ async def update_user(
     response_description="Delete a user",
 )
 async def delete_user(
-    userId: UUID, 
-    token_payload: Annotated[dict, Depends(verify_token)], 
-    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]
+    userId: UUID,
+    token_payload: Annotated[dict, Depends(verify_token)],
+    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
 ) -> UserModel:
     """Delete the record for a specific user, looked up by `userId`."""
     verify_user_access(token_payload, userId)
-    
+
     deleted_user = await user_collection.find_one_and_delete({"_id": userId})
     if deleted_user is None:
         raise UserNotFoundException(userId)
