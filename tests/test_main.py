@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -42,7 +42,6 @@ async def test_openapi_json() -> None:
 async def test_production_environment_config() -> None:
     """Test that production environment enables HTTPS redirect."""
     import os
-    from unittest.mock import patch
 
     with patch.dict(os.environ, {"ENVIRONMENT": "production"}):
         # Reload main to apply production settings

@@ -1,8 +1,6 @@
 # database.py
 import os
 
-from bson.binary import UuidRepresentation
-from bson.codec_options import CodecOptions
 from fastapi import FastAPI, Request
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 

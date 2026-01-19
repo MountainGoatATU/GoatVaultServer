@@ -9,7 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 from app.database import get_user_collection
 from app.main import app
-from app.utils import UserAlreadyExistsException, create_jwt_token, verify_token
+from app.utils import create_jwt_token, verify_token
 from app.utils.validators import validate_email_available
 
 
