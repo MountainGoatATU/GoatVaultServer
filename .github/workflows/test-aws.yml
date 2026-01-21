@@ -23,22 +23,20 @@ env:
   NAME_OF_PACKAGE: deployment.zip
 
 jobs:
-    # test:
-    #     runs-on: ubuntu-latest
-    #     steps:
-    #     - uses: actions/checkout@v4
+    test:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v4
 
-    #     - uses: actions/setup-python@v5
-    #       with:
-    #         python-version: "3.11"
+        - uses: actions/setup-python@v5
+          with:
+            python-version: "3.11"
 
-    #     - uses: astral-sh/setup-uv@v6
-    #       with:
-    #         enable-cache: true
+        - uses: astral-sh/setup-uv@v6
+          with:
+            enable-cache: true
 
-    #     - run: uv sync --locked --all-extras --dev
-    #     - run: uv run ruff check app tests --fix
-    #     - run: uv run pytest tests
+        - run: uv run task test
 
     build:
       # needs: test
