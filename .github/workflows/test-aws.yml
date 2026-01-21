@@ -39,7 +39,7 @@ jobs:
         - run: uv run task test
 
     build:
-      # needs: test
+      needs: test
       runs-on: ubuntu-latest
       steps:
         - name: Checkout repo
