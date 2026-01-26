@@ -9,6 +9,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 
 from app.database import get_user_collection
 from app.main import app
+from app.models import TokenPayload
 from app.utils import create_jwt_token, verify_token
 from app.utils.validators import validate_email_available
 
@@ -16,7 +17,7 @@ from app.utils.validators import validate_email_available
 @pytest.mark.asyncio
 async def test_verify_token_valid(test_credentials) -> None:
     """Test that valid JWT token is accepted."""
-    result = await verify_token(test_credentials)
+    result: TokenPayload = await verify_token(test_credentials)
 
     assert result is not None
     assert "sub" in result
@@ -36,7 +37,7 @@ async def test_verify_token_invalid() -> None:
     with pytest.raises(HTTPException) as exc_info:
         await verify_token(invalid_credentials)
 
-    exception: HTTPException = exc_info.value  # type: ignore[assignment]
+    exception: HTTPException = exc_info.value
     assert exception.status_code == status.HTTP_401_UNAUTHORIZED
     assert "Invalid" in exception.detail
     assert "token" in exception.detail.lower()
@@ -50,7 +51,7 @@ async def test_verify_token_expired(expired_token) -> None:
     with pytest.raises(HTTPException) as exc_info:
         await verify_token(expired_credentials)
 
-    exception: HTTPException = exc_info.value  # type: ignore[assignment]
+    exception: HTTPException = exc_info.value
     assert exception.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -65,7 +66,7 @@ async def test_verify_token_wrong_issuer(wrong_issuer_token) -> None:
     with pytest.raises(HTTPException) as exc_info:
         await verify_token(wrong_issuer_credentials)
 
-    exception: HTTPException = exc_info.value  # type: ignore[assignment]
+    exception: HTTPException = exc_info.value
     assert exception.status_code == status.HTTP_403_FORBIDDEN
     assert "Token issuer mismatch" in exception.detail
 
@@ -73,7 +74,7 @@ async def test_verify_token_wrong_issuer(wrong_issuer_token) -> None:
 @pytest.mark.asyncio
 async def test_create_jwt_token(sample_user_id) -> None:
     """Test that JWT token is created successfully."""
-    token = create_jwt_token(sample_user_id)
+    token: str = create_jwt_token(sample_user_id)
 
     assert token is not None
     assert isinstance(token, str)
@@ -83,8 +84,8 @@ async def test_create_jwt_token(sample_user_id) -> None:
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
     payload = await verify_token(credentials)
 
-    assert payload["sub"] == str(sample_user_id)
-    assert payload["iss"] == "test-issuer"
+    assert payload.sub == sample_user_id
+    assert payload.iss == "test-issuer"
 
 
 @pytest.mark.asyncio
@@ -100,13 +101,19 @@ async def test_verify_token_missing_subject() -> None:
         "exp": datetime.now(UTC) + timedelta(hours=1),
         "iat": datetime.now(UTC),
     }
-    token = jwt.encode(payload, os.getenv("JWT_SECRET"), algorithm=os.getenv("JWT_ALGORITHM"))
+    token: str = jwt.encode(payload, os.getenv("JWT_SECRET"), algorithm=os.getenv("JWT_ALGORITHM"))
 
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
     # This should still decode successfully, but sub will be None
-    result = await verify_token(credentials)
-    assert result.get("sub") is None
+    with pytest.raises(HTTPException) as exc_info:
+        await verify_token(credentials)
+
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
+    assert (
+        "missing required 'sub'" in str(exc_info.value.detail).lower()
+        or "token missing" in str(exc_info.value.detail).lower()
+    )
 
 
 # Auth Route Tests

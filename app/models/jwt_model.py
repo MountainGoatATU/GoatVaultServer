@@ -23,3 +23,6 @@ class TokenPayload(BaseModel):
             }
         }
     )
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.model_dump()

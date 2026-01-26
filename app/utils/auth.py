@@ -56,7 +56,12 @@ async def verify_token(
     token: str = credentials.credentials
 
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        payload = jwt.decode(
+            token,
+            JWT_SECRET,
+            algorithms=[JWT_ALGORITHM],
+            options={"require": ["exp", "iat", "iss"]},
+        )
     except PyJWTError as e:
         match e:
             case jwt.ExpiredSignatureError:
@@ -80,6 +85,12 @@ async def verify_token(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Token issuer mismatch",
+        )
+
+    if "sub" not in payload or payload.get("sub") is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token missing required 'sub' (subject) claim",
         )
 
     # Convert payload to TokenPayload model
