@@ -10,6 +10,7 @@ from app.models.auth_model import (
 from app.models.base import (
     Base64BytesModel,
 )
+from app.models.jwt_model import TokenPayload
 from app.models.user_model import (
     UserCreateRequest,
     UserModel,
@@ -27,6 +28,7 @@ __all__: list[str] = [
     "AuthRequest",
     "AuthResponse",
     "Base64BytesModel",
+    "TokenPayload",
     "UserCreateRequest",
     "UserModel",
     "UserResponse",

@@ -7,6 +7,7 @@ from motor.motor_asyncio import AsyncIOMotorCollection
 
 from app.database import get_user_collection
 from app.models import (
+    TokenPayload,
     UserModel,
     UserResponse,
     UserUpdateRequest,
@@ -34,7 +35,7 @@ user_router: APIRouter = APIRouter(
 )
 async def get_user(
     userId: UUID,
-    token_payload: Annotated[dict, Depends(verify_token)],
+    token_payload: Annotated[TokenPayload, Depends(verify_token)],
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
 ) -> UserResponse:
     """Get the record for a specific user, looked up by `id`."""
@@ -56,7 +57,7 @@ async def update_user(
     userId: UUID,
     request: Request,
     user_data: Annotated[UserUpdateRequest, Body()],
-    token_payload: Annotated[dict, Depends(verify_token)],
+    token_payload: Annotated[TokenPayload, Depends(verify_token)],
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
 ) -> UserResponse:
     """Update the record for a specific user, looked up by `userId`."""
@@ -89,7 +90,7 @@ async def update_user(
 )
 async def delete_user(
     userId: UUID,
-    token_payload: Annotated[dict, Depends(verify_token)],
+    token_payload: Annotated[TokenPayload, Depends(verify_token)],
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
 ) -> UserModel:
     """Delete the record for a specific user, looked up by `userId`."""

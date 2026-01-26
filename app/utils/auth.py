@@ -10,6 +10,8 @@ from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 
+from app.models import TokenPayload
+
 # Load environment variables
 load_dotenv()
 
@@ -47,7 +49,7 @@ bearer_scheme = HTTPBearer(auto_error=True)
 
 async def verify_token(
     credentials: Annotated[HTTPAuthorizationCredentials, Security(bearer_scheme)],
-) -> dict:
+) -> TokenPayload:
     """Verifies that the provided Bearer JWT token is valid and that its 'iss'
     (issuer) claim matches the SERVER_NAME environment variable.
     """
@@ -80,7 +82,16 @@ async def verify_token(
             detail="Token issuer mismatch",
         )
 
-    return payload
+    # Convert payload to TokenPayload model
+    try:
+        token_payload: TokenPayload = TokenPayload.model_validate(payload)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid token payload: {e!s}",
+        ) from e
+
+    return token_payload
 
 
 def verify_mfa(otp: str | None, secret_key: str | None) -> bool:
@@ -95,9 +106,9 @@ def verify_mfa(otp: str | None, secret_key: str | None) -> bool:
         return False
 
 
-def verify_user_access(token_payload: dict, user_id: UUID) -> None:
+def verify_user_access(token_payload: TokenPayload, user_id: UUID) -> None:
     """Verify that the authenticated user is accessing their own resources."""
-    requesting_user_id = UUID(token_payload["sub"])
+    requesting_user_id: UUID = token_payload.sub
     if requesting_user_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="You can only access your own resources"
