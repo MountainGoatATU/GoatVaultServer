@@ -96,6 +96,18 @@ class AuthResponse(Base64BytesModel):
     )
 
 
+class AuthRefreshRequest(Base64BytesModel):
+    """Request model for refresh endpoint."""
+
+    refresh_token: str = Field(..., description="Raw refresh token presented by client")
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        json_schema_extra={
+            "example": {"refresh_token": "qwerty_refresh_token_example"},
+        }
+    )
+
+
 class AuthRefreshResponse(Base64BytesModel):
     """Response model for refresh endpoint"""
 
@@ -106,9 +118,9 @@ class AuthRefreshResponse(Base64BytesModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(
         json_schema_extra={
             "example": {
-                "access_token": "eyJhbGciOiJIUzI1NiI...",
+                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
                 "token_type": "bearer",
-                "refresh_token": "qwerty_refresh_token_example",
+                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
             },
         },
     )

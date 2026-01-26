@@ -12,6 +12,7 @@ from app.models import (
     AuthInitRequest,
     AuthInitResponse,
     AuthLogoutResponse,
+    AuthRefreshRequest,
     AuthRefreshResponse,
     AuthRegisterResponse,
     AuthRequest,
@@ -27,14 +28,11 @@ from app.utils import (
     UserNotFoundByEmailException,
     UserNotFoundException,
     create_jwt_token,
-    create_refresh_token,
     revoke_refresh_token,
     rotate_refresh_token,
-    store_refresh_token,
     validate_email_available,
     verify_mfa,
     verify_refresh_token,
-    verify_token,
 )
 
 limiter = Limiter(key_func=get_remote_address)
@@ -136,13 +134,13 @@ async def verify(
     return AuthResponse(access_token=token)
 
 
-@auth_router.post("/refresh", response_model=AuthResponse)
+@auth_router.post("/refresh")
 async def refresh_token_endpoint(
-    request: Request,
-    payload: Annotated[dict, Body(...)],  # expect {"refresh_token": "<raw>"}
+    request: Request,  # noqa: ARG001
+    payload: Annotated[AuthRefreshRequest, Body(...)],
     refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
 ) -> AuthRefreshResponse:
-    raw_refresh = payload.get("refresh_token")
+    raw_refresh = payload.refresh_token
     if not raw_refresh:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing refresh_token")
 
@@ -161,18 +159,16 @@ async def refresh_token_endpoint(
         )
 
     access: str = create_jwt_token(user_id)
-    # Return the new refresh token raw value to client and the access token
     return AuthRefreshResponse(access_token=access, refresh_token=rotation["raw"])
 
 
 @auth_router.post("/logout")
 async def logout_endpoint(
-    payload: Annotated[dict, Body(...)],
+    payload: Annotated[AuthRefreshRequest, Body(...)],
     refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
 ) -> AuthLogoutResponse:
-    raw_refresh = payload.get("refresh_token")
+    raw_refresh: str = payload.refresh_token
     if not raw_refresh:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing refresh_token")
     _ok: bool = await revoke_refresh_token(refresh_collection, raw_refresh)
-    # Return status model; don't reveal whether token was valid
     return AuthLogoutResponse(status="ok")
