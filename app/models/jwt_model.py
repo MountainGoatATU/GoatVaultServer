@@ -26,3 +26,16 @@ class TokenPayload(BaseModel):
 
     def __contains__(self, key: str) -> bool:
         return key in self.model_dump()
+
+
+class RefreshTokenModel(BaseModel):
+    """Representation of a stored refresh token (DB record)."""
+
+    id: UUID = Field(..., alias="_id", description="DB id for the refresh token")
+    user_id: UUID = Field(..., description="User this refresh token belongs to")
+    token_hash: str = Field(..., description="SHA256 (or other) hash of the raw token")
+    created_at: datetime = Field(..., description="When this refresh token was created")
+    expires_at: datetime = Field(..., description="When this refresh token expires")
+    revoked: bool = Field(False, description="Whether the refresh token has been revoked")
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)

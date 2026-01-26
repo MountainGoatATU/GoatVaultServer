@@ -1,4 +1,15 @@
-from app.utils.auth import create_jwt_token, verify_mfa, verify_token, verify_user_access
+from app.utils.auth import (
+    create_jwt_token,
+    create_refresh_token,
+    hash_token,
+    revoke_refresh_token,
+    rotate_refresh_token,
+    store_refresh_token,
+    verify_mfa,
+    verify_refresh_token,
+    verify_token,
+    verify_user_access,
+)
 from app.utils.exceptions import (
     EmailAlreadyInUseException,
     InvalidAuthVerifierException,
@@ -20,6 +31,12 @@ from app.utils.validators import (
 
 __all__: list[str] = [
     "create_jwt_token",
+    "hash_token",
+    "create_refresh_token",
+    "revoke_refresh_token",
+    "rotate_refresh_token",
+    "store_refresh_token",
+    "verify_refresh_token",
     "verify_token",
     "verify_mfa",
     "verify_user_access",

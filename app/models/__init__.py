@@ -3,6 +3,8 @@
 from app.models.auth_model import (
     AuthInitRequest,
     AuthInitResponse,
+    AuthLogoutResponse,
+    AuthRefreshResponse,
     AuthRegisterResponse,
     AuthRequest,
     AuthResponse,
@@ -27,6 +29,8 @@ __all__: list[str] = [
     "AuthRegisterResponse",
     "AuthRequest",
     "AuthResponse",
+    "AuthLogoutResponse",
+    "AuthRefreshResponse",
     "Base64BytesModel",
     "TokenPayload",
     "UserCreateRequest",

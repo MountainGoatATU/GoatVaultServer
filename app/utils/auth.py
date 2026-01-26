@@ -1,4 +1,6 @@
+import hashlib
 import os
+import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from uuid import UUID
@@ -28,6 +30,75 @@ if not ISSUER:
     raise ValueError("ISSUER environment variable is required.")
 
 TOKEN_EXP_HOURS: int = int(os.getenv("TOKEN_EXP_HOURS", 12))
+REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
+
+
+def hash_token(raw_token: str) -> str:
+    """Hash a refresh token for storage (SHA256 hex)."""
+    h = hashlib.sha256()
+    h.update(raw_token.encode("utf-8"))
+    return h.hexdigest()
+
+
+def create_refresh_token() -> str:
+    """Create a new random refresh token (raw value to return to client)."""
+    return secrets.token_urlsafe(48)
+
+
+async def store_refresh_token(refresh_collection, user_id: UUID, raw_token: str) -> dict:
+    """Store hashed refresh token in DB and return the DB record dict."""
+    now: datetime = datetime.now(UTC)
+    expires_at: datetime = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    token_hash: str = hash_token(raw_token)
+
+    doc = {
+        "user_id": user_id,
+        "token_hash": token_hash,
+        "created_at": now,
+        "expires_at": expires_at,
+        "revoked": False,
+    }
+    result = await refresh_collection.insert_one(doc)
+    doc["_id"] = result.inserted_id
+    return doc
+
+
+async def verify_refresh_token(refresh_collection, raw_token: str) -> dict | None:
+    """Verify a refresh token and return the DB record if valid and not revoked/expired."""
+    token_hash: str = hash_token(raw_token)
+    now: datetime = datetime.now(UTC)
+    rec = await refresh_collection.find_one({"token_hash": token_hash})
+    if not rec:
+        return None
+    if rec.get("revoked", False):
+        return None
+    if rec.get("expires_at") is None or rec["expires_at"] < now:
+        return None
+    return rec
+
+
+async def rotate_refresh_token(refresh_collection, old_raw_token: str, user_id: UUID):
+    """Rotate a refresh token: verify old one, revoke it, create & store a new one."""
+    rec = await verify_refresh_token(refresh_collection, old_raw_token)
+    if not rec:
+        return None
+
+    # revoke old
+    await refresh_collection.update_one({"_id": rec["_id"]}, {"$set": {"revoked": True}})
+
+    # create and store new
+    new_raw: str = create_refresh_token()
+    new_rec = await store_refresh_token(refresh_collection, user_id, new_raw)
+    return {"raw": new_raw, "record": new_rec}
+
+
+async def revoke_refresh_token(refresh_collection, raw_token: str) -> bool:
+    """Revoke a refresh token by raw token string; return True if a record was updated."""
+    token_hash: str = hash_token(raw_token)
+    result = await refresh_collection.update_one(
+        {"token_hash": token_hash, "revoked": False}, {"$set": {"revoked": True}}
+    )
+    return result.modified_count > 0
 
 
 def create_jwt_token(user_id: UUID) -> str:

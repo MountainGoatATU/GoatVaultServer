@@ -82,13 +82,43 @@ class AuthResponse(Base64BytesModel):
     """Response model for the generated JWT token."""
 
     access_token: str = Field(..., description="Generated JWT token")
+    refresh_token: str | None = Field(None, description="Refresh token (if issued)")
     token_type: str = Field(default="bearer", description="Token type (always 'bearer')")
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         json_schema_extra={
             "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
+                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
                 "token_type": "bearer",
             },
         },
+    )
+
+
+class AuthRefreshResponse(Base64BytesModel):
+    """Response model for refresh endpoint"""
+
+    access_token: str = Field(..., description="New access JWT token")
+    token_type: str = Field(default="bearer", description="Token type (always 'bearer')")
+    refresh_token: str = Field(..., description="New refresh token (raw string)")
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "access_token": "eyJhbGciOiJIUzI1NiI...",
+                "token_type": "bearer",
+                "refresh_token": "qwerty_refresh_token_example",
+            },
+        },
+    )
+
+
+class AuthLogoutResponse(Base64BytesModel):
+    """Response model for logout/revoke endpoint."""
+
+    status: str = Field(default="ok", description="Operation status")
+
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        json_schema_extra={"example": {"status": "ok"}},
     )
