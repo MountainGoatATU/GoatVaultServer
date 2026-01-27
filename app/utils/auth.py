@@ -12,8 +12,14 @@ from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 from motor.motor_asyncio import AsyncIOMotorCollection
+from pymongo import ReturnDocument
+from pymongo.results import InsertOneResult
 
 from app.models import RefreshRotationResult, RefreshTokenModel, TokenPayload
+
+"""
+Settings
+"""
 
 # Load environment variables
 load_dotenv()
@@ -33,6 +39,15 @@ if not ISSUER:
     raise ValueError("ISSUER environment variable is required.")
 
 
+"""
+Helpers
+"""
+
+
+def _now() -> datetime:
+    return datetime.now(UTC)
+
+
 def hash_token(raw_token: str) -> str:
     """Hash a refresh token for storage (SHA256 hex)."""
     h = hashlib.sha256()
@@ -45,22 +60,27 @@ def create_refresh_token() -> str:
     return secrets.token_urlsafe(48)
 
 
+"""
+Refresh Token Helpers
+"""
+
+
 async def store_refresh_token(
     refresh_collection: AsyncIOMotorCollection, user_id: UUID, raw_token: str
 ) -> RefreshTokenModel:
     """Store hashed refresh token in DB and return the DB record dict."""
-    now: datetime = datetime.now(UTC)
+    now: datetime = _now()
     expires_at: datetime = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     token_hash: str = hash_token(raw_token)
 
-    doc = {
+    doc: dict = {
         "user_id": user_id,
         "token_hash": token_hash,
         "created_at": now,
         "expires_at": expires_at,
         "revoked": False,
     }
-    result = await refresh_collection.insert_one(doc)
+    result: InsertOneResult = await refresh_collection.insert_one(doc)
     doc["_id"] = result.inserted_id
     return RefreshTokenModel.model_validate(doc)
 
@@ -70,22 +90,18 @@ async def verify_refresh_token(
 ) -> RefreshTokenModel | None:
     """Verify a refresh token and return the DB record if valid and not revoked/expired."""
     token_hash: str = hash_token(raw_token)
-    now: datetime = datetime.now(UTC)
+    now: datetime = _now()
     rec = await refresh_collection.find_one({"token_hash": token_hash})
-
-    # Normalize to dict
-    if isinstance(rec, RefreshTokenModel):
-        rec_dict = rec.model_dump()
-    elif rec is None:
+    if not rec:
         return None
-    else:
-        rec_dict = rec
+
+    # normalize
+    rec_dict = rec.model_dump() if isinstance(rec, RefreshTokenModel) else rec
 
     if rec_dict.get("revoked", False):
         return None
     if rec_dict.get("expires_at") is None or rec_dict["expires_at"] < now:
         return None
-
     return RefreshTokenModel.model_validate(rec_dict)
 
 
@@ -93,10 +109,9 @@ async def rotate_refresh_token(
     refresh_collection: AsyncIOMotorCollection, old_raw_token: str, user_id: UUID
 ) -> RefreshRotationResult | None:
     """Rotate a refresh token: verify old one, revoke it, create & store a new one."""
-    from pymongo import ReturnDocument
 
     token_hash: str = hash_token(old_raw_token)
-    now: datetime = datetime.now(UTC)
+    now: datetime = _now()
 
     # Find non-revoked, non-expired token and mark it revoked
     claimed = await refresh_collection.find_one_and_update(
@@ -123,15 +138,19 @@ async def revoke_refresh_token(refresh_collection: AsyncIOMotorCollection, raw_t
     return result.modified_count > 0
 
 
+"""
+JWT Helpers
+"""
+
+
 def create_jwt_token(user_id: UUID) -> str:
     """Generate a signed JWT for a given user UUID."""
-    expire = datetime.now(UTC) + timedelta(hours=TOKEN_EXP_HOURS)
-
+    expire = _now() + timedelta(hours=TOKEN_EXP_HOURS)
     payload = {
         "sub": str(user_id),  # Subject (the user)
         "iss": ISSUER,  # Standard JWT claim (issuer)
         "exp": expire,  # Expiration time
-        "iat": datetime.now(UTC),  # Issued at
+        "iat": _now(),  # Issued at
     }
 
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -196,6 +215,11 @@ async def verify_token(
         ) from e
 
     return token_payload
+
+
+"""
+MFA & User Access Checks
+"""
 
 
 def verify_mfa(otp: str | None, secret_key: str | None) -> bool:
