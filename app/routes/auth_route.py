@@ -143,29 +143,23 @@ async def refresh_token_endpoint(
     payload: Annotated[AuthRefreshRequest, Body(...)],
     refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
 ) -> AuthRefreshResponse:
-    raw_refresh: str = payload.refresh_token
-
-    if not raw_refresh:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing refresh_token")
-
-    rec: RefreshTokenModel | None = await verify_refresh_token(refresh_collection, raw_refresh)
+    rec: RefreshTokenModel | None = await verify_refresh_token(
+        refresh_collection, payload.refresh_token
+    )
     if not rec:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token"
         )
 
-    user_id: UUID = rec.user_id
-    # rotate: revoke old and issue new
     rotation: RefreshRotationResult | None = await rotate_refresh_token(
-        refresh_collection, raw_refresh, user_id
+        refresh_collection, payload.refresh_token, rec.user_id
     )
-
     if rotation is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
-    access: str = create_jwt_token(user_id)
+    access: str = create_jwt_token(rotation.record.user_id)
     return AuthRefreshResponse(access_token=access, refresh_token=rotation.raw)
 
 
