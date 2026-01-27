@@ -4,6 +4,7 @@ import uuid
 from collections.abc import AsyncGenerator, Generator
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -32,12 +33,20 @@ def mock_database() -> Generator[None]:
     mock_collection = MagicMock()
     # Default to None so validators don't think a user exists
     mock_collection.find_one = AsyncMock(return_value=None)
-    mock_collection.insert_one = AsyncMock()
+
+    # Make insert_one return a realistic result object with a UUID inserted_id.
+    # This prevents AsyncMock.insert_one() from returning an AsyncMock whose
+    # `inserted_id` would also be an AsyncMock (which Pydantic can't coerce to UUID).
+    mock_insert_result = MagicMock()
+    mock_insert_result.inserted_id: UUID = uuid.uuid4()
+    mock_collection.insert_one = AsyncMock(return_value=mock_insert_result)
+
+    # Other DB methods used by tests/routes
     mock_collection.update_one = AsyncMock()
     mock_collection.find_one_and_delete = AsyncMock()
 
     mock_db.__getitem__ = MagicMock(return_value=mock_collection)
-    app.state.db = mock_db
+    app.state.db: MagicMock = mock_db
 
     yield
 

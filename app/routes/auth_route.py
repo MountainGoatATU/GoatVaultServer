@@ -1,6 +1,7 @@
 import hmac
 from typing import Annotated
 
+from bson import Binary
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.results import InsertOneResult
@@ -38,6 +39,7 @@ from app.utils import (
     verify_mfa,
     verify_refresh_token,
 )
+from app.utils.auth import ensure_bytes
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -66,6 +68,9 @@ async def register(
     )
 
     new_user_dict = new_user.model_dump(by_alias=True, mode="python")
+
+    if isinstance(new_user_dict.get("auth_verifier"), (bytes, bytearray)):
+        new_user_dict["auth_verifier"] = Binary(new_user_dict["auth_verifier"])
 
     created_user: InsertOneResult = await user_collection.insert_one(new_user_dict)
     created_user_obj = await user_collection.find_one({"_id": created_user.inserted_id})
@@ -125,7 +130,10 @@ async def verify(
     if not user:
         raise UserNotFoundException(payload.id)
 
-    if not hmac.compare_digest(payload.auth_verifier, user["auth_verifier"]):
+    payload_auth_verifier: bytes = ensure_bytes(payload.auth_verifier)
+    user_auth_verifier: bytes = ensure_bytes(user.get("auth_verifier"))
+
+    if not hmac.compare_digest(payload_auth_verifier, user_auth_verifier):
         raise InvalidAuthVerifierException
 
     if user.get("mfa_enabled", False):

@@ -1,6 +1,7 @@
 import hashlib
 import os
 import secrets
+import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from uuid import UUID
@@ -60,6 +61,55 @@ def create_refresh_token() -> str:
     return secrets.token_urlsafe(48)
 
 
+def ensure_bytes(value) -> bytes:
+    """Normalize common token-like/byte-like inputs to bytes."""
+    import base64
+
+    # memoryview -> bytes
+    if isinstance(value, memoryview):
+        return bytes(value)
+
+    # bytes/bytearray -> bytes
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value)
+
+    # list of ints -> bytes
+    if isinstance(value, list):
+        try:
+            return bytes(value)
+        except Exception as e:
+            raise TypeError(f"Cannot convert list to bytes: {e}") from e
+
+    # str -> try base64 decode, fall back to utf-8
+    if isinstance(value, str):
+        try:
+            # Accept padded and unpadded base64; base64.b64decode will raise on invalid input
+            return base64.b64decode(value, validate=True)
+        except Exception:
+            # fallback to plain utf-8
+            return value.encode("utf-8")
+
+    raise TypeError(f"Unsupported type for bytes conversion: {type(value)!r}")
+
+
+def ensure_aware(dt_value):
+    if dt_value is None:
+        return None
+    # If Pydantic model instance field (already datetime), preserve/normalize
+    try:
+        # datetime objects only
+        if not isinstance(dt_value, datetime):
+            return dt_value
+    except Exception:
+        return dt_value
+
+    if dt_value.tzinfo is None:
+        # assume stored naive datetimes are UTC
+        return dt_value.replace(tzinfo=UTC)
+    # convert to UTC uniformly
+    return dt_value.astimezone(UTC)
+
+
 """
 Refresh Token Helpers
 """
@@ -73,15 +123,18 @@ async def store_refresh_token(
     expires_at: datetime = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     token_hash: str = hash_token(raw_token)
 
+    new_id: UUID = uuid.uuid4()
     doc: dict = {
+        "_id": new_id,
         "user_id": user_id,
         "token_hash": token_hash,
         "created_at": now,
         "expires_at": expires_at,
         "revoked": False,
     }
+
     result: InsertOneResult = await refresh_collection.insert_one(doc)
-    doc["_id"] = result.inserted_id
+    doc["_id"] = getattr(result, "inserted_id", new_id)
     return RefreshTokenModel.model_validate(doc)
 
 
@@ -95,8 +148,13 @@ async def verify_refresh_token(
     if not rec:
         return None
 
-    # normalize
+    # normalize to a dict
     rec_dict = rec.model_dump() if isinstance(rec, RefreshTokenModel) else rec
+
+    if "created_at" in rec_dict:
+        rec_dict["created_at"] = ensure_aware(rec_dict.get("created_at"))
+    if "expires_at" in rec_dict:
+        rec_dict["expires_at"] = ensure_aware(rec_dict.get("expires_at"))
 
     if rec_dict.get("revoked", False):
         return None
