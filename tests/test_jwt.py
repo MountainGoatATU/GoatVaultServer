@@ -1,3 +1,4 @@
+import base64
 import uuid
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
@@ -21,6 +22,7 @@ from app.utils import (
     verify_refresh_token,
     verify_token,
 )
+from app.utils.auth import ensure_bytes
 
 
 @pytest.mark.asyncio
@@ -265,3 +267,132 @@ async def test_refresh_and_logout_endpoints(async_client_no_auth: AsyncClient, m
         assert response.json() == {"status": "ok"}
     finally:
         app.dependency_overrides.clear()
+
+
+def test_ensure_bytes_variants():
+    b = b"hello"
+    assert ensure_bytes(b) == b
+
+    # base64 string -> decoded bytes
+    enc = base64.b64encode(b).decode("utf-8")
+    assert ensure_bytes(enc) == b
+
+    # plain string -> utf-8 bytes
+    s = "plain-string"
+    assert ensure_bytes(s) == s.encode("utf-8")
+
+    # memoryview -> bytes
+    mv = memoryview(b)
+    assert ensure_bytes(mv) == b
+
+    # list of ints -> bytes
+    lst = [104, 101, 108, 108, 111]
+    assert ensure_bytes(lst) == b"hello"
+
+
+@pytest.mark.asyncio
+async def test_store_refresh_token_returns_uuid_and_hash():
+    refresh_collection = AsyncMock()
+
+    raw = create_refresh_token()
+    new_id = uuid.uuid4()
+
+    mock_insert_result = MagicMock()
+    mock_insert_result.inserted_id = new_id
+    refresh_collection.insert_one = AsyncMock(return_value=mock_insert_result)
+
+    user_id = uuid.uuid4()
+    stored: RefreshTokenModel = await store_refresh_token(refresh_collection, user_id, raw)
+
+    # Model should have UUID id equal to inserted id and correct user_id
+    assert stored.id == new_id
+    assert stored.user_id == user_id
+    # token_hash should match
+    assert stored.token_hash == hash_token(raw)
+
+
+@pytest.mark.asyncio
+async def test_verify_refresh_token_handles_naive_datetimes():
+    refresh_collection = AsyncMock()
+    raw = "raw-refresh-token"
+    token_hash = hash_token(raw)
+
+    now = datetime.now(UTC)
+    # naive created_at and expires_at (no tzinfo)
+    naive_created = now.replace(tzinfo=None)
+    naive_expires_future = (now + timedelta(days=1)).replace(tzinfo=None)
+
+    rec = {
+        "_id": uuid.uuid4(),
+        "user_id": uuid.uuid4(),
+        "token_hash": token_hash,
+        "created_at": naive_created,
+        "expires_at": naive_expires_future,
+        "revoked": False,
+    }
+
+    refresh_collection.find_one = AsyncMock(return_value=rec)
+
+    verified = await verify_refresh_token(refresh_collection, raw)
+    assert verified is not None
+    assert isinstance(verified, RefreshTokenModel)
+    assert verified.user_id == rec["user_id"]
+
+    # Now test expired naive datetime
+    naive_expires_past = (now - timedelta(days=1)).replace(tzinfo=None)
+    rec_expired = rec.copy()
+    rec_expired["expires_at"] = naive_expires_past
+    refresh_collection.find_one = AsyncMock(return_value=rec_expired)
+
+    verified2 = await verify_refresh_token(refresh_collection, raw)
+    assert verified2 is None
+
+
+@pytest.mark.asyncio
+async def test_rotate_refresh_token_success_and_failure():
+    refresh_collection = AsyncMock()
+    old_raw = "old-raw"
+    user_id = uuid.uuid4()
+
+    # Success case: find_one_and_update returns previous doc (non-None)
+    claimed_doc = {
+        "_id": uuid.uuid4(),
+        "user_id": user_id,
+        "token_hash": hash_token(old_raw),
+        "created_at": datetime.now(UTC),
+        "expires_at": datetime.now(UTC) + timedelta(days=30),
+        "revoked": False,
+    }
+    refresh_collection.find_one_and_update = AsyncMock(return_value=claimed_doc)
+
+    new_inserted_id = uuid.uuid4()
+    mock_insert_result = MagicMock()
+    mock_insert_result.inserted_id = new_inserted_id
+    refresh_collection.insert_one = AsyncMock(return_value=mock_insert_result)
+
+    rotation = await rotate_refresh_token(refresh_collection, old_raw, user_id)
+    assert rotation is not None
+    assert hasattr(rotation, "raw") and hasattr(rotation, "record")
+    assert rotation.record.id == new_inserted_id
+    assert isinstance(rotation.raw, str) and len(rotation.raw) > 0
+
+    # Failure case: find_one_and_update returns None
+    refresh_collection.find_one_and_update = AsyncMock(return_value=None)
+    rotation2 = await rotate_refresh_token(refresh_collection, old_raw, user_id)
+    assert rotation2 is None
+
+
+@pytest.mark.asyncio
+async def test_revoke_refresh_token_branches():
+    refresh_collection = AsyncMock()
+    raw = "sometoken"
+
+    # Success: modified_count > 0
+    refresh_collection.update_one = AsyncMock(return_value=MagicMock(modified_count=1))
+    ok = await revoke_refresh_token(refresh_collection, raw)
+    assert ok is True
+
+    # Failure: modified_count == 0
+    refresh_collection.update_one = AsyncMock(return_value=MagicMock(modified_count=0))
+    ok2 = await revoke_refresh_token(refresh_collection, raw)
+    assert ok2 is False
