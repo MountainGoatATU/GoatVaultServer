@@ -30,8 +30,10 @@ from app.utils import (
     UserNotFoundByEmailException,
     UserNotFoundException,
     create_jwt_token,
+    create_refresh_token,
     revoke_refresh_token,
     rotate_refresh_token,
+    store_refresh_token,
     validate_email_available,
     verify_mfa,
     verify_refresh_token,
@@ -111,6 +113,7 @@ async def verify(
     request: Request,  # noqa: ARG001
     payload: Annotated[AuthRequest, Body()],
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
+    refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
 ) -> AuthResponse:
     """Return a JWT token for a valid `auth_verifier`.
     - Verifies that user exists.
@@ -133,7 +136,11 @@ async def verify(
             raise InvalidMfaCodeException
 
     token: str = create_jwt_token(payload.id)
-    return AuthResponse(access_token=token)
+
+    raw_refresh = create_refresh_token()
+    await store_refresh_token(refresh_collection, payload.id, raw_refresh)
+
+    return AuthResponse(access_token=token, refresh_token=raw_refresh)
 
 
 @auth_router.post("/refresh")
