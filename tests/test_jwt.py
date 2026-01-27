@@ -1,6 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
+from uuid import UUID
 
 import pytest
 from fastapi import HTTPException, status
@@ -9,7 +10,7 @@ from httpx import AsyncClient
 
 from app.database import get_refresh_collection
 from app.main import app
-from app.models import TokenPayload
+from app.models import RefreshRotationResult, RefreshTokenModel, TokenPayload
 from app.utils import (
     create_jwt_token,
     create_refresh_token,
@@ -127,22 +128,22 @@ async def test_verify_token_missing_subject() -> None:
 @pytest.mark.asyncio
 async def test_store_and_verify_refresh_token() -> None:
     """Unit-level: store a refresh token and then verify it via the helper."""
-    user_id = uuid.uuid4()
-    raw = create_refresh_token()
+    user_id: UUID = uuid.uuid4()
+    raw: str = create_refresh_token()
 
     # Create a fake collection to capture/return inserted documents
     refresh_collection = AsyncMock()
-    inserted_id = uuid.uuid4()
+    inserted_id: UUID = uuid.uuid4()
     mock_insert_result = MagicMock()
-    mock_insert_result.inserted_id = inserted_id
+    mock_insert_result.inserted_id: UUID = inserted_id
     refresh_collection.insert_one = AsyncMock(return_value=mock_insert_result)
 
     # Call store_refresh_token; it will call insert_one on the collection
-    stored_doc = await store_refresh_token(refresh_collection, user_id, raw)
+    stored_doc: RefreshTokenModel = await store_refresh_token(refresh_collection, user_id, raw)
 
     # Ensure the returned doc has _id set to the mocked inserted id
-    assert stored_doc["_id"] == inserted_id
-    assert stored_doc["user_id"] == user_id
+    assert stored_doc.id == inserted_id
+    assert stored_doc.user_id == user_id
 
     # Now configure find_one to return the stored doc when verify_refresh_token is called
     refresh_collection.find_one = AsyncMock(return_value=stored_doc)
@@ -150,8 +151,8 @@ async def test_store_and_verify_refresh_token() -> None:
     # verify_refresh_token should now return the stored doc
     rec = await verify_refresh_token(refresh_collection, raw)
     assert rec is not None
-    assert rec["_id"] == inserted_id
-    assert rec["user_id"] == user_id
+    assert rec.id == inserted_id
+    assert rec.user_id == user_id
 
 
 @pytest.mark.asyncio
@@ -183,10 +184,13 @@ async def test_rotate_and_revoke_refresh_token() -> None:
     refresh_collection.insert_one = AsyncMock(return_value=mock_insert_result)
 
     # Call rotate_refresh_token - should return a dict with raw and record
-    rotation = await rotate_refresh_token(refresh_collection, old_raw, user_id)
+    rotation: RefreshRotationResult | None = await rotate_refresh_token(
+        refresh_collection, old_raw, user_id
+    )
+
     assert rotation is not None
-    assert "raw" in rotation and "record" in rotation
-    assert rotation["record"]["_id"] == new_inserted_id
+    assert hasattr(rotation, "raw") and hasattr(rotation, "record")
+    assert rotation.record.id == new_inserted_id
 
     # Now test revoke_refresh_token
     # Configure update_one to pretend it updated one document
@@ -203,7 +207,17 @@ async def test_refresh_and_logout_endpoints(async_client_no_auth: AsyncClient, m
 
     # Prepare a dummy rotation result the route should return
     new_raw = "new-rotated-refresh-token"
-    rotation_result = {"raw": new_raw, "record": {"_id": uuid.uuid4(), "user_id": user_id}}
+    new_record = RefreshTokenModel.model_validate(
+        {
+            "_id": uuid.uuid4(),
+            "user_id": user_id,
+            "token_hash": "irrelevant-for-test",
+            "created_at": datetime.now(UTC),
+            "expires_at": datetime.now(UTC) + timedelta(days=30),
+            "revoked": False,
+        }
+    )
+    rotation_result = RefreshRotationResult(raw=new_raw, record=new_record)
 
     # Override the get_refresh_collection dependency to return a mock collection
     def override_get_refresh_collection():
