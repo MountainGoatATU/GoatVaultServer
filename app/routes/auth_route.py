@@ -1,6 +1,5 @@
 import hmac
 from typing import Annotated
-from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from motor.motor_asyncio import AsyncIOMotorCollection
