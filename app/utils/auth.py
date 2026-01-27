@@ -11,11 +11,16 @@ from dotenv import load_dotenv
 from fastapi import HTTPException, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
+from motor.motor_asyncio import AsyncIOMotorCollection
 
-from app.models import TokenPayload
+from app.models import RefreshRotationResult, RefreshTokenModel, TokenPayload
 
 # Load environment variables
 load_dotenv()
+
+JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
+TOKEN_EXP_HOURS: int = int(os.getenv("TOKEN_EXP_HOURS", 12))
+REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
 
 JWT_SECRET: str | None = os.getenv("JWT_SECRET")
 if not JWT_SECRET:
@@ -23,14 +28,9 @@ if not JWT_SECRET:
 if len(JWT_SECRET) < 32:
     raise ValueError("JWT_SECRET must be at least 32 characters")
 
-JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
-
 ISSUER: str | None = os.getenv("ISSUER")
 if not ISSUER:
     raise ValueError("ISSUER environment variable is required.")
-
-TOKEN_EXP_HOURS: int = int(os.getenv("TOKEN_EXP_HOURS", 12))
-REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
 
 
 def hash_token(raw_token: str) -> str:
@@ -45,7 +45,9 @@ def create_refresh_token() -> str:
     return secrets.token_urlsafe(48)
 
 
-async def store_refresh_token(refresh_collection, user_id: UUID, raw_token: str) -> dict:
+async def store_refresh_token(
+    refresh_collection: AsyncIOMotorCollection, user_id: UUID, raw_token: str
+) -> RefreshTokenModel:
     """Store hashed refresh token in DB and return the DB record dict."""
     now: datetime = datetime.now(UTC)
     expires_at: datetime = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
@@ -60,40 +62,60 @@ async def store_refresh_token(refresh_collection, user_id: UUID, raw_token: str)
     }
     result = await refresh_collection.insert_one(doc)
     doc["_id"] = result.inserted_id
-    return doc
+    return RefreshTokenModel.model_validate(doc)
 
 
-async def verify_refresh_token(refresh_collection, raw_token: str) -> dict | None:
+async def verify_refresh_token(
+    refresh_collection: AsyncIOMotorCollection, raw_token: str
+) -> RefreshTokenModel | None:
     """Verify a refresh token and return the DB record if valid and not revoked/expired."""
     token_hash: str = hash_token(raw_token)
     now: datetime = datetime.now(UTC)
     rec = await refresh_collection.find_one({"token_hash": token_hash})
-    if not rec:
+
+    # Normalize to dict
+    if isinstance(rec, RefreshTokenModel):
+        rec_dict = rec.model_dump()
+    elif rec is None:
         return None
-    if rec.get("revoked", False):
+    else:
+        rec_dict = rec
+
+    if rec_dict.get("revoked", False):
         return None
-    if rec.get("expires_at") is None or rec["expires_at"] < now:
+    if rec_dict.get("expires_at") is None or rec_dict["expires_at"] < now:
         return None
-    return rec
+
+    return RefreshTokenModel.model_validate(rec_dict)
 
 
-async def rotate_refresh_token(refresh_collection, old_raw_token: str, user_id: UUID):
+async def rotate_refresh_token(
+    refresh_collection: AsyncIOMotorCollection, old_raw_token: str, user_id: UUID
+) -> RefreshRotationResult | None:
     """Rotate a refresh token: verify old one, revoke it, create & store a new one."""
-    rec = await verify_refresh_token(refresh_collection, old_raw_token)
-    if not rec:
+    from pymongo import ReturnDocument
+
+    token_hash: str = hash_token(old_raw_token)
+    now: datetime = datetime.now(UTC)
+
+    # Find non-revoked, non-expired token and mark it revoked
+    claimed = await refresh_collection.find_one_and_update(
+        {"token_hash": token_hash, "revoked": False, "expires_at": {"$gt": now}},
+        {"$set": {"revoked": True}},
+        return_document=ReturnDocument.BEFORE,
+    )
+
+    if not claimed:
         return None
 
-    # revoke old
-    await refresh_collection.update_one({"_id": rec["_id"]}, {"$set": {"revoked": True}})
-
-    # create and store new
+    # Create and store a new refresh token
     new_raw: str = create_refresh_token()
-    new_rec = await store_refresh_token(refresh_collection, user_id, new_raw)
-    return {"raw": new_raw, "record": new_rec}
+    new_rec: RefreshTokenModel = await store_refresh_token(refresh_collection, user_id, new_raw)
+    return RefreshRotationResult(raw=new_raw, record=new_rec)
 
 
-async def revoke_refresh_token(refresh_collection, raw_token: str) -> bool:
-    """Revoke a refresh token by raw token string; return True if a record was updated."""
+async def revoke_refresh_token(refresh_collection: AsyncIOMotorCollection, raw_token: str) -> bool:
+    """Revoke a refresh token by raw token string."""
     token_hash: str = hash_token(raw_token)
     result = await refresh_collection.update_one(
         {"token_hash": token_hash, "revoked": False}, {"$set": {"revoked": True}}

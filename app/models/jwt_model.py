@@ -39,3 +39,12 @@ class RefreshTokenModel(BaseModel):
     revoked: bool = Field(False, description="Whether the refresh token has been revoked")
 
     model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
+
+
+class RefreshRotationResult(BaseModel):
+    """Result returned after rotating a refresh token."""
+
+    raw: str = Field(..., description="New raw refresh token returned to the client")
+    record: RefreshTokenModel = Field(..., description="Stored DB record for the new token")
+
+    model_config: ClassVar[ConfigDict] = ConfigDict()

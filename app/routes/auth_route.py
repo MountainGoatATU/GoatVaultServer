@@ -1,5 +1,6 @@
 import hmac
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from motor.motor_asyncio import AsyncIOMotorCollection
@@ -17,6 +18,8 @@ from app.models import (
     AuthRegisterResponse,
     AuthRequest,
     AuthResponse,
+    RefreshRotationResult,
+    RefreshTokenModel,
     UserCreateRequest,
     UserModel,
 )
@@ -140,26 +143,30 @@ async def refresh_token_endpoint(
     payload: Annotated[AuthRefreshRequest, Body(...)],
     refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
 ) -> AuthRefreshResponse:
-    raw_refresh = payload.refresh_token
+    raw_refresh: str = payload.refresh_token
+
     if not raw_refresh:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing refresh_token")
 
-    rec = await verify_refresh_token(refresh_collection, raw_refresh)
+    rec: RefreshTokenModel | None = await verify_refresh_token(refresh_collection, raw_refresh)
     if not rec:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token"
         )
 
-    user_id = rec["user_id"]
+    user_id: UUID = rec.user_id
     # rotate: revoke old and issue new
-    rotation = await rotate_refresh_token(refresh_collection, raw_refresh, user_id)
+    rotation: RefreshRotationResult | None = await rotate_refresh_token(
+        refresh_collection, raw_refresh, user_id
+    )
+
     if rotation is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
     access: str = create_jwt_token(user_id)
-    return AuthRefreshResponse(access_token=access, refresh_token=rotation["raw"])
+    return AuthRefreshResponse(access_token=access, refresh_token=rotation.raw)
 
 
 @auth_router.post("/logout")
@@ -168,7 +175,9 @@ async def logout_endpoint(
     refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
 ) -> AuthLogoutResponse:
     raw_refresh: str = payload.refresh_token
+
     if not raw_refresh:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing refresh_token")
+
     _ok: bool = await revoke_refresh_token(refresh_collection, raw_refresh)
     return AuthLogoutResponse(status="ok")
