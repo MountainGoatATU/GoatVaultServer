@@ -102,7 +102,7 @@ async def init(
         raise UserNotFoundByEmailException
 
     return AuthInitResponse(
-        _id=user["_id"],
+        id=user["_id"],
         auth_salt=user["auth_salt"],
         mfa_enabled=user["mfa_enabled"],
     )

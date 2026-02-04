@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import ClassVar
 from uuid import UUID
 
@@ -12,6 +13,7 @@ class AuthRegisterResponse(Base64BytesModel):
 
     id: uuid.UUID = Field(..., alias="_id")
     email: EmailStr
+    created_at: datetime
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         populate_by_name=True,
@@ -43,6 +45,7 @@ class AuthInitResponse(Base64BytesModel):
     mfa_enabled: bool = Field(...)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
+        populate_by_name=True,
         json_schema_extra={
             "example": {
                 "_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
