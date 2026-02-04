@@ -93,6 +93,8 @@ class UserResponse(Base64BytesModel):
     auth_salt: bytes
     mfa_enabled: bool
     vault: VaultModel
+    created_at: datetime
+    updated_at: datetime
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         populate_by_name=True,
@@ -108,6 +110,8 @@ class UserResponse(Base64BytesModel):
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
                     "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
+                "created_at": "2024-01-15T10:30:00Z",
+                "updated_at": "2024-01-15T14:45:00Z",
             },
         },
     )

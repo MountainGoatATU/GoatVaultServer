@@ -16,7 +16,11 @@ class AuthRegisterResponse(Base64BytesModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(
         populate_by_name=True,
         json_schema_extra={
-            "example": {"_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742", "email": "user@example.com"}
+            "example": {
+                "_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
+                "email": "user@example.com",
+                "created_at": "2024-01-15T10:30:00Z",
+            }
         },
     )
 
