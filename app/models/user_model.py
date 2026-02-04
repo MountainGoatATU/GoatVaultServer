@@ -92,6 +92,7 @@ class UserResponse(Base64BytesModel):
     email: EmailStr
     auth_salt: bytes
     mfa_enabled: bool
+    mfa_secret: bytes
     vault: VaultModel
     created_at: datetime
     updated_at: datetime
@@ -104,6 +105,7 @@ class UserResponse(Base64BytesModel):
                 "auth_salt": "cmFuZG9tc2FsdGJ5dGVz",
                 "email": "user@example.com",
                 "mfa_enabled": False,
+                "mfa_secret": "cmFuZG9tc2FsdGJ5dGVz",
                 "vault": {
                     "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
                     "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
