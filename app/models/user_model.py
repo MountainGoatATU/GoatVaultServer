@@ -92,7 +92,7 @@ class UserResponse(Base64BytesModel):
     email: EmailStr
     auth_salt: bytes
     mfa_enabled: bool
-    mfa_secret: bytes
+    mfa_secret: str | None
     vault: VaultModel
     created_at: datetime
     updated_at: datetime
