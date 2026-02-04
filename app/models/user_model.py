@@ -74,6 +74,7 @@ class UserUpdateRequest(Base64BytesModel):
                 "auth_salt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
                 "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
                 "mfa_enabled": True,
+                "mfa_secret": "cmFuZG9tc2FsdGJ5dGVz",
                 "vault": {
                     "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
                     "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
