@@ -71,6 +71,8 @@ class UserUpdateRequest(Base64BytesModel):
         json_schema_extra={
             "example": {
                 "email": "newemail@example.com",
+                "auth_salt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
+                "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
                 "mfa_enabled": True,
                 "vault": {
                     "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
