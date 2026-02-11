@@ -150,7 +150,8 @@ resource "aws_lambda_function" "api" {
       JWT_SECRET      = var.jwt_secret
       JWT_ALGORITHM   = var.jwt_algorithm
       ISSUER          = var.issuer
-      TOKEN_EXP_HOURS = var.token_exp_hours
+      ACCESS_TOKEN_EXP_MINUTES = var.access_token_exp_minutes
+      REFRESH_TOKEN_EXP_DAYS = var.refresh_token_exp_days
     }
   }
 
