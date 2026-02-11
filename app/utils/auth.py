@@ -26,7 +26,7 @@ Settings
 load_dotenv()
 
 JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
-TOKEN_EXP_HOURS: int = int(os.getenv("TOKEN_EXP_HOURS", 12))
+ACCESS_TOKEN_EXP_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXP_MINUTES", 5))
 REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
 
 JWT_SECRET: str | None = os.getenv("JWT_SECRET")
@@ -203,7 +203,7 @@ JWT Helpers
 
 def create_jwt_token(user_id: UUID) -> str:
     """Generate a signed JWT for a given user UUID."""
-    expire = _now() + timedelta(hours=TOKEN_EXP_HOURS)
+    expire = _now() + timedelta(minutes=ACCESS_TOKEN_EXP_MINUTES)
     payload = {
         "sub": str(user_id),  # Subject (the user)
         "iss": ISSUER,  # Standard JWT claim (issuer)

@@ -13,139 +13,140 @@ on:
       - aws-testing
     paths-ignore:
       - "*.md"
-    
+
 permissions:
-    id-token: write
-    contents: read
+  id-token: write
+  contents: read
 
 env:
   TERRAFORM_WORKING_DIRECTORY: terraform
   NAME_OF_PACKAGE: deployment.zip
 
 jobs:
-    # test:
-    #     runs-on: ubuntu-latest
-    #     steps:
-    #     - uses: actions/checkout@v4
+  # test:
+  #     runs-on: ubuntu-latest
+  #     steps:
+  #     - uses: actions/checkout@v4
 
-    #     - uses: actions/setup-python@v5
-    #       with:
-    #         python-version: "3.11"
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.11"
 
-    #     - uses: astral-sh/setup-uv@v6
-    #       with:
-    #         enable-cache: true
+  #     - uses: astral-sh/setup-uv@v6
+  #       with:
+  #         enable-cache: true
 
-    #     - run: uv sync --locked --all-extras --dev
-    #     - run: uv run ruff check app tests --fix
-    #     - run: uv run pytest tests
+  #     - run: uv sync --locked --all-extras --dev
+  #     - run: uv run ruff check app tests --fix
+  #     - run: uv run pytest tests
 
-    build:
-      # needs: test
-      runs-on: ubuntu-latest
-      steps:
-        - name: Checkout repo
-          uses: actions/checkout@v4
+  build:
+    # needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-        - name: Create build directories
-          run: mkdir -p build/package
+      - name: Create build directories
+        run: mkdir -p build/package
 
-          # --entrypoint "" is used to override the default entrypoint of the AWS Lambda Docker image
-          # --v option mounts the current working directory to /var/task inside the container
-          # public.ecr.aws/lambda/python:3.11 is the official AWS Lambda Docker image for Python 3.11
-          # The bash -c command runs a series of commands inside the container to install dependencies and create the deployment package
-          # python -m pip install --upgrade pip upgrades pip to the latest version
-          # pip install --no-cache-dir -r requirements.txt -t build/package installs the dependencies listed in requirements.txt into the build/package directory
-          # cp -r app build/package copies the application code into the build/package directory
-          # cd build/package changes the working directory to build/package
-          # python3 -m zipfile -c /var/task/deployment.zip . creates a zip file of the contents of the build/package directory and saves it as deployment.zip in the host machine's current working directory
-        - name: Build Lambda package inside AWS Lambda Docker image
-          run: |
-            docker run --rm \
-              --entrypoint "" \
-              -v "$PWD:/var/task" \
-              public.ecr.aws/lambda/python:3.11 \
-              bash -c "
-                python -m pip install --upgrade pip &&
-                pip install --no-cache-dir -r requirements.txt -t build/package &&
-                cp -r app build/package &&
-                cd build/package &&
-                python3 -m zipfile -c /var/task/deployment.zip .
-              "
+        # --entrypoint "" is used to override the default entrypoint of the AWS Lambda Docker image
+        # --v option mounts the current working directory to /var/task inside the container
+        # public.ecr.aws/lambda/python:3.11 is the official AWS Lambda Docker image for Python 3.11
+        # The bash -c command runs a series of commands inside the container to install dependencies and create the deployment package
+        # python -m pip install --upgrade pip upgrades pip to the latest version
+        # pip install --no-cache-dir -r requirements.txt -t build/package installs the dependencies listed in requirements.txt into the build/package directory
+        # cp -r app build/package copies the application code into the build/package directory
+        # cd build/package changes the working directory to build/package
+        # python3 -m zipfile -c /var/task/deployment.zip . creates a zip file of the contents of the build/package directory and saves it as deployment.zip in the host machine's current working directory
+      - name: Build Lambda package inside AWS Lambda Docker image
+        run: |
+          docker run --rm \
+            --entrypoint "" \
+            -v "$PWD:/var/task" \
+            public.ecr.aws/lambda/python:3.11 \
+            bash -c "
+              python -m pip install --upgrade pip &&
+              pip install --no-cache-dir -r requirements.txt -t build/package &&
+              cp -r app build/package &&
+              cd build/package &&
+              python3 -m zipfile -c /var/task/deployment.zip .
+            "
 
-        # Verifies that deployment.zip was created successfully and lists its contents
-        # If deployment.zip is not found, the step fails the job
-        - name: Verify contents of deployment.zip
-          run: |
-            echo "Listing files in root:"
-            ls -lah
-            echo "Check deployment.zip exists:"
-            if [ -f deployment.zip ]; then
-              echo "✅ deployment.zip found!"
-              unzip -l deployment.zip | head -20
-            else
-              echo "❌ deployment.zip NOT found!"
-              exit 1
-            fi
+      # Verifies that deployment.zip was created successfully and lists its contents
+      # If deployment.zip is not found, the step fails the job
+      - name: Verify contents of deployment.zip
+        run: |
+          echo "Listing files in root:"
+          ls -lah
+          echo "Check deployment.zip exists:"
+          if [ -f deployment.zip ]; then
+            echo "✅ deployment.zip found!"
+            unzip -l deployment.zip | head -20
+          else
+            echo "❌ deployment.zip NOT found!"
+            exit 1
+          fi
 
-        - name: Upload artifact for deploy
-          uses: actions/upload-artifact@v4
-          with:
-            name: lambda-zip
-            path: ${{ env.NAME_OF_PACKAGE }}
+      - name: Upload artifact for deploy
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-zip
+          path: ${{ env.NAME_OF_PACKAGE }}
 
-    terraform:
-        needs: build
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v4
+  terraform:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-            # Configure AWS Credentials using OIDC
-            # github-deploy is the IAM role created in the AWS account to allow GitHub Actions to deploy resources
-            - uses: aws-actions/configure-aws-credentials@v4
-              with:
-                role-to-assume: arn:aws:iam::905418129504:role/github-deploy
-                aws-region: eu-west-1
+      # Configure AWS Credentials using OIDC
+      # github-deploy is the IAM role created in the AWS account to allow GitHub Actions to deploy resources
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::905418129504:role/github-deploy
+          aws-region: eu-west-1
 
-            - name: Setup Terraform
-              uses: hashicorp/setup-terraform@v3
-              with:
-                  terraform_version: 1.14.3
-                  terraform_wrapper: false
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.3
+          terraform_wrapper: false
 
-            - name: Terraform Init
-              run: terraform init
-              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
 
-            - name: Terraform Validate
-              run: terraform validate
-              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
 
-            - uses: actions/download-artifact@v4
-              with:
-                name: lambda-zip
-                path: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: lambda-zip
+          path: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
 
-            - name: Terraform Plan and Apply
-              env:
-                TF_VAR_mongodb_url: ${{ secrets.MONGODB_URL }}
-                TF_VAR_database_name: ${{ secrets.DATABASE_NAME }}
-                TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
-                TF_VAR_jwt_algorithm: ${{ secrets.JWT_ALGORITHM }}
-                TF_VAR_issuer: ${{ secrets.ISSUER }}
-                TF_VAR_token_exp_hours: ${{ secrets.TOKEN_EXP_HOURS }}
-              run: |
-                # Show current working directory
-                echo "Current working directory:"
-                pwd
+      - name: Terraform Plan and Apply
+        env:
+          TF_VAR_mongodb_url: ${{ secrets.MONGODB_URL }}
+          TF_VAR_database_name: ${{ secrets.DATABASE_NAME }}
+          TF_VAR_jwt_secret: ${{ secrets.JWT_SECRET }}
+          TF_VAR_jwt_algorithm: ${{ secrets.JWT_ALGORITHM }}
+          TF_VAR_issuer: ${{ secrets.ISSUER }}
+          TF_VAR_access_token_exp_minutes: ${{ secrets.ACCESS_TOKEN_EXP_MINUTES }}
+          TF_VAR_refresh_token_exp_days: ${{ secrets.REFRESH_TOKEN_EXP_DAYS }}
+        run: |
+          # Show current working directory
+          echo "Current working directory:"
+          pwd
 
-                # List all files and folders
-                echo "Contents of current directory:"
-                ls -lah
+          # List all files and folders
+          echo "Contents of current directory:"
+          ls -lah
 
-                terraform plan \
-                  -var="lambda_zip_path=${{ env.NAME_OF_PACKAGE }}" \
-                  -out=tfplan.out
+          terraform plan \
+            -var="lambda_zip_path=${{ env.NAME_OF_PACKAGE }}" \
+            -out=tfplan.out
 
-                terraform apply tfplan.out
-              working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
+          terraform apply tfplan.out
+        working-directory: ${{ env.TERRAFORM_WORKING_DIRECTORY }}
