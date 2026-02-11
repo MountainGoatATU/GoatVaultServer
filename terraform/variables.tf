@@ -26,9 +26,14 @@ variable "issuer" {
   description = "Issuer claim for JWT"
 }
 
-variable "token_exp_hours" {
+variable "access_token_exp_minutes" {
   type        = string
-  description = "Token expiration time in hours"
+  description = "Token expiration time in minutes"
+}
+
+variable "refresh_token_exp_days" {
+  type        = string
+  description = "Token expiration time in days"
 }
 
 # ============================
@@ -57,4 +62,3 @@ variable "lambda_zip_path" {
   type        = string
   description = "Path to the local Lambda deployment zip file"
 }
-
