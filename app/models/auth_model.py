@@ -22,10 +22,10 @@ class NonceModel(Base64BytesModel):
         json_schema_extra={
             "example": {
                 "_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
-                "user_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
+                "userId": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
                 "nonce": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
-                "created_at_utc": "2024-01-15T10:30:00Z",
-                "expires_at_utc": "2024-01-15T11:30:00Z",
+                "createdAtUtc": "2024-01-15T10:30:00Z",
+                "expiresAtUtc": "2024-01-15T11:30:00Z",
             }
         },
     )
@@ -44,7 +44,7 @@ class AuthRegisterResponse(Base64BytesModel):
             "example": {
                 "_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
                 "email": "user@example.com",
-                "created_at_utc": "2024-01-15T10:30:00Z",
+                "createdAtUtc": "2024-01-15T10:30:00Z",
             }
         },
     )
@@ -74,9 +74,9 @@ class AuthInitResponse(Base64BytesModel):
         json_schema_extra={
             "example": {
                 "_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
-                "auth_salt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
+                "authSalt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
                 "nonce": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
-                "mfa_enabled": False,
+                "mfaEnabled": False,
             },
         },
     )
@@ -106,7 +106,7 @@ class AuthRequest(Base64BytesModel):
             "example": {
                 "_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
                 "proof": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
-                "mfa_code": "123456",
+                "mfaCode": "123456",
             },
         },
     )
@@ -123,9 +123,9 @@ class AuthResponse(Base64BytesModel):
         **BASE_CONFIG,
         json_schema_extra={
             "example": {
-                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
-                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
-                "token_type": "bearer",
+                "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
+                "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
+                "tokenType": "bearer",
             },
         },
     )
@@ -140,7 +140,7 @@ class AuthRefreshRequest(Base64BytesModel):
         **BASE_CONFIG,
         json_schema_extra={
             "example": {
-                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY"
+                "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY"
             },
         },
     )
@@ -157,9 +157,9 @@ class AuthRefreshResponse(Base64BytesModel):
         **BASE_CONFIG,
         json_schema_extra={
             "example": {
-                "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
-                "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
-                "token_type": "bearer",
+                "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
+                "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZjdkMzQxZS04NWJlLTRlNTQtYThjNi1lNWZkNjg1YzQ3NDIiLCJpc3MiOiJHb2F0VmF1bHRTZXJ2ZXIiLCJleHAiOjE3NjM1NzE2NzksImlhdCI6MTc2MzU2ODA3OX0.L1tjbF4DyeAKMcmOEX45U0uqIaCX6L8Ku7gdrEQmZlY",
+                "tokenType": "bearer",
             },
         },
     )

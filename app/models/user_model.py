@@ -41,14 +41,14 @@ class UserCreateRequest(Base64BytesModel):
         **BASE_CONFIG,
         json_schema_extra={
             "example": {
-                "auth_salt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
-                "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
+                "authSalt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
+                "authVerifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
                 "email": "user@example.com",
                 "vault": {
-                    "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
-                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
-                    "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
+                    "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
             },
         },
@@ -72,15 +72,15 @@ class UserUpdateRequest(Base64BytesModel):
         json_schema_extra={
             "example": {
                 "email": "newemail@example.com",
-                "auth_salt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
-                "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
-                "mfa_enabled": True,
-                "mfa_secret": "cmFuZG9tc2FsdGJ5dGVz",
+                "authSalt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
+                "authVerifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
+                "mfaEnabled": True,
+                "mfaSecret": "cmFuZG9tc2FsdGJ5dGVz",
                 "vault": {
-                    "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
-                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
-                    "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
+                    "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
             },
         },
@@ -103,17 +103,17 @@ class UserResponse(Base64BytesModel):
         json_schema_extra={
             "example": {
                 "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
-                "auth_salt": "cmFuZG9tc2FsdGJ5dGVz",
+                "authSalt": "cmFuZG9tc2FsdGJ5dGVz",
                 "email": "user@example.com",
-                "mfa_enabled": False,
+                "mfaEnabled": False,
                 "vault": {
-                    "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
-                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
-                    "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
+                    "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
-                "created_at_utc": "2024-01-15T10:30:00Z",
-                "updated_at_utc": "2024-01-15T14:45:00Z",
+                "createdAtUtc": "2024-01-15T10:30:00Z",
+                "updatedAtUtc": "2024-01-15T14:45:00Z",
             },
         },
     )
