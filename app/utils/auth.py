@@ -45,7 +45,7 @@ Helpers
 """
 
 
-def _now() -> datetime:
+def get_now() -> datetime:
     return datetime.now(UTC)
 
 
@@ -119,7 +119,7 @@ async def store_refresh_token(
     refresh_collection: AsyncIOMotorCollection, user_id: UUID, raw_token: str
 ) -> RefreshTokenModel:
     """Store hashed refresh token in DB and return the DB record dict."""
-    now: datetime = _now()
+    now: datetime = get_now()
     expires_at: datetime = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     token_hash: str = hash_token(raw_token)
 
@@ -143,7 +143,7 @@ async def verify_refresh_token(
 ) -> RefreshTokenModel | None:
     """Verify a refresh token and return the DB record if valid and not revoked/expired."""
     token_hash: str = hash_token(raw_token)
-    now: datetime = _now()
+    now: datetime = get_now()
     rec = await refresh_collection.find_one({"token_hash": token_hash})
     if not rec:
         return None
@@ -169,7 +169,7 @@ async def rotate_refresh_token(
     """Rotate a refresh token: verify old one, revoke it, create & store a new one."""
 
     token_hash: str = hash_token(old_raw_token)
-    now: datetime = _now()
+    now: datetime = get_now()
 
     # Find non-revoked, non-expired token and mark it revoked
     claimed = await refresh_collection.find_one_and_update(
@@ -203,12 +203,13 @@ JWT Helpers
 
 def create_jwt_token(user_id: UUID) -> str:
     """Generate a signed JWT for a given user UUID."""
-    expire = _now() + timedelta(hours=TOKEN_EXP_HOURS)
+    now: datetime = get_now()
+    expire = now + timedelta(hours=TOKEN_EXP_HOURS)
     payload = {
         "sub": str(user_id),  # Subject (the user)
         "iss": ISSUER,  # Standard JWT claim (issuer)
         "exp": expire,  # Expiration time
-        "iat": _now(),  # Issued at
+        "iat": now,  # Issued at
     }
 
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)

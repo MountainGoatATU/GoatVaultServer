@@ -2,7 +2,7 @@ from typing import ClassVar
 
 from pydantic import ConfigDict, Field
 
-from app.models.base import Base64BytesModel
+from app.models.base import BASE_CONFIG, Base64BytesModel
 
 
 class VaultModel(Base64BytesModel):
@@ -14,6 +14,5 @@ class VaultModel(Base64BytesModel):
     auth_tag: bytes = Field(..., min_length=16, max_length=64)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
+        **BASE_CONFIG,
     )

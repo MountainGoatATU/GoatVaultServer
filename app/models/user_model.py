@@ -4,7 +4,7 @@ from typing import ClassVar
 
 from pydantic import ConfigDict, EmailStr, Field
 
-from app.models.base import Base64BytesModel
+from app.models.base import BASE_CONFIG, Base64BytesModel
 from app.models.vault_model import VaultModel
 
 
@@ -21,12 +21,11 @@ class UserModel(Base64BytesModel):
 
     vault: VaultModel = Field(...)
 
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at_utc: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at_utc: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
+        **BASE_CONFIG,
     )
 
 
@@ -39,6 +38,7 @@ class UserCreateRequest(Base64BytesModel):
     vault: VaultModel = Field(...)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
+        **BASE_CONFIG,
         json_schema_extra={
             "example": {
                 "auth_salt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
@@ -68,6 +68,7 @@ class UserUpdateRequest(Base64BytesModel):
     vault: VaultModel | None = None
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
+        **BASE_CONFIG,
         json_schema_extra={
             "example": {
                 "email": "newemail@example.com",
@@ -93,28 +94,26 @@ class UserResponse(Base64BytesModel):
     email: EmailStr
     auth_salt: bytes
     mfa_enabled: bool
-    mfa_secret: str | None
     vault: VaultModel
-    created_at: datetime
-    updated_at: datetime
+    created_at_utc: datetime
+    updated_at_utc: datetime
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
-        populate_by_name=True,
+        **BASE_CONFIG,
         json_schema_extra={
             "example": {
                 "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
                 "auth_salt": "cmFuZG9tc2FsdGJ5dGVz",
                 "email": "user@example.com",
                 "mfa_enabled": False,
-                "mfa_secret": "cmFuZG9tc2FsdGJ5dGVz",
                 "vault": {
                     "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
                     "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
                     "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
-                "created_at": "2024-01-15T10:30:00Z",
-                "updated_at": "2024-01-15T14:45:00Z",
+                "created_at_utc": "2024-01-15T10:30:00Z",
+                "updated_at_utc": "2024-01-15T14:45:00Z",
             },
         },
     )

@@ -1,4 +1,8 @@
 import hmac
+import secrets
+import uuid
+from datetime import UTC, datetime, timedelta
+from hashlib import sha256
 from typing import Annotated
 
 from bson import Binary
@@ -8,7 +12,7 @@ from pymongo.results import InsertOneResult
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.database import get_refresh_collection, get_user_collection
+from app.database import get_nonce_collection, get_refresh_collection, get_user_collection
 from app.models import (
     AuthInitRequest,
     AuthInitResponse,
@@ -18,20 +22,21 @@ from app.models import (
     AuthRegisterResponse,
     AuthRequest,
     AuthResponse,
+    NonceModel,
     RefreshRotationResult,
     RefreshTokenModel,
     UserCreateRequest,
     UserModel,
 )
 from app.utils import (
-    InvalidAuthVerifierException,
+    CredentialsException,
     InvalidMfaCodeException,
     MfaCodeRequiredException,
     UserCreationFailedException,
-    UserNotFoundByEmailException,
-    UserNotFoundException,
     create_jwt_token,
     create_refresh_token,
+    ensure_bytes,
+    get_now,
     revoke_refresh_token,
     rotate_refresh_token,
     store_refresh_token,
@@ -39,7 +44,6 @@ from app.utils import (
     verify_mfa,
     verify_refresh_token,
 )
-from app.utils.auth import ensure_bytes
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -49,9 +53,9 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 @auth_router.post(
     "/register",
     response_description="Register new user",
-    status_code=status.HTTP_200_OK,
+    status_code=status.HTTP_201_CREATED,
 )
-@limiter.limit("5/minute")
+@limiter.limit("2/minute")
 async def register(
     request: Request,
     payload: Annotated[UserCreateRequest, Body()],
@@ -91,26 +95,50 @@ async def init(
     request: Request,  # noqa: ARG001
     payload: Annotated[AuthInitRequest, Body()],
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
+    nonce_collection: Annotated[AsyncIOMotorCollection, Depends(get_nonce_collection)],
 ) -> AuthInitResponse:
     """Look up user by email.
     - Verify that user exists.
     - Return details including `auth_salt` and encrypted `vault`.
     """
 
-    user = await user_collection.find_one({"email": payload.email})
+    user: UserModel | None = await user_collection.find_one({"email": payload.email})
+
+    # Generate nonce
+    nonce: bytes = secrets.token_bytes(32)
+
+    # Return fake response if user not found
     if not user:
-        raise UserNotFoundByEmailException
+        return AuthInitResponse(
+            id=uuid.uuid4(),
+            auth_salt=secrets.token_bytes(32),
+            nonce=nonce,
+            mfa_enabled=False,
+        )
+
+    now: datetime = get_now()
+
+    nonce_record = NonceModel(
+        user_id=user["_id"],
+        nonce=nonce,
+        created_at_utc=now,
+        expires_at_utc=now + timedelta(minutes=2),
+    )
+
+    # Store nonce with expiry (e.g. 2 minutes)
+    await nonce_collection.insert_one(nonce_record.model_dump(by_alias=True))
 
     return AuthInitResponse(
         id=user["_id"],
         auth_salt=user["auth_salt"],
+        nonce=nonce,
         mfa_enabled=user["mfa_enabled"],
     )
 
 
 @auth_router.post(
     "/verify",
-    response_description="Verify auth verifier",
+    response_description="Verify auth proof",
     status_code=status.HTTP_200_OK,
 )
 @limiter.limit("5/minute")
@@ -118,6 +146,7 @@ async def verify(
     request: Request,  # noqa: ARG001
     payload: Annotated[AuthRequest, Body()],
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
+    nonce_collection: Annotated[AsyncIOMotorCollection, Depends(get_nonce_collection)],
     refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
 ) -> AuthResponse:
     """Return a JWT token for a valid `auth_verifier`.
@@ -125,17 +154,40 @@ async def verify(
     - Returns a signed JWT containing the authority claim.
     """
 
-    user = await user_collection.find_one({"_id": payload.id})
-
+    # Find user
+    user: UserModel | None = await user_collection.find_one({"_id": payload.id})
     if not user:
-        raise UserNotFoundException(payload.id)
+        raise CredentialsException
 
-    payload_auth_verifier: bytes = ensure_bytes(payload.auth_verifier)
+    # Find the most recent valid nonce for this user
+    stored_nonce_doc: NonceModel | None = await nonce_collection.find_one(
+        {"user_id": payload.id}, sort=[("created_at", -1)]
+    )
+
+    if not stored_nonce_doc:
+        raise CredentialsException
+
+    # Consume the nonce immediately to prevent replay
+    await nonce_collection.delete_one({"_id": stored_nonce_doc["_id"]})
+
+    # Check if nonce is expired (double check, though TTL index should handle it eventually)
+    if stored_nonce_doc["expire_at"].replace(tzinfo=UTC) < datetime.now(UTC):
+        raise CredentialsException
+
+    nonce_bytes: bytes = ensure_bytes(stored_nonce_doc["nonce"])
     user_auth_verifier: bytes = ensure_bytes(user.get("auth_verifier"))
+    payload_proof: bytes = ensure_bytes(payload.proof)
 
-    if not hmac.compare_digest(payload_auth_verifier, user_auth_verifier):
-        raise InvalidAuthVerifierException
+    # Compute expected proof: HMAC-SHA256(key=auth_verifier, msg=nonce)
+    expected_proof: bytes = hmac.new(
+        key=user_auth_verifier, msg=nonce_bytes, digestmod=sha256
+    ).digest()
 
+    # Compare proofs
+    if not hmac.compare_digest(payload_proof, expected_proof):
+        raise CredentialsException
+
+    # Handle MFA
     if user.get("mfa_enabled", False):
         if not payload.mfa_code:
             raise MfaCodeRequiredException
@@ -143,9 +195,10 @@ async def verify(
         if not verify_mfa(payload.mfa_code, user.get("mfa_secret")):
             raise InvalidMfaCodeException
 
+    # Issue token
     token: str = create_jwt_token(payload.id)
+    raw_refresh: str = create_refresh_token()
 
-    raw_refresh = create_refresh_token()
     await store_refresh_token(refresh_collection, payload.id, raw_refresh)
 
     return AuthResponse(access_token=token, refresh_token=raw_refresh)

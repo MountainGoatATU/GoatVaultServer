@@ -9,6 +9,7 @@ from app.models.auth_model import (
     AuthRegisterResponse,
     AuthRequest,
     AuthResponse,
+    NonceModel,
 )
 from app.models.base import (
     Base64BytesModel,
@@ -34,6 +35,7 @@ __all__: list[str] = [
     "AuthRefreshRequest",
     "AuthRefreshResponse",
     "Base64BytesModel",
+    "NonceModel",
     "RefreshRotationResult",
     "RefreshTokenModel",
     "TokenPayload",

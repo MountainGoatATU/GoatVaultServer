@@ -2,10 +2,12 @@ from datetime import datetime
 from typing import ClassVar
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import ConfigDict, Field
+
+from app.models.base import BASE_CONFIG, BaseModelConfigured
 
 
-class TokenPayload(BaseModel):
+class TokenPayload(BaseModelConfigured):
     """Model representing the decoded JWT payload."""
 
     sub: UUID = Field(..., description="Subject - the user UUID")
@@ -14,6 +16,7 @@ class TokenPayload(BaseModel):
     iat: datetime = Field(..., description="Issued at (UTC)")
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
+        **BASE_CONFIG,
         json_schema_extra={
             "example": {
                 "sub": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
@@ -21,30 +24,34 @@ class TokenPayload(BaseModel):
                 "exp": "2030-01-01T00:00:00Z",
                 "iat": "2029-12-31T12:00:00Z",
             }
-        }
+        },
     )
 
     def __contains__(self, key: str) -> bool:
         return key in self.model_dump()
 
 
-class RefreshTokenModel(BaseModel):
+class RefreshTokenModel(BaseModelConfigured):
     """Representation of a stored refresh token (DB record)."""
 
     id: UUID = Field(..., alias="_id", description="DB id for the refresh token")
     user_id: UUID = Field(..., description="User this refresh token belongs to")
     token_hash: str = Field(..., description="SHA256 (or other) hash of the raw token")
-    created_at: datetime = Field(..., description="When this refresh token was created")
-    expires_at: datetime = Field(..., description="When this refresh token expires")
+    created_at_utc: datetime = Field(..., description="When this refresh token was created")
+    expires_at_utc: datetime = Field(..., description="When this refresh token expires")
     revoked: bool = Field(False, description="Whether the refresh token has been revoked")
 
-    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        **BASE_CONFIG,
+    )
 
 
-class RefreshRotationResult(BaseModel):
+class RefreshRotationResult(BaseModelConfigured):
     """Result returned after rotating a refresh token."""
 
     raw: str = Field(..., description="New raw refresh token returned to the client")
     record: RefreshTokenModel = Field(..., description="Stored DB record for the new token")
 
-    model_config: ClassVar[ConfigDict] = ConfigDict()
+    model_config: ClassVar[ConfigDict] = ConfigDict(
+        **BASE_CONFIG,
+    )

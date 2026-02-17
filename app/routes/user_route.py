@@ -41,9 +41,9 @@ async def get_user(
     """Get the record for a specific user, looked up by `id`."""
     verify_user_access(token_payload, userId)
 
-    user = await user_collection.find_one({"_id": userId})
+    user: UserModel | None = await user_collection.find_one({"_id": userId})
     if user is None:
-        raise UserNotFoundException(userId)
+        raise UserNotFoundException
 
     return UserResponse(**user)
 
@@ -63,7 +63,7 @@ async def update_user(
     """Update the record for a specific user, looked up by `userId`."""
     verify_user_access(token_payload, userId)
 
-    update_data = user_data.model_dump(exclude_unset=True, mode="python")
+    update_data: UserModel | None = user_data.model_dump(exclude_unset=True, mode="python")
     if not update_data:
         raise NoFieldsToUpdateException
 
@@ -75,9 +75,9 @@ async def update_user(
     result = await user_collection.update_one({"_id": userId}, {"$set": update_data})
 
     if result.matched_count == 0:
-        raise UserNotFoundException(userId)
+        raise UserNotFoundException
 
-    updated_user_obj = await user_collection.find_one({"_id": userId})
+    updated_user_obj: UserModel | None = await user_collection.find_one({"_id": userId})
     if updated_user_obj is None:
         raise UserUpdateFailedException
 
@@ -87,17 +87,19 @@ async def update_user(
 @user_router.delete(
     "/{userId}",
     response_description="Delete a user",
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_user(
     userId: UUID,
     token_payload: Annotated[TokenPayload, Depends(verify_token)],
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
-) -> UserModel:
+) -> None:
     """Delete the record for a specific user, looked up by `userId`."""
     verify_user_access(token_payload, userId)
 
-    deleted_user = await user_collection.find_one_and_delete({"_id": userId})
-    if deleted_user is None:
-        raise UserNotFoundException(userId)
+    result = await user_collection.delete_one({"_id": userId})
 
-    return UserModel(**deleted_user)
+    if result.deleted_count == 0:
+        raise UserNotFoundException
+
+    return None
