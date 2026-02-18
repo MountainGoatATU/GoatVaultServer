@@ -19,6 +19,8 @@ class UserModel(Base64BytesModel):
     mfa_enabled: bool = Field(default=False)
     mfa_secret: str | None = Field(default=None)
 
+    shamir_enabled: bool = Field(default=False)
+
     vault: VaultModel = Field(...)
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -65,6 +67,7 @@ class UserUpdateRequest(Base64BytesModel):
     auth_verifier: bytes | None = Field(None, min_length=16, max_length=128)
     mfa_enabled: bool | None = None
     mfa_secret: str | None = None
+    shamir_enabled: bool | None = None
     vault: VaultModel | None = None
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
@@ -94,6 +97,7 @@ class UserResponse(Base64BytesModel):
     auth_salt: bytes
     mfa_enabled: bool
     mfa_secret: str | None
+    shamir_enabled: bool
     vault: VaultModel
     created_at: datetime
     updated_at: datetime
