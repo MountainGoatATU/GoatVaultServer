@@ -96,6 +96,7 @@ class UserResponse(Base64BytesModel):
     id: uuid.UUID = Field(..., alias="_id")
     email: EmailStr
     auth_salt: bytes
+    auth_verifier: bytes
     mfa_enabled: bool
     vault_salt: bytes
     vault: VaultModel
@@ -108,6 +109,7 @@ class UserResponse(Base64BytesModel):
             "example": {
                 "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
                 "authSalt": "cmFuZG9tc2FsdGJ5dGVz",
+                "authVerifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
                 "email": "user@example.com",
                 "mfaEnabled": False,
                 "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
