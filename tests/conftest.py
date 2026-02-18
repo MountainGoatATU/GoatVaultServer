@@ -16,7 +16,8 @@ os.environ["DATABASE_NAME"] = "test_goatvault"
 os.environ["JWT_SECRET"] = "test-jwt-secret-123456789abcdefg"
 os.environ["JWT_ALGORITHM"] = "HS256"
 os.environ["ISSUER"] = "test-issuer"
-os.environ["TOKEN_EXP_HOURS"] = "1"
+os.environ["ACCESS_TOKEN_EXP_MINUTES"] = "5"
+os.environ["REFRESH_TOKEN_EXP_DAYS"] = "7"
 
 from app.main import app
 from app.routes.auth_route import limiter
@@ -136,10 +137,9 @@ def mock_vault_object(sample_vault_id: uuid.UUID) -> dict:
     """Return a properly structured mock vault object (as stored in MongoDB)."""
     return {
         "_id": sample_vault_id,
-        "vault_salt": b"vault_salt_12345",  # 16 bytes
-        "encrypted_blob": b"encrypted_data_blob",
+        "encryptedBlob": b"encrypted_data_blob",
         "nonce": b"random_nonce_123",  # 16 bytes
-        "auth_tag": b"auth_tag_1234567",  # 16 bytes
+        "authTag": b"auth_tag_1234567",  # 16 bytes
     }
 
 
@@ -148,8 +148,9 @@ def sample_user_data(sample_vault_data: dict) -> dict:
     """Return sample user creation data (with base64 encoded bytes for JSON)."""
     return {
         "email": "test@example.com",
-        "auth_salt": base64.b64encode(b"salt1234567890ab").decode("utf-8"),  # 16 bytes
-        "auth_verifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8"),  # 24 bytes
+        "authSalt": base64.b64encode(b"salt1234567890ab").decode("utf-8"),  # 16 bytes
+        "authVerifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8"),  # 24 bytes
+        "vaultSalt": base64.b64encode(b"vault_salt_12345").decode("utf-8"),  # 16 bytes
         "vault": sample_vault_data,
     }
 
@@ -158,10 +159,9 @@ def sample_user_data(sample_vault_data: dict) -> dict:
 def sample_vault_data() -> dict:
     """Return sample vault creation data (with base64 encoded bytes for JSON)."""
     return {
-        "vault_salt": base64.b64encode(b"vault_salt_12345").decode("utf-8"),
-        "encrypted_blob": base64.b64encode(b"encrypted_data_blob").decode("utf-8"),
+        "encryptedBlob": base64.b64encode(b"encrypted_data_blob").decode("utf-8"),
         "nonce": base64.b64encode(b"random_nonce_123").decode("utf-8"),
-        "auth_tag": base64.b64encode(b"auth_tag_1234567").decode("utf-8"),
+        "authTag": base64.b64encode(b"auth_tag_1234567").decode("utf-8"),
     }
 
 
@@ -170,8 +170,9 @@ def sample_register_payload(sample_vault_data: dict) -> dict:
     """Return sample registration payload (alias for sample_user_data)."""
     return {
         "email": "test@example.com",
-        "auth_salt": base64.b64encode(b"salt1234567890ab").decode("utf-8"),
-        "auth_verifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8"),
+        "authSalt": base64.b64encode(b"salt1234567890ab").decode("utf-8"),
+        "authVerifier": base64.b64encode(b"authverifier1234567890ab").decode("utf-8"),
+        "vaultSalt": base64.b64encode(b"vault_salt_12345").decode("utf-8"),
         "vault": sample_vault_data,
     }
 
@@ -182,14 +183,15 @@ def mock_user(sample_user_id: uuid.UUID, mock_vault_object: dict) -> dict:
     return {
         "_id": sample_user_id,
         "email": "test@example.com",
-        "auth_salt": b"salt1234567890ab",  # 16 bytes
-        "auth_verifier": b"authverifier1234567890ab",  # 24 bytes
-        "mfa_enabled": False,
-        "mfa_secret": None,
-        "shamir_enabled": False,
+        "authSalt": b"salt1234567890ab",  # 16 bytes
+        "authVerifier": b"authverifier1234567890ab",  # 24 bytes
+        "mfaEnabled": False,
+        "mfaSecret": None,
+        "shamirEnabled": False,
+        "vaultSalt": b"vault_salt_12345",
         "vault": mock_vault_object,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
+        "createdAtUtc": datetime.now(UTC),
+        "updatedAtUtc": datetime.now(UTC),
     }
 
 
@@ -237,14 +239,15 @@ def mock_user_with_mfa(sample_user_id: uuid.UUID, mock_vault_object: dict, mfa_s
     return {
         "_id": sample_user_id,
         "email": "mfa@example.com",
-        "auth_salt": b"salt1234567890ab",
-        "auth_verifier": b"authverifier1234567890ab",
-        "mfa_enabled": True,
-        "mfa_secret": mfa_secret,
-        "shamir_enabled": False,
+        "authSalt": b"salt1234567890ab",
+        "authVerifier": b"authverifier1234567890ab",
+        "mfaEnabled": True,
+        "mfaSecret": mfa_secret,
+        "shamirEnabled": False,
+        "vaultSalt": b"vault_salt_12345",
         "vault": mock_vault_object,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
+        "createdAtUtc": datetime.now(UTC),
+        "updatedAtUtc": datetime.now(UTC),
     }
 
 

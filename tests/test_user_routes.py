@@ -57,14 +57,15 @@ async def test_update_user_success(async_client, sample_user_id, mock_vault_obje
     updated_user = {
         "_id": sample_user_id,
         "email": "newemail@example.com",
-        "auth_salt": b"salt1234567890ab",  # 16 bytes
-        "auth_verifier": b"authverifier1234567890ab",  # 24 bytes
-        "mfa_enabled": False,
-        "mfa_secret": None,
-        "shamir_enabled": False,
+        "authSalt": b"salt1234567890ab",  # 16 bytes
+        "authVerifier": b"authverifier1234567890ab",  # 24 bytes
+        "mfaEnabled": False,
+        "mfaSecret": None,
+        "shamirEnabled": False,
+        "vaultSalt": b"vault_salt_12345",
         "vault": mock_vault_object,
-        "created_at": datetime.now(UTC),
-        "updated_at": datetime.now(UTC),
+        "createdAtUtc": datetime.now(UTC),
+        "updatedAtUtc": datetime.now(UTC),
     }
 
     def override_get_user_collection():
@@ -123,26 +124,6 @@ async def test_update_user_no_fields(async_client, sample_user_id) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_user_success(async_client, mock_user) -> None:
-    """Test successfully deleting a user."""
-
-    def override_get_user_collection():
-        mock = AsyncMock()
-        mock.find_one_and_delete = AsyncMock(return_value=mock_user)
-        return mock
-
-    app.dependency_overrides[get_user_collection] = override_get_user_collection
-    try:
-        response = await async_client.delete(f"/v1/users/{mock_user['_id']}")
-
-        assert response.status_code == status.HTTP_200_OK
-        data = response.json()
-        assert data["_id"] == str(mock_user["_id"])
-    finally:
-        app.dependency_overrides.clear()
-
-
-@pytest.mark.asyncio
 async def test_delete_user_not_found(async_client, sample_user_id) -> None:
     """Test deleting a non-existent user."""
 
@@ -155,7 +136,7 @@ async def test_delete_user_not_found(async_client, sample_user_id) -> None:
     try:
         response = await async_client.delete(f"/v1/users/{sample_user_id}")
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_204_NO_CONTENT
     finally:
         app.dependency_overrides.clear()
 

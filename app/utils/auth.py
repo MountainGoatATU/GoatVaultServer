@@ -30,7 +30,7 @@ load_dotenv()
 
 JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
 ACCESS_TOKEN_EXP_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXP_MINUTES", 5))
-REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "30"))
+REFRESH_TOKEN_EXP_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXP_DAYS", 7))
 
 JWT_SECRET: str | None = os.getenv("JWT_SECRET")
 if not JWT_SECRET:
@@ -139,7 +139,7 @@ async def store_refresh_token(
     """Store hashed refresh token in DB and return the DB record dict."""
     logger.info(f"Storing refresh token for user {user_id}")
     now: datetime = get_now()
-    expires_at: datetime = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    expires_at: datetime = now + timedelta(days=REFRESH_TOKEN_EXP_DAYS)
     token_hash: str = hash_token(raw_token)
 
     new_id: UUID = uuid.uuid4()

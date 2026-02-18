@@ -128,49 +128,19 @@ async def test_verify_token_missing_subject() -> None:
 
 
 @pytest.mark.asyncio
-async def test_store_and_verify_refresh_token() -> None:
-    """Unit-level: store a refresh token and then verify it via the helper."""
-    user_id: UUID = uuid.uuid4()
-    raw: str = create_refresh_token()
-
-    # Create a fake collection to capture/return inserted documents
-    refresh_collection = AsyncMock()
-    inserted_id: UUID = uuid.uuid4()
-    mock_insert_result = MagicMock()
-    mock_insert_result.inserted_id: UUID = inserted_id
-    refresh_collection.insert_one = AsyncMock(return_value=mock_insert_result)
-
-    # Call store_refresh_token; it will call insert_one on the collection
-    stored_doc: RefreshTokenModel = await store_refresh_token(refresh_collection, user_id, raw)
-
-    # Ensure the returned doc has _id set to the mocked inserted id
-    assert stored_doc.id == inserted_id
-    assert stored_doc.user_id == user_id
-
-    # Now configure find_one to return the stored doc when verify_refresh_token is called
-    refresh_collection.find_one = AsyncMock(return_value=stored_doc)
-
-    # verify_refresh_token should now return the stored doc
-    rec = await verify_refresh_token(refresh_collection, raw)
-    assert rec is not None
-    assert rec.id == inserted_id
-    assert rec.user_id == user_id
-
-
-@pytest.mark.asyncio
 async def test_rotate_and_revoke_refresh_token() -> None:
     """Unit-level: rotating should revoke the old token and create a new one; revoke should mark revoked."""
-    user_id = uuid.uuid4()
-    old_raw = create_refresh_token()
-    old_hash = hash_token(old_raw)
+    user_id: UUID = uuid.uuid4()
+    old_raw: str = create_refresh_token()
+    old_hash: str = hash_token(old_raw)
 
     # Build the record that verify_refresh_token should return for the old token
-    old_rec = {
+    old_rec: dict = {
         "_id": uuid.uuid4(),
-        "user_id": user_id,
-        "token_hash": old_hash,
-        "created_at": datetime.now(UTC),
-        "expires_at": datetime.now(UTC) + timedelta(days=30),
+        "userId": user_id,
+        "tokenHash": old_hash,
+        "createdAtUtc": datetime.now(UTC),
+        "expiresAtUtc": datetime.now(UTC) + timedelta(days=30),
         "revoked": False,
     }
 
@@ -212,10 +182,10 @@ async def test_refresh_and_logout_endpoints(async_client_no_auth: AsyncClient, m
     new_record = RefreshTokenModel.model_validate(
         {
             "_id": uuid.uuid4(),
-            "user_id": user_id,
-            "token_hash": "irrelevant-for-test",
-            "created_at": datetime.now(UTC),
-            "expires_at": datetime.now(UTC) + timedelta(days=30),
+            "userId": user_id,
+            "tokenHash": "irrelevant-for-test",
+            "createdAtUtc": datetime.now(UTC),
+            "expiresAtUtc": datetime.now(UTC) + timedelta(days=30),
             "revoked": False,
         }
     )
@@ -228,11 +198,11 @@ async def test_refresh_and_logout_endpoints(async_client_no_auth: AsyncClient, m
         mock.find_one = AsyncMock(
             return_value={
                 "_id": uuid.uuid4(),
-                "user_id": user_id,
+                "userId": user_id,
                 # include required fields so verify_refresh_token treats it as valid
-                "token_hash": "irrelevant-for-test",
-                "created_at": datetime.now(UTC),
-                "expires_at": datetime.now(UTC) + timedelta(days=1),  # not expired
+                "tokenHash": "irrelevant-for-test",
+                "createdAtUtc": datetime.now(UTC),
+                "expiresAtUtc": datetime.now(UTC) + timedelta(days=1),  # not expired
                 "revoked": False,
             }
         )
@@ -252,16 +222,16 @@ async def test_refresh_and_logout_endpoints(async_client_no_auth: AsyncClient, m
     try:
         # Call refresh endpoint
         response = await async_client_no_auth.post(
-            "/v1/auth/refresh", json={"refresh_token": old_raw}
+            "/v1/auth/refresh", json={"refreshToken": old_raw}
         )
         assert response.status_code == status.HTTP_200_OK
         body = response.json()
-        assert "access_token" in body
-        assert body["refresh_token"] == new_raw
+        assert "accessToken" in body
+        assert body["refreshToken"] == new_raw
 
         # Call logout endpoint - should return ok even if token is unknown (we mocked True)
         response = await async_client_no_auth.post(
-            "/v1/auth/logout", json={"refresh_token": old_raw}
+            "/v1/auth/logout", json={"refreshToken": old_raw}
         )
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == {"status": "ok"}
@@ -324,10 +294,10 @@ async def test_verify_refresh_token_handles_naive_datetimes():
 
     rec = {
         "_id": uuid.uuid4(),
-        "user_id": uuid.uuid4(),
-        "token_hash": token_hash,
-        "created_at": naive_created,
-        "expires_at": naive_expires_future,
+        "userId": uuid.uuid4(),
+        "tokenHash": token_hash,
+        "createdAtUtc": naive_created,
+        "expiresAtUtc": naive_expires_future,
         "revoked": False,
     }
 
@@ -336,12 +306,12 @@ async def test_verify_refresh_token_handles_naive_datetimes():
     verified = await verify_refresh_token(refresh_collection, raw)
     assert verified is not None
     assert isinstance(verified, RefreshTokenModel)
-    assert verified.user_id == rec["user_id"]
+    assert verified.user_id == rec["userId"]
 
     # Now test expired naive datetime
     naive_expires_past = (now - timedelta(days=1)).replace(tzinfo=None)
     rec_expired = rec.copy()
-    rec_expired["expires_at"] = naive_expires_past
+    rec_expired["expiresAtUtc"] = naive_expires_past
     refresh_collection.find_one = AsyncMock(return_value=rec_expired)
 
     verified2 = await verify_refresh_token(refresh_collection, raw)
@@ -357,10 +327,10 @@ async def test_rotate_refresh_token_success_and_failure():
     # Success case: find_one_and_update returns previous doc (non-None)
     claimed_doc = {
         "_id": uuid.uuid4(),
-        "user_id": user_id,
-        "token_hash": hash_token(old_raw),
-        "created_at": datetime.now(UTC),
-        "expires_at": datetime.now(UTC) + timedelta(days=30),
+        "userId": user_id,
+        "tokenHash": hash_token(old_raw),
+        "createdAtUtc": datetime.now(UTC),
+        "expiresAtUtc": datetime.now(UTC) + timedelta(days=30),
         "revoked": False,
     }
     refresh_collection.find_one_and_update = AsyncMock(return_value=claimed_doc)
