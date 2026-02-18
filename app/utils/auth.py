@@ -235,8 +235,8 @@ def create_jwt_token(user_id: UUID) -> str:
     """Generate a signed JWT for a given user UUID."""
     logger.info(f"Creating JWT token for user {user_id}")
     now: datetime = get_now()
-    expire = now + timedelta(hours=TOKEN_EXP_HOURS)
-    payload = {
+    expire: datetime = now + timedelta(minutes=ACCESS_TOKEN_EXP_MINUTES)
+    payload: dict = {
         "sub": str(user_id),  # Subject (the user)
         "iss": ISSUER,  # Standard JWT claim (issuer)
         "exp": expire,  # Expiration time
