@@ -186,6 +186,7 @@ def mock_user(sample_user_id: uuid.UUID, mock_vault_object: dict) -> dict:
         "auth_verifier": b"authverifier1234567890ab",  # 24 bytes
         "mfa_enabled": False,
         "mfa_secret": None,
+        "shamir_enabled": False,
         "vault": mock_vault_object,
         "created_at": datetime.now(UTC),
         "updated_at": datetime.now(UTC),
@@ -240,6 +241,7 @@ def mock_user_with_mfa(sample_user_id: uuid.UUID, mock_vault_object: dict, mfa_s
         "auth_verifier": b"authverifier1234567890ab",
         "mfa_enabled": True,
         "mfa_secret": mfa_secret,
+        "shamir_enabled": False,
         "vault": mock_vault_object,
         "created_at": datetime.now(UTC),
         "updated_at": datetime.now(UTC),

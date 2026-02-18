@@ -61,6 +61,7 @@ async def test_update_user_success(async_client, sample_user_id, mock_vault_obje
         "auth_verifier": b"authverifier1234567890ab",  # 24 bytes
         "mfa_enabled": False,
         "mfa_secret": None,
+        "shamir_enabled": False,
         "vault": mock_vault_object,
         "created_at": datetime.now(UTC),
         "updated_at": datetime.now(UTC),
