@@ -19,6 +19,7 @@ class UserModel(Base64BytesModel):
     mfa_enabled: bool = Field(default=False)
     mfa_secret: str | None = Field(default=None)
 
+    vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: VaultModel = Field(...)
 
     created_at_utc: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -35,6 +36,7 @@ class UserCreateRequest(Base64BytesModel):
     email: EmailStr = Field(..., max_length=254)
     auth_salt: bytes = Field(..., min_length=16, max_length=64)
     auth_verifier: bytes = Field(..., min_length=16, max_length=128)
+    vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: VaultModel = Field(...)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
@@ -44,11 +46,11 @@ class UserCreateRequest(Base64BytesModel):
                 "authSalt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
                 "authVerifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
                 "email": "user@example.com",
+                "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 "vault": {
                     "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
                     "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
-                    "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
             },
         },
@@ -65,6 +67,7 @@ class UserUpdateRequest(Base64BytesModel):
     auth_verifier: bytes | None = Field(None, min_length=16, max_length=128)
     mfa_enabled: bool | None = None
     mfa_secret: str | None = None
+    vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: VaultModel | None = None
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
@@ -76,11 +79,11 @@ class UserUpdateRequest(Base64BytesModel):
                 "authVerifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
                 "mfaEnabled": True,
                 "mfaSecret": "cmFuZG9tc2FsdGJ5dGVz",
+                "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 "vault": {
                     "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
                     "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
-                    "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
             },
         },
@@ -94,6 +97,7 @@ class UserResponse(Base64BytesModel):
     email: EmailStr
     auth_salt: bytes
     mfa_enabled: bool
+    vault_salt: bytes
     vault: VaultModel
     created_at_utc: datetime
     updated_at_utc: datetime
@@ -106,11 +110,11 @@ class UserResponse(Base64BytesModel):
                 "authSalt": "cmFuZG9tc2FsdGJ5dGVz",
                 "email": "user@example.com",
                 "mfaEnabled": False,
+                "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 "vault": {
                     "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
                     "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
-                    "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
                 "createdAtUtc": "2024-01-15T10:30:00Z",
                 "updatedAtUtc": "2024-01-15T14:45:00Z",

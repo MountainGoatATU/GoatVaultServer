@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import os
 import secrets
 import uuid
@@ -21,6 +22,8 @@ from app.models import RefreshRotationResult, RefreshTokenModel, TokenPayload
 """
 Settings
 """
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -51,18 +54,22 @@ def get_now() -> datetime:
 
 def hash_token(raw_token: str) -> str:
     """Hash a refresh token for storage (SHA256 hex)."""
+    logger.info("Hashing refresh token")
     h = hashlib.sha256()
     h.update(raw_token.encode("utf-8"))
+    logger.info(f"Hashed token: {h.hexdigest()}")
     return h.hexdigest()
 
 
 def create_refresh_token() -> str:
     """Create a new random refresh token (raw value to return to client)."""
+    logger.info("Creating new refresh token")
     return secrets.token_urlsafe(48)
 
 
 def ensure_bytes(value) -> bytes:
     """Normalize common token-like/byte-like inputs to bytes."""
+    logger.info("Ensuring bytes")
     import base64
 
     # memoryview -> bytes
@@ -78,6 +85,7 @@ def ensure_bytes(value) -> bytes:
         try:
             return bytes(value)
         except Exception as e:
+            logger.info("Cannot convert list to bytes")
             raise TypeError(f"Cannot convert list to bytes: {e}") from e
 
     # str -> try base64 decode, fall back to utf-8
@@ -86,6 +94,7 @@ def ensure_bytes(value) -> bytes:
             # Accept padded and unpadded base64; base64.b64decode will raise on invalid input
             return base64.b64decode(value, validate=True)
         except Exception:
+            logger.info("Exception while converting string to bytes")
             # fallback to plain utf-8
             return value.encode("utf-8")
 
@@ -94,12 +103,20 @@ def ensure_bytes(value) -> bytes:
 
 def ensure_aware(dt_value):
     if dt_value is None:
+        logger.info("Datetime is None")
         return None
     # If Pydantic model instance field (already datetime), preserve/normalize
     try:
         # datetime objects only
         if not isinstance(dt_value, datetime):
-            return dt_value
+            logger.info(f"Converting datetime {dt_value} to UTC")
+            return dt_value.astimezone(UTC)
+        if dt_value.tzinfo is None:
+            # assume stored naive datetimes are UTC
+            return dt_value.replace(tzinfo=UTC)
+        # convert to UTC uniformly
+        logger.info(f"Converting datetime {dt_value} to UTC")
+        return dt_value.astimezone(UTC)
     except Exception:
         return dt_value
 
@@ -107,6 +124,7 @@ def ensure_aware(dt_value):
         # assume stored naive datetimes are UTC
         return dt_value.replace(tzinfo=UTC)
     # convert to UTC uniformly
+    logger.info(f"Converting datetime {dt_value} to UTC")
     return dt_value.astimezone(UTC)
 
 
@@ -119,6 +137,7 @@ async def store_refresh_token(
     refresh_collection: AsyncIOMotorCollection, user_id: UUID, raw_token: str
 ) -> RefreshTokenModel:
     """Store hashed refresh token in DB and return the DB record dict."""
+    logger.info(f"Storing refresh token for user {user_id}")
     now: datetime = get_now()
     expires_at: datetime = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     token_hash: str = hash_token(raw_token)
@@ -126,15 +145,16 @@ async def store_refresh_token(
     new_id: UUID = uuid.uuid4()
     doc: dict = {
         "_id": new_id,
-        "user_id": user_id,
-        "token_hash": token_hash,
-        "created_at": now,
-        "expires_at": expires_at,
+        "userId": user_id,
+        "tokenHash": token_hash,
+        "createdAtUtc": now,
+        "expiresAtUtc": expires_at,
         "revoked": False,
     }
 
     result: InsertOneResult = await refresh_collection.insert_one(doc)
     doc["_id"] = getattr(result, "inserted_id", new_id)
+    logger.info(f"New token {raw_token} stored")
     return RefreshTokenModel.model_validate(doc)
 
 
@@ -142,24 +162,29 @@ async def verify_refresh_token(
     refresh_collection: AsyncIOMotorCollection, raw_token: str
 ) -> RefreshTokenModel | None:
     """Verify a refresh token and return the DB record if valid and not revoked/expired."""
+    logger.info("Verifying refresh token")
     token_hash: str = hash_token(raw_token)
     now: datetime = get_now()
-    rec = await refresh_collection.find_one({"token_hash": token_hash})
+    rec = await refresh_collection.find_one({"tokenHash": token_hash})
     if not rec:
+        logger.info("No token hash found")
         return None
 
     # normalize to a dict
     rec_dict = rec.model_dump() if isinstance(rec, RefreshTokenModel) else rec
 
-    if "created_at" in rec_dict:
-        rec_dict["created_at"] = ensure_aware(rec_dict.get("created_at"))
-    if "expires_at" in rec_dict:
-        rec_dict["expires_at"] = ensure_aware(rec_dict.get("expires_at"))
+    if "createdAtUtc" in rec_dict:
+        rec_dict["createdAtUtc"] = ensure_aware(rec_dict.get("createdAtUtc"))
+    if "expiresAtUtc" in rec_dict:
+        rec_dict["expiresAtUtc"] = ensure_aware(rec_dict.get("expiresAtUtc"))
 
     if rec_dict.get("revoked", False):
+        logger.info("Token is revoked")
         return None
-    if rec_dict.get("expires_at") is None or rec_dict["expires_at"] < now:
+    if rec_dict.get("expiresAtUtc") is None or rec_dict["expiresAtUtc"] < now:
+        logger.info("Token is expired")
         return None
+    logger.info(f"Token {raw_token} is valid")
     return RefreshTokenModel.model_validate(rec_dict)
 
 
@@ -167,32 +192,37 @@ async def rotate_refresh_token(
     refresh_collection: AsyncIOMotorCollection, old_raw_token: str, user_id: UUID
 ) -> RefreshRotationResult | None:
     """Rotate a refresh token: verify old one, revoke it, create & store a new one."""
+    logger.info(f"Rotating refresh token for user {user_id}")
 
     token_hash: str = hash_token(old_raw_token)
     now: datetime = get_now()
 
     # Find non-revoked, non-expired token and mark it revoked
     claimed = await refresh_collection.find_one_and_update(
-        {"token_hash": token_hash, "revoked": False, "expires_at": {"$gt": now}},
+        {"tokenHash": token_hash, "revoked": False, "expiresAtUtc": {"$gt": now}},
         {"$set": {"revoked": True}},
         return_document=ReturnDocument.BEFORE,
     )
 
     if not claimed:
+        logger.info("Token not found")
         return None
 
     # Create and store a new refresh token
     new_raw: str = create_refresh_token()
     new_rec: RefreshTokenModel = await store_refresh_token(refresh_collection, user_id, new_raw)
+    logger.info(f"New token {new_raw} created")
     return RefreshRotationResult(raw=new_raw, record=new_rec)
 
 
 async def revoke_refresh_token(refresh_collection: AsyncIOMotorCollection, raw_token: str) -> bool:
     """Revoke a refresh token by raw token string."""
+    logger.info(f"Revoking refresh token {raw_token}")
     token_hash: str = hash_token(raw_token)
     result = await refresh_collection.update_one(
-        {"token_hash": token_hash, "revoked": False}, {"$set": {"revoked": True}}
+        {"tokenHash": token_hash, "revoked": False}, {"$set": {"revoked": True}}
     )
+    logger.info(f"Token {raw_token} revoked")
     return result.modified_count > 0
 
 
@@ -203,6 +233,7 @@ JWT Helpers
 
 def create_jwt_token(user_id: UUID) -> str:
     """Generate a signed JWT for a given user UUID."""
+    logger.info(f"Creating JWT token for user {user_id}")
     now: datetime = get_now()
     expire = now + timedelta(hours=TOKEN_EXP_HOURS)
     payload = {
@@ -212,6 +243,7 @@ def create_jwt_token(user_id: UUID) -> str:
         "iat": now,  # Issued at
     }
 
+    logger.info(f"Token {payload} created")
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 
@@ -224,6 +256,7 @@ async def verify_token(
     """Verifies that the provided Bearer JWT token is valid and that its 'iss'
     (issuer) claim matches the SERVER_NAME environment variable.
     """
+    logger.info(f"Verifying token {credentials.credentials}")
     token: str = credentials.credentials
 
     try:
@@ -236,16 +269,19 @@ async def verify_token(
     except PyJWTError as e:
         match e:
             case jwt.ExpiredSignatureError:
+                logger.info(f"Token {token} expired")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Token expired",
                 ) from e
             case jwt.InvalidTokenError:
+                logger.info(f"Token {token} invalid")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid token",
                 ) from e
             case _:
+                logger.info(f"Token {token} error")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail=f"Invalid or expired JWT token: {e!s}",
@@ -253,12 +289,14 @@ async def verify_token(
 
     issuer = payload.get("iss")
     if issuer != ISSUER:
+        logger.info(f"Token {token} issuer mismatch")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Token issuer mismatch",
         )
 
     if "sub" not in payload or payload.get("sub") is None:
+        logger.info(f"Token {token} missing required 'sub' (subject) claim")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token missing required 'sub' (subject) claim",
@@ -268,11 +306,13 @@ async def verify_token(
     try:
         token_payload: TokenPayload = TokenPayload.model_validate(payload)
     except Exception as e:
+        logger.info(f"Token {token} invalid payload")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid token payload: {e!s}",
         ) from e
 
+    logger.info(f"Token {token} verified")
     return token_payload
 
 
@@ -283,13 +323,17 @@ MFA & User Access Checks
 
 def verify_mfa(otp: str | None, secret_key: str | None) -> bool:
     """Verify the user's multi-factor authentication token."""
+    logger.info(f"Verifying MFA for OTP {otp} and secret key {secret_key}")
     if not otp or not secret_key:
+        logger.info("OTP or secret key missing")
         return False
 
     try:
         totp = pyotp.TOTP(secret_key)
+        logger.info(f"TOTP instance created for secret key {secret_key}")
         return totp.verify(otp, valid_window=1)
     except Exception:
+        logger.exception("Error verifying MFA")
         return False
 
 
@@ -297,6 +341,8 @@ def verify_user_access(token_payload: TokenPayload, user_id: UUID) -> None:
     """Verify that the authenticated user is accessing their own resources."""
     requesting_user_id: UUID = token_payload.sub
     if requesting_user_id != user_id:
+        logger.info(f"Requesting user ID {requesting_user_id} does not match user ID {user_id}")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="You can only access your own resources"
         )
+    logger.info(f"User access verified for user ID {user_id}")

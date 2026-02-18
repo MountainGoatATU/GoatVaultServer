@@ -8,7 +8,6 @@ from app.models.base import BASE_CONFIG, Base64BytesModel
 class VaultModel(Base64BytesModel):
     """Object representing a user's vault."""
 
-    vault_salt: bytes = Field(..., min_length=16, max_length=64)
     encrypted_blob: bytes = Field(...)
     nonce: bytes = Field(..., min_length=12, max_length=64)
     auth_tag: bytes = Field(..., min_length=16, max_length=64)
