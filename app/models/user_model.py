@@ -4,7 +4,7 @@ from typing import ClassVar
 
 from pydantic import ConfigDict, EmailStr, Field
 
-from app.models.base import Base64BytesModel
+from app.models.base import BASE_CONFIG, Base64BytesModel
 from app.models.vault_model import VaultModel
 
 
@@ -21,14 +21,14 @@ class UserModel(Base64BytesModel):
 
     shamir_enabled: bool = Field(default=False)
 
+    vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: VaultModel = Field(...)
 
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    created_at_utc: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at_utc: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
-        populate_by_name=True,
-        arbitrary_types_allowed=True,
+        **BASE_CONFIG,
     )
 
 
@@ -38,19 +38,21 @@ class UserCreateRequest(Base64BytesModel):
     email: EmailStr = Field(..., max_length=254)
     auth_salt: bytes = Field(..., min_length=16, max_length=64)
     auth_verifier: bytes = Field(..., min_length=16, max_length=128)
+    vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: VaultModel = Field(...)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
+        **BASE_CONFIG,
         json_schema_extra={
             "example": {
-                "auth_salt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
-                "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
+                "authSalt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
+                "authVerifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
                 "email": "user@example.com",
+                "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 "vault": {
-                    "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
-                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
-                    "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
             },
         },
@@ -68,21 +70,24 @@ class UserUpdateRequest(Base64BytesModel):
     mfa_enabled: bool | None = None
     mfa_secret: str | None = None
     shamir_enabled: bool | None = None
+    vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: VaultModel | None = None
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
+        **BASE_CONFIG,
         json_schema_extra={
             "example": {
                 "email": "newemail@example.com",
-                "auth_salt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
-                "auth_verifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
-                "mfa_enabled": True,
-                "mfa_secret": "cmFuZG9tc2FsdGJ5dGVz",
+                "authSalt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
+                "authVerifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
+                "mfaEnabled": True,
+                "mfaSecret": "cmFuZG9tc2FsdGJ5dGVz",
+                "shamirEnabled": True,
+                "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 "vault": {
-                    "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
-                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
-                    "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
             },
         },
@@ -95,30 +100,33 @@ class UserResponse(Base64BytesModel):
     id: uuid.UUID = Field(..., alias="_id")
     email: EmailStr
     auth_salt: bytes
+    auth_verifier: bytes
     mfa_enabled: bool
     mfa_secret: str | None
     shamir_enabled: bool
+    vault_salt: bytes
     vault: VaultModel
-    created_at: datetime
-    updated_at: datetime
+    created_at_utc: datetime
+    updated_at_utc: datetime
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
-        populate_by_name=True,
+        **BASE_CONFIG,
         json_schema_extra={
             "example": {
                 "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
-                "auth_salt": "cmFuZG9tc2FsdGJ5dGVz",
+                "authSalt": "cmFuZG9tc2FsdGJ5dGVz",
+                "authVerifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
                 "email": "user@example.com",
-                "mfa_enabled": False,
-                "mfa_secret": "cmFuZG9tc2FsdGJ5dGVz",
+                "mfaEnabled": False,
+                "mfaSecret": "cmFuZG9tc2FsdGJ5dGVz",
+                "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 "vault": {
-                    "auth_tag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
-                    "encrypted_blob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
-                    "vault_salt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 },
-                "created_at": "2024-01-15T10:30:00Z",
-                "updated_at": "2024-01-15T14:45:00Z",
+                "createdAtUtc": "2024-01-15T10:30:00Z",
+                "updatedAtUtc": "2024-01-15T14:45:00Z",
             },
         },
     )

@@ -1,5 +1,3 @@
-from uuid import UUID
-
 from fastapi import HTTPException, status
 
 
@@ -16,10 +14,10 @@ class NoFieldsToUpdateException(HTTPException):
 class UserNotFoundException(HTTPException):
     """Raised when a user cannot be found."""
 
-    def __init__(self, user_id: UUID) -> None:
+    def __init__(self) -> None:
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User {user_id} not found",
+            detail="User not found",
         )
 
 
@@ -73,13 +71,14 @@ class UserNotFoundByEmailException(HTTPException):
         )
 
 
-class InvalidAuthVerifierException(HTTPException):
-    """Raised when the provided auth verifier doesn't match."""
+class CredentialsException(HTTPException):
+    """Raised when the provided credentials are invalid."""
 
     def __init__(self) -> None:
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid auth verifier",
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Bearer"},
         )
 
 

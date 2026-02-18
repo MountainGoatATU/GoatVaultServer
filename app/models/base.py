@@ -1,10 +1,22 @@
 import base64
 from typing import Any
 
-from pydantic import BaseModel, field_serializer, field_validator
+from pydantic import BaseModel, ConfigDict, field_serializer, field_validator
+from pydantic.alias_generators import to_camel
+
+BASE_CONFIG = ConfigDict(
+    alias_generator=to_camel,
+    populate_by_name=True,
+)
 
 
-class Base64BytesModel(BaseModel):
+class BaseModelConfigured(BaseModel):
+    """Base model with common configurations."""
+
+    model_config: ConfigDict = BASE_CONFIG
+
+
+class Base64BytesModel(BaseModelConfigured):
     """Base model that automatically handles base64 encoding/decoding for bytes fields.
 
     - On input: Decodes base64 strings to bytes

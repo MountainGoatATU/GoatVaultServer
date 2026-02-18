@@ -34,3 +34,8 @@ def get_user_collection(request: Request) -> AsyncIOMotorCollection:
 def get_refresh_collection(request: Request) -> AsyncIOMotorCollection:
     """Dependency that returns the refresh_tokens collection from app state database."""
     return request.app.state.db["refresh_tokens"]
+
+
+def get_nonce_collection(request: Request) -> AsyncIOMotorCollection:
+    """Dependency that returns the nonces collection from app state database."""
+    return request.app.state.db["nonces"]

@@ -1,6 +1,8 @@
 from app.utils.auth import (
     create_jwt_token,
     create_refresh_token,
+    ensure_bytes,
+    get_now,
     hash_token,
     revoke_refresh_token,
     rotate_refresh_token,
@@ -11,8 +13,8 @@ from app.utils.auth import (
     verify_user_access,
 )
 from app.utils.exceptions import (
+    CredentialsException,
     EmailAlreadyInUseException,
-    InvalidAuthVerifierException,
     InvalidMfaCodeException,
     MfaCodeRequiredException,
     NoFieldsToUpdateException,
@@ -39,9 +41,11 @@ __all__: list[str] = [
     "verify_refresh_token",
     "verify_token",
     "verify_mfa",
+    "get_now",
+    "ensure_bytes",
     "verify_user_access",
     "EmailAlreadyInUseException",
-    "InvalidAuthVerifierException",
+    "CredentialsException",
     "InvalidMfaCodeException",
     "MfaCodeRequiredException",
     "NoFieldsToUpdateException",
