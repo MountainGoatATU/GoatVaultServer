@@ -38,6 +38,7 @@ class UserCreateRequest(Base64BytesModel):
     email: EmailStr = Field(..., max_length=254)
     auth_salt: bytes = Field(..., min_length=16, max_length=64)
     auth_verifier: bytes = Field(..., min_length=16, max_length=128)
+
     vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: VaultModel = Field(...)
 
@@ -67,9 +68,12 @@ class UserUpdateRequest(Base64BytesModel):
     email: EmailStr | None = Field(None, max_length=254)
     auth_salt: bytes | None = Field(None, min_length=16, max_length=64)
     auth_verifier: bytes | None = Field(None, min_length=16, max_length=128)
+
     mfa_enabled: bool | None = None
     mfa_secret: str | None = None
+
     shamir_enabled: bool | None = None
+
     vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: VaultModel | None = None
 
@@ -101,11 +105,15 @@ class UserResponse(Base64BytesModel):
     email: EmailStr
     auth_salt: bytes
     auth_verifier: bytes
+
     mfa_enabled: bool
     mfa_secret: str | None
+
     shamir_enabled: bool
+
     vault_salt: bytes
     vault: VaultModel
+
     created_at_utc: datetime
     updated_at_utc: datetime
 
@@ -119,6 +127,7 @@ class UserResponse(Base64BytesModel):
                 "email": "user@example.com",
                 "mfaEnabled": False,
                 "mfaSecret": "cmFuZG9tc2FsdGJ5dGVz",
+                "shamirEnabled": False,
                 "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 "vault": {
                     "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
