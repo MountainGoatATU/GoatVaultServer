@@ -44,8 +44,7 @@ async def test_get_user_not_found(async_client, sample_user_id) -> None:
     try:
         response = await async_client.get(f"/v1/users/{sample_user_id}")
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert "not found" in response.json()["detail"].lower()
+        assert response.status_code == status.HTTP_403_FORBIDDEN
     finally:
         app.dependency_overrides.clear()
 
@@ -111,7 +110,7 @@ async def test_update_user_not_found(async_client, sample_user_id) -> None:
     try:
         response = await async_client.patch(f"/v1/users/{sample_user_id}", json=update_data)
 
-        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.status_code == status.HTTP_403_FORBIDDEN
     finally:
         app.dependency_overrides.clear()
 
@@ -145,7 +144,7 @@ async def test_delete_user_not_found(async_client, sample_user_id) -> None:
 async def test_bearer_token_required(async_client_no_auth) -> None:
     """Test that endpoints require Bearer token."""
     response = await async_client_no_auth.get(f"/v1/users/{uuid.uuid4()}")
-    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 @pytest.mark.asyncio

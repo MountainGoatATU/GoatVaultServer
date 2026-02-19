@@ -14,8 +14,8 @@ from app.models import (
     UserUpdateRequest,
 )
 from app.utils import (
+    ForbiddenException,
     NoFieldsToUpdateException,
-    UserNotFoundException,
     UserUpdateFailedException,
     validate_email_available_for_user,
     verify_token,
@@ -51,7 +51,7 @@ async def get_user(
 
     if user is None:
         logger.info(f"User not found with ID: {userId}")
-        raise UserNotFoundException
+        raise ForbiddenException
 
     logger.info(f"User found with ID: {userId}")
     return UserResponse(**user)
@@ -89,7 +89,7 @@ async def update_user(
 
     if result.matched_count == 0:
         logger.info(f"User not found with ID: {userId}")
-        raise UserNotFoundException
+        raise ForbiddenException
 
     updated_user_obj: UserModel | None = await user_collection.find_one({"_id": userId})
     if updated_user_obj is None:
@@ -118,7 +118,7 @@ async def delete_user(
 
     if result.deleted_count == 0:
         logger.info(f"User not found with ID: {userId}")
-        raise UserNotFoundException
+        raise ForbiddenException
 
     logger.info(f"User deleted with ID: {userId}")
     return None

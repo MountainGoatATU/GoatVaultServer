@@ -7,7 +7,7 @@ from hashlib import sha256
 from typing import Annotated
 
 from bson import Binary
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Body, Depends, Request, status
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.results import InsertOneResult
 from slowapi import Limiter
@@ -32,7 +32,6 @@ from app.models import (
 from app.utils import (
     CredentialsException,
     InvalidMfaCodeException,
-    MfaCodeRequiredException,
     UserCreationFailedException,
     create_jwt_token,
     create_refresh_token,
@@ -45,6 +44,7 @@ from app.utils import (
     verify_mfa,
     verify_refresh_token,
 )
+from app.utils.exceptions import InvalidRefreshTokenException
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +119,7 @@ async def init(
     if not user:
         logger.warning(f"User not found for auth init: {payload.email}")
         return AuthInitResponse(
-            id=uuid.uuid4(),
+            _id=uuid.uuid4(),
             auth_salt=secrets.token_bytes(32),
             nonce=nonce,
             mfa_enabled=False,
@@ -139,7 +139,7 @@ async def init(
 
     logger.info(f"Auth init successful for user: {user['_id']}")
     return AuthInitResponse(
-        id=user["_id"],
+        _id=user["_id"],
         auth_salt=user["authSalt"],
         nonce=nonce,
         mfa_enabled=user["mfaEnabled"],
@@ -166,7 +166,7 @@ async def verify(
     logger.info(f"Auth verification requested for user: {payload.id}")
 
     # Find user
-    user: UserModel | None = await user_collection.find_one({"_id": payload.id})
+    user: AsyncIOMotorCollection | None = await user_collection.find_one({"_id": payload.id})
     if not user:
         logger.warning(f"User not found during verification: {payload.id}")
         raise CredentialsException
@@ -206,7 +206,7 @@ async def verify(
     if user.get("mfaEnabled", False):
         if not payload.mfa_code:
             logger.warning(f"MFA code required but not provided for user: {payload.id}")
-            raise MfaCodeRequiredException
+            raise CredentialsException
 
         if not verify_mfa(payload.mfa_code, user.get("mfaSecret")):
             logger.warning(f"Invalid MFA code for user: {payload.id}")
@@ -233,18 +233,14 @@ async def refresh_token_endpoint(
     )
     if not rec:
         logger.warning("Invalid or expired refresh token used")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token"
-        )
+        raise InvalidRefreshTokenException
 
     rotation: RefreshRotationResult | None = await rotate_refresh_token(
         refresh_collection, payload.refresh_token, rec.user_id
     )
     if rotation is None:
         logger.warning(f"Refresh token rotation failed for user: {rec.user_id}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
-        )
+        raise InvalidRefreshTokenException
 
     access: str = create_jwt_token(rotation.record.user_id)
     logger.info(f"Token refreshed successfully for user: {rec.user_id}")
@@ -260,7 +256,7 @@ async def logout_endpoint(
 
     if not raw_refresh:
         logger.warning("Logout attempted without refresh token")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing refresh_token")
+        raise InvalidRefreshTokenException
 
     _ok: bool = await revoke_refresh_token(refresh_collection, raw_refresh)
     logger.info("Logout successful (refresh token revoked)")

@@ -1,16 +1,19 @@
+import base64
 import hashlib
+import hmac
 import logging
 import os
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
+from hashlib import sha256
 from typing import Annotated
 from uuid import UUID
 
 import jwt
 import pyotp
 from dotenv import load_dotenv
-from fastapi import HTTPException, Security, status
+from fastapi import Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 from motor.motor_asyncio import AsyncIOMotorCollection
@@ -18,6 +21,7 @@ from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult
 
 from app.models import RefreshRotationResult, RefreshTokenModel, TokenPayload
+from app.utils.exceptions import CredentialsException, ForbiddenException, InvalidJWTException
 
 """
 Settings
@@ -70,7 +74,6 @@ def create_refresh_token() -> str:
 def ensure_bytes(value) -> bytes:
     """Normalize common token-like/byte-like inputs to bytes."""
     logger.info("Ensuring bytes")
-    import base64
 
     # memoryview -> bytes
     if isinstance(value, memoryview):
@@ -270,47 +273,29 @@ async def verify_token(
         match e:
             case jwt.ExpiredSignatureError:
                 logger.info(f"Token {token} expired")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Token expired",
-                ) from e
+                raise InvalidJWTException from e
             case jwt.InvalidTokenError:
                 logger.info(f"Token {token} invalid")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid token",
-                ) from e
+                raise InvalidJWTException from e
             case _:
                 logger.info(f"Token {token} error")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail=f"Invalid or expired JWT token: {e!s}",
-                ) from e
+                raise InvalidJWTException from e
 
     issuer = payload.get("iss")
     if issuer != ISSUER:
         logger.info(f"Token {token} issuer mismatch")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Token issuer mismatch",
-        )
+        raise InvalidJWTException
 
     if "sub" not in payload or payload.get("sub") is None:
         logger.info(f"Token {token} missing required 'sub' (subject) claim")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token missing required 'sub' (subject) claim",
-        )
+        raise InvalidJWTException
 
     # Convert payload to TokenPayload model
     try:
         token_payload: TokenPayload = TokenPayload.model_validate(payload)
     except Exception as e:
         logger.info(f"Token {token} invalid payload")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid token payload: {e!s}",
-        ) from e
+        raise InvalidJWTException from e
 
     logger.info(f"Token {token} verified")
     return token_payload
@@ -342,7 +327,5 @@ def verify_user_access(token_payload: TokenPayload, user_id: UUID) -> None:
     requesting_user_id: UUID = token_payload.sub
     if requesting_user_id != user_id:
         logger.info(f"Requesting user ID {requesting_user_id} does not match user ID {user_id}")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="You can only access your own resources"
-        )
+        raise ForbiddenException
     logger.info(f"User access verified for user ID {user_id}")

@@ -13,6 +13,7 @@ from app.database import get_refresh_collection
 from app.main import app
 from app.models import RefreshRotationResult, RefreshTokenModel, TokenPayload
 from app.utils import (
+    InvalidJWTException,
     create_jwt_token,
     create_refresh_token,
     hash_token,
@@ -39,30 +40,29 @@ async def test_verify_token_valid(test_credentials) -> None:
 
 @pytest.mark.asyncio
 async def test_verify_token_invalid() -> None:
-    """Test that invalid JWT token raises HTTPException."""
+    """Test that invalid JWT token raises InvalidJWTException."""
     invalid_credentials = HTTPAuthorizationCredentials(
         scheme="Bearer",
         credentials="invalid.jwt.token",
     )
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(InvalidJWTException) as exc_info:
         await verify_token(invalid_credentials)
 
-    exception: HTTPException = exc_info.value
+    exception: InvalidJWTException = exc_info.value
     assert exception.status_code == status.HTTP_401_UNAUTHORIZED
     assert "Invalid" in exception.detail
-    assert "token" in exception.detail.lower()
 
 
 @pytest.mark.asyncio
 async def test_verify_token_expired(expired_token) -> None:
-    """Test that expired JWT token raises HTTPException."""
+    """Test that expired JWT token raises InvalidJWTException."""
     expired_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=expired_token)
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(InvalidJWTException) as exc_info:
         await verify_token(expired_credentials)
 
-    exception: HTTPException = exc_info.value
+    exception: InvalidJWTException = exc_info.value
     assert exception.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -74,12 +74,12 @@ async def test_verify_token_wrong_issuer(wrong_issuer_token) -> None:
         credentials=wrong_issuer_token,
     )
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(InvalidJWTException) as exc_info:
         await verify_token(wrong_issuer_credentials)
 
-    exception: HTTPException = exc_info.value
-    assert exception.status_code == status.HTTP_403_FORBIDDEN
-    assert "Token issuer mismatch" in exception.detail
+    exception: InvalidJWTException = exc_info.value
+    assert exception.status_code == status.HTTP_401_UNAUTHORIZED
+    assert "Invalid" in exception.detail
 
 
 @pytest.mark.asyncio
@@ -117,14 +117,12 @@ async def test_verify_token_missing_subject() -> None:
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
     # This should still decode successfully, but sub will be None
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises(InvalidJWTException) as exc_info:
         await verify_token(credentials)
 
-    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-    assert (
-        "missing required 'sub'" in str(exc_info.value.detail).lower()
-        or "token missing" in str(exc_info.value.detail).lower()
-    )
+    exception: InvalidJWTException = exc_info.value
+    assert exception.status_code == status.HTTP_401_UNAUTHORIZED
+    assert "Invalid" in exception.detail
 
 
 @pytest.mark.asyncio
