@@ -11,12 +11,25 @@ from app.utils import (
     validate_email_available_for_user,
 )
 
+########################################################################
+# Helper Functions
+########################################################################
+
+
+def configure_mock_find_one(mock_request, return_value=None):
+    """Helper to configure the mock database's `find_one` method."""
+    mock_request.app.state.db["users"].find_one = AsyncMock(return_value=return_value)
+
+
+########################################################################
+# Email Validation Tests
+#######################################################################
+
 
 @pytest.mark.asyncio
 async def test_validate_email_available_success(mock_request) -> None:
     """Test email validation when email is available."""
-    # Configure mock to return None (email not found)
-    mock_request.app.state.db["users"].find_one = AsyncMock(return_value=None)
+    configure_mock_find_one(mock_request, return_value=None)
 
     # Should not raise any exception
     await validate_email_available("new@example.com", mock_request)
@@ -29,8 +42,8 @@ async def test_validate_email_available_success(mock_request) -> None:
 @pytest.mark.asyncio
 async def test_validate_email_available_already_exists(mock_request) -> None:
     """Test email validation when email already exists."""
-    # Configure mock to return an existing user
-    mock_request.app.state.db["users"].find_one = AsyncMock(
+    configure_mock_find_one(
+        mock_request,
         return_value={"_id": uuid.uuid4(), "email": "existing@example.com"},
     )
 
@@ -42,9 +55,7 @@ async def test_validate_email_available_already_exists(mock_request) -> None:
 async def test_validate_email_available_for_user_same_user(mock_request) -> None:
     """Test email validation when user is updating their own email."""
     user_id = uuid.uuid4()
-
-    # No other user has this email
-    mock_request.app.state.db["users"].find_one = AsyncMock(return_value=None)
+    configure_mock_find_one(mock_request, return_value=None)
 
     # Should not raise any exception
     await validate_email_available_for_user("user@example.com", user_id, mock_request)
@@ -60,8 +71,8 @@ async def test_validate_email_available_for_user_different_user(mock_request) ->
     user_id = uuid.uuid4()
     other_user_id = uuid.uuid4()
 
-    # Another user has this email
-    mock_request.app.state.db["users"].find_one = AsyncMock(
+    configure_mock_find_one(
+        mock_request,
         return_value={"_id": other_user_id, "email": "taken@example.com"},
     )
 
@@ -73,19 +84,21 @@ async def test_validate_email_available_for_user_different_user(mock_request) ->
 async def test_validate_email_available_for_user_no_conflict(mock_request) -> None:
     """Test email validation when email is completely available."""
     user_id = uuid.uuid4()
-
-    # No user has this email
-    mock_request.app.state.db["users"].find_one = AsyncMock(return_value=None)
+    configure_mock_find_one(mock_request, return_value=None)
 
     await validate_email_available_for_user("available@example.com", user_id, mock_request)
 
     mock_request.app.state.db["users"].find_one.assert_called_once()
 
 
+########################################################################
+# Validation Error Sanitization Tests
+########################################################################
+
+
 @pytest.mark.asyncio
 async def test_sanitize_validation_error_with_bytes_input() -> None:
     """Test sanitizing validation errors with bytes that can't decode as UTF-8."""
-    # Test with non-UTF-8 bytes
     error_dict = {
         "input": b"\x80\x81\x82\x83",  # Invalid UTF-8
         "type": "value_error",
@@ -102,8 +115,6 @@ async def test_sanitize_validation_error_with_bytes_in_list() -> None:
     error_dict = {"ctx": {"items": [b"\xff\xfe", "string", {"nested": b"\x00\x01"}]}}
 
     result = sanitize_validation_error(error_dict)
-    # Note: The current implementation doesn't process bytes in lists directly
-    # It only processes dicts in lists, so bytes remain as bytes
     assert isinstance(result["ctx"]["items"][0], bytes) or "<bytes:" in str(
         result["ctx"]["items"][0],
     )

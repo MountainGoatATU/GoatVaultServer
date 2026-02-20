@@ -22,7 +22,6 @@ from app.utils.exceptions import (
     NoFieldsToUpdateException,
     UserAlreadyExistsException,
     UserCreationFailedException,
-    UserNotFoundByEmailException,
     UserUpdateFailedException,
 )
 from app.utils.validators import (
@@ -51,7 +50,6 @@ __all__: list[str] = [
     "NoFieldsToUpdateException",
     "UserAlreadyExistsException",
     "UserCreationFailedException",
-    "UserNotFoundByEmailException",
     "UserUpdateFailedException",
     "ForbiddenException",
     "InvalidJWTException",

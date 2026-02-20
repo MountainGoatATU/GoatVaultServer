@@ -8,8 +8,11 @@ from app.database import get_user_collection
 from app.main import app
 from app.utils import verify_mfa
 
+########################################################################
+# MFA Tests
+########################################################################
 
-# Test verify_mfa utility function
+
 @pytest.mark.asyncio
 async def test_verify_mfa_valid_code(mfa_secret, valid_mfa_code) -> None:
     """Test MFA verification with valid code."""
@@ -18,23 +21,18 @@ async def test_verify_mfa_valid_code(mfa_secret, valid_mfa_code) -> None:
 
 
 @pytest.mark.asyncio
-async def test_verify_mfa_invalid_code(mfa_secret) -> None:
+@pytest.mark.parametrize("invalid_code", ["12345", "1234567", "000000", None])
+async def test_verify_mfa_invalid_code(mfa_secret, invalid_code) -> None:
     """Test MFA verification with invalid code."""
-    result = verify_mfa("000000", mfa_secret)
+    result: bool = verify_mfa(invalid_code, mfa_secret)
     assert result is False
 
 
 @pytest.mark.asyncio
-async def test_verify_mfa_none_code(mfa_secret) -> None:
-    """Test MFA verification with None code."""
-    result = verify_mfa(None, mfa_secret)
-    assert result is False
-
-
-@pytest.mark.asyncio
-async def test_verify_mfa_none_secret(valid_mfa_code) -> None:
-    """Test MFA verification with None secret."""
-    result = verify_mfa(valid_mfa_code, None)
+@pytest.mark.parametrize("invalid_secret", ["invalid-secret", None])
+async def test_verify_mfa_invalid_secret(valid_mfa_code, invalid_secret) -> None:
+    """Test MFA verification with invalid secret."""
+    result: bool = verify_mfa(valid_mfa_code, invalid_secret)
     assert result is False
 
 
@@ -45,21 +43,9 @@ async def test_verify_mfa_both_none() -> None:
     assert result is False
 
 
-@pytest.mark.asyncio
-async def test_verify_mfa_invalid_secret(valid_mfa_code) -> None:
-    """Test MFA verification with invalid secret format."""
-    result = verify_mfa(valid_mfa_code, "invalid-secret")
-    assert result is False
-
-
-@pytest.mark.asyncio
-async def test_verify_mfa_wrong_code_length(mfa_secret) -> None:
-    """Test MFA verification with wrong code length."""
-    result = verify_mfa("12345", mfa_secret)  # Too short
-    assert result is False
-
-    result = verify_mfa("1234567", mfa_secret)  # Too long
-    assert result is False
+########################################################################
+# User MFA Tests
+########################################################################
 
 
 # Test auth init with MFA enabled
@@ -119,12 +105,12 @@ async def test_verify_with_mfa_wrong_format(async_client_no_auth, mock_user_with
     }
 
     response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
-
     # Should fail validation before reaching the endpoint
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("token", ["valid"], indirect=True)
 async def test_user_update_enable_mfa(async_client, mock_user, mfa_secret) -> None:
     """Test enabling MFA via user update endpoint."""
     update_data = {
@@ -157,6 +143,7 @@ async def test_user_update_enable_mfa(async_client, mock_user, mfa_secret) -> No
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("token", ["valid"], indirect=True)
 async def test_user_update_disable_mfa(async_client, mock_user_with_mfa) -> None:
     """Test disabling MFA via user update endpoint."""
     update_data = {

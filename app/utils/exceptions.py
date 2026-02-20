@@ -51,16 +51,6 @@ class UserUpdateFailedException(HTTPException):
         )
 
 
-class UserNotFoundByEmailException(HTTPException):
-    """Raised when a user cannot be found by email (used in auth flows)."""
-
-    def __init__(self) -> None:
-        super().__init__(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
-
 class CredentialsException(HTTPException):
     """Raised when the provided credentials are invalid."""
 

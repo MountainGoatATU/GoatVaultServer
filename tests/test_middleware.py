@@ -4,36 +4,19 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from app.middleware import RequestLoggingMiddleware
+########################################################################
+# Helper Functions
+########################################################################
 
 
-@pytest.fixture
-def app_with_logging() -> FastAPI:
-    """Create a FastAPI app with logging middleware for testing."""
-    app = FastAPI()
-    app.add_middleware(RequestLoggingMiddleware)  # type: ignore[arg-type]
+def extract_log_calls(mock_logger, level="info"):
+    """Extract log calls for a specific log level."""
+    return [str(call) for call in getattr(mock_logger, f"{level}.call_args_list")]
 
-    @app.get("/test-get")
-    async def test_get() -> dict:
-        return {"message": "GET success"}
 
-    @app.post("/test-post")
-    async def test_post(data: dict) -> dict:
-        return {"message": "POST success", "received": data}
-
-    @app.get("/test-no-client")
-    async def test_no_client() -> dict:
-        return {"message": "No client info"}
-
-    @app.post("/test-binary")
-    async def test_binary() -> dict:
-        return {"message": "Binary data received"}
-
-    @app.get("/test-error")
-    async def test_error() -> None:
-        raise ValueError("Test error")
-
-    return app
+########################################################################
+# Logging Middleware Tests
+########################################################################
 
 
 @pytest.mark.asyncio

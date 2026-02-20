@@ -12,20 +12,26 @@ from app.database import get_nonce_collection, get_user_collection
 from app.main import app
 from app.utils.validators import validate_email_available
 
+########################################################################
+# Register Tests
+########################################################################
+
 
 @pytest.mark.asyncio
-async def test_register_success(async_client_no_auth, sample_user_data, mock_vault_object) -> None:
+async def test_register_success(
+    async_client_no_auth, sample_register_payload, mock_vault_object
+) -> None:
     """Test successfully registering a new user."""
     new_user_id = uuid.uuid4()
     created_user = {
         "_id": new_user_id,
-        "email": sample_user_data["email"],
-        "authSalt": base64.b64decode(sample_user_data["authSalt"]),
-        "authVerifier": base64.b64decode(sample_user_data["authVerifier"]),
+        "email": sample_register_payload["email"],
+        "authSalt": base64.b64decode(sample_register_payload["authSalt"]),
+        "authVerifier": base64.b64decode(sample_register_payload["authVerifier"]),
         "mfaEnabled": False,
         "mfaSecret": None,
         "shamirEnabled": False,
-        "vaultSalt": base64.b64decode(sample_user_data["vaultSalt"]),
+        "vaultSalt": base64.b64decode(sample_register_payload["vaultSalt"]),
         "vault": mock_vault_object,
         "createdAtUtc": datetime.now(UTC),
         "updatedAtUtc": datetime.now(UTC),
@@ -45,18 +51,22 @@ async def test_register_success(async_client_no_auth, sample_user_data, mock_vau
     app.dependency_overrides[get_user_collection] = override_get_user_collection
     app.dependency_overrides[validate_email_available] = mock_validate_email
     try:
-        response = await async_client_no_auth.post("/v1/auth/register", json=sample_user_data)
+        response = await async_client_no_auth.post(
+            "/v1/auth/register", json=sample_register_payload
+        )
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
-        assert data["email"] == sample_user_data["email"]
+        assert data["email"] == sample_register_payload["email"]
         assert "_id" in data or "id" in data
     finally:
         app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
-async def test_register_duplicate_email(async_client_no_auth, sample_user_data, mock_user) -> None:
+async def test_register_duplicate_email(
+    async_client_no_auth, sample_register_payload, mock_user
+) -> None:
     """Test registering a user with an email that already exists."""
 
     # Configure app.state.db mock to return existing user for validator
@@ -66,15 +76,15 @@ async def test_register_duplicate_email(async_client_no_auth, sample_user_data, 
     # Update the mock_database fixture's collection for this test
     app.state.db.__getitem__.return_value = mock_collection
 
-    response = await async_client_no_auth.post("/v1/auth/register", json=sample_user_data)
+    response = await async_client_no_auth.post("/v1/auth/register", json=sample_register_payload)
 
     assert response.status_code == status.HTTP_409_CONFLICT
 
 
 @pytest.mark.asyncio
-async def test_register_invalid_email(async_client_no_auth, sample_user_data) -> None:
+async def test_register_invalid_email(async_client_no_auth, sample_register_payload) -> None:
     """Test registering with invalid email format."""
-    invalid_data = sample_user_data.copy()
+    invalid_data = sample_register_payload.copy()
     invalid_data["email"] = "not-an-email"
 
     response = await async_client_no_auth.post("/v1/auth/register", json=invalid_data)
@@ -87,6 +97,40 @@ async def test_register_missing_fields(async_client_no_auth) -> None:
     """Test registering with missing required fields."""
     response = await async_client_no_auth.post("/v1/auth/register", json={})
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+
+@pytest.mark.asyncio
+async def test_register_creation_failure(async_client_no_auth, sample_register_payload):
+    """Test user registration when database insert fails."""
+
+    def override_get_user_collection():
+        mock = AsyncMock()
+        # Mock successful insert but failed retrieval
+        mock_result = MagicMock()
+        mock_result.inserted_id = uuid.uuid4()
+        mock.insert_one = AsyncMock(return_value=mock_result)
+        mock.find_one = AsyncMock(return_value=None)  # Fails to find created user
+        return mock
+
+    async def mock_validate_email(email: str, request):
+        pass  # Email is available
+
+    app.dependency_overrides[get_user_collection] = override_get_user_collection
+    app.dependency_overrides[validate_email_available] = mock_validate_email
+    try:
+        response = await async_client_no_auth.post(
+            "/v1/auth/register", json=sample_register_payload
+        )
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert "Failed to create user" in response.json()["detail"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+########################################################################
+# Init Tests
+########################################################################
 
 
 @pytest.mark.asyncio
@@ -145,6 +189,11 @@ async def test_init_invalid_email(async_client_no_auth) -> None:
     response = await async_client_no_auth.post("/v1/auth/init", json=init_request)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
+
+
+########################################################################
+# Verify Tests
+########################################################################
 
 
 @pytest.mark.asyncio
@@ -223,7 +272,6 @@ async def test_verify_user_not_found(async_client_no_auth, sample_user_id) -> No
 
     app.dependency_overrides[get_user_collection] = override_get_user_collection
     app.dependency_overrides[get_nonce_collection] = override_get_nonce_collection
-
     try:
         response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
 
@@ -307,6 +355,11 @@ async def test_verify_missing_fields(async_client_no_auth, sample_user_id) -> No
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
+########################################################################
+# Proof Tests
+########################################################################
+
+
 @pytest.mark.asyncio
 async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_user) -> None:
     """Test that token from verify endpoint can be used for authenticated requests."""
@@ -337,7 +390,6 @@ async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_u
 
     app.dependency_overrides[get_user_collection] = override_get_user_collection
     app.dependency_overrides[get_nonce_collection] = override_get_nonce_collection
-
     try:
         # Generate token via verify
         response = await async_client_no_auth.post("/v1/auth/verify", json=verify_request)
@@ -354,34 +406,5 @@ async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_u
         data = auth_response.json()
         assert data["_id"] == str(mock_user["_id"])
         assert data["email"] == "test@example.com"
-    finally:
-        app.dependency_overrides.clear()
-
-
-@pytest.mark.asyncio
-async def test_register_creation_failure(async_client_no_auth, sample_register_payload):
-    """Test user registration when database insert fails."""
-
-    def override_get_user_collection():
-        mock = AsyncMock()
-        # Mock successful insert but failed retrieval
-        mock_result = MagicMock()
-        mock_result.inserted_id = uuid.uuid4()
-        mock.insert_one = AsyncMock(return_value=mock_result)
-        mock.find_one = AsyncMock(return_value=None)  # Fails to find created user
-        return mock
-
-    async def mock_validate_email(email: str, request):
-        pass  # Email is available
-
-    app.dependency_overrides[get_user_collection] = override_get_user_collection
-    app.dependency_overrides[validate_email_available] = mock_validate_email
-    try:
-        response = await async_client_no_auth.post(
-            "/v1/auth/register", json=sample_register_payload
-        )
-
-        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
-        assert "Failed to create user" in response.json()["detail"]
     finally:
         app.dependency_overrides.clear()

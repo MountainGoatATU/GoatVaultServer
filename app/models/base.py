@@ -37,8 +37,8 @@ class Base64BytesModel(BaseModelConfigured):
             if "bytes" in annotation and isinstance(v, str):
                 try:
                     return base64.b64decode(v)
-                except Exception:
-                    pass
+                except Exception as e:
+                    raise ValueError(f"Invalid base64 string for field '{info.field_name}'") from e
         return v
 
     @field_serializer("*", when_used="json")

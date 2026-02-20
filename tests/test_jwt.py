@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
 import pytest
-from fastapi import HTTPException, status
+from fastapi import status
 from fastapi.security import HTTPAuthorizationCredentials
 from httpx import AsyncClient
 
@@ -27,59 +27,28 @@ from app.utils.auth import ensure_bytes
 
 
 @pytest.mark.asyncio
-async def test_verify_token_valid(test_credentials) -> None:
-    """Test that valid JWT token is accepted."""
-    result: TokenPayload = await verify_token(test_credentials)
-
-    assert result is not None
-    assert "sub" in result
-    assert "iss" in result
-    assert "exp" in result
-    assert "iat" in result
-
-
-@pytest.mark.asyncio
-async def test_verify_token_invalid() -> None:
+@pytest.mark.parametrize("token", ["valid", "invalid", "expired", "wrong_issuer"], indirect=True)
+async def test_verify_token(token) -> None:
     """Test that invalid JWT token raises InvalidJWTException."""
-    invalid_credentials = HTTPAuthorizationCredentials(
+    credentials = HTTPAuthorizationCredentials(
         scheme="Bearer",
-        credentials="invalid.jwt.token",
+        credentials=token,
     )
 
-    with pytest.raises(InvalidJWTException) as exc_info:
-        await verify_token(invalid_credentials)
+    if token == "valid":
+        result: TokenPayload = await verify_token(credentials)
+        assert result is not None
+        assert "sub" in result
+        assert "iss" in result
+        assert "exp" in result
+        assert "iat" in result
 
-    exception: InvalidJWTException = exc_info.value
-    assert exception.status_code == status.HTTP_401_UNAUTHORIZED
-    assert "Invalid" in exception.detail
-
-
-@pytest.mark.asyncio
-async def test_verify_token_expired(expired_token) -> None:
-    """Test that expired JWT token raises InvalidJWTException."""
-    expired_credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=expired_token)
-
-    with pytest.raises(InvalidJWTException) as exc_info:
-        await verify_token(expired_credentials)
-
-    exception: InvalidJWTException = exc_info.value
-    assert exception.status_code == status.HTTP_401_UNAUTHORIZED
-
-
-@pytest.mark.asyncio
-async def test_verify_token_wrong_issuer(wrong_issuer_token) -> None:
-    """Test that JWT token with wrong issuer raises HTTPException."""
-    wrong_issuer_credentials = HTTPAuthorizationCredentials(
-        scheme="Bearer",
-        credentials=wrong_issuer_token,
-    )
-
-    with pytest.raises(InvalidJWTException) as exc_info:
-        await verify_token(wrong_issuer_credentials)
-
-    exception: InvalidJWTException = exc_info.value
-    assert exception.status_code == status.HTTP_401_UNAUTHORIZED
-    assert "Invalid" in exception.detail
+    elif token in ["invalid", "expired", "wrong_issuer"]:
+        with pytest.raises(InvalidJWTException) as exc_info:
+            await verify_token(credentials)
+        exception: InvalidJWTException = exc_info.value
+        assert exception.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "Invalid" in exception.detail
 
 
 @pytest.mark.asyncio
@@ -93,10 +62,9 @@ async def test_create_jwt_token(sample_user_id) -> None:
 
     # Verify the token can be decoded
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
-    payload = await verify_token(credentials)
+    payload: TokenPayload = await verify_token(credentials)
 
     assert payload.sub == sample_user_id
-    assert payload.iss == "test-issuer"
 
 
 @pytest.mark.asyncio

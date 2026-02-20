@@ -73,7 +73,7 @@ async def update_user(
     logger.info(f"Update requested for user with ID: {userId}")
     verify_user_access(token_payload, userId)
 
-    update_data: UserModel | None = user_data.model_dump(
+    update_data: dict | None = user_data.model_dump(
         exclude_unset=True, by_alias=True, mode="python"
     )
     if not update_data:
