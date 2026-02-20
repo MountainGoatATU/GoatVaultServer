@@ -39,6 +39,7 @@ jobs:
       - name: Run tests with coverage
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          ISSUER: ${{ secrets.ISSUER }}
         run: uv run task test
 
       - name: Upload coverage reports
