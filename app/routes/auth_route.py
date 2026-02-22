@@ -88,6 +88,13 @@ async def register(
         logger.error(f"Failed to create user: {payload.email}")
         raise UserCreationFailedException
 
+    from app.utils.email_sender import send_confirmation
+    try:
+        await send_confirmation(payload.email)
+        logger.info(f"Confirmation email sent to: {payload.email}")
+    except Exception as e:
+        logger.error(f"Failed to send confirmation email: {e}")
+        
     logger.info(f"User registered successfully: {payload.email}")
     return AuthRegisterResponse(**created_user_obj)
 
