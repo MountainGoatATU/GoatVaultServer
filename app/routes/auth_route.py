@@ -68,12 +68,15 @@ async def register(
     logger.info(f"Registering new user with email: {payload.email}")
     await validate_email_available(payload.email, request)
 
+    verification_token = secrets.token_urlsafe(32)
     new_user = UserModel(
         email=payload.email,
         auth_salt=payload.auth_salt,
         auth_verifier=payload.auth_verifier,
         vault_salt=payload.vault_salt,
         vault=payload.vault,
+        email_verified=False,
+        email_verification_token=verification_token,
     )
 
     new_user_dict = new_user.model_dump(by_alias=True, mode="python")
@@ -88,15 +91,34 @@ async def register(
         logger.error(f"Failed to create user: {payload.email}")
         raise UserCreationFailedException
 
-    from app.utils.email_sender import send_confirmation
+    from app.utils.email_sender import send_verification_email
     try:
-        await send_confirmation(payload.email)
-        logger.info(f"Confirmation email sent to: {payload.email}")
+        await send_verification_email(payload.email, verification_token)
+        logger.info(f"Verification email sent to: {payload.email}")
     except Exception as e:
-        logger.error(f"Failed to send confirmation email: {e}")
-        
+        logger.error(f"Failed to send verification email: {e}")
     logger.info(f"User registered successfully: {payload.email}")
     return AuthRegisterResponse(**created_user_obj)
+
+@auth_router.get(
+    "/verify-email/{token}"
+    , response_description="Verify email", 
+    status_code=status.HTTP_200_OK)
+
+async def verify_email(
+    token: str, 
+    user_collection: Annotated[AsyncIOMotorCollection, 
+    Depends(get_user_collection)]):
+    user = await user_collection.find_one({"emailVerificationToken": token})
+
+    if not user:
+        return {"success": False, "message": "Invalid or expired verification token."}
+    
+    if user.get("emailVerified"):
+        return {"success": True, "message": "Email already verified."}
+    
+    await user_collection.update_one({"_id": user["_id"]}, {"$set": {"emailVerified": True, "emailVerificationToken": None}})
+    return {"success": True, "message": "Email successfully verified."}
 
 
 @auth_router.post(

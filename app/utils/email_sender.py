@@ -1,10 +1,12 @@
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 import os
 
+BASE_URL = os.environ.get("LOCAL_SERVER_URL")
+
 conf = ConnectionConfig(
-    MAIL_USERNAME=os.environ.get("EMAIL_USER"),
+    MAIL_USERNAME=os.environ.get("EMAIL_USERNAME"),
     MAIL_PASSWORD=os.environ.get("EMAIL_PASSWORD"),
-    MAIL_FROM=os.environ.get("EMAIL_USER"),
+    MAIL_FROM=os.environ.get("EMAIL_USERNAME"),
     MAIL_PORT=587,
     MAIL_SERVER="smtp.gmail.com",
     MAIL_STARTTLS=True,
@@ -13,16 +15,19 @@ conf = ConnectionConfig(
     VALIDATE_CERTS=True
 )
 
-async def send_confirmation(to_email: str):
+async def send_verification_email(to_email: str, token: str):
+    verification_link = f"{BASE_URL}/v1/auth/verify-email/{token}"
     message = MessageSchema(
-        subject="Welcome to GoatVault – Registration Confirmed",
+        subject="GoatVault – Verify your email",
         recipients=[to_email],
-        body="""
+        body=f"""
         <html>
             <body>
                 <h2>Welcome to <b>GoatVault</b>!</h2>
-                <p>Thank you for registering. Your account has been successfully created.</p>
-                <p>You can now log in and start using GoatVault.</p>
+                <p>Thank you for registering. Please verify your email address by clicking the link below:</p>
+                <p><a href='{verification_link}'>Verify Email</a></p>
+                <br>
+                <p>If you did not register, you can ignore this email.</p>
                 <br>
                 <p>Best regards,<br>GoatVault Team</p>
             </body>
