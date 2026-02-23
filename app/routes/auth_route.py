@@ -68,7 +68,6 @@ async def register(
     logger.info(f"Registering new user with email: {payload.email}")
     await validate_email_available(payload.email, request)
 
-    verification_token = secrets.token_urlsafe(32)
     new_user = UserModel(
         email=payload.email,
         auth_salt=payload.auth_salt,
@@ -76,8 +75,10 @@ async def register(
         vault_salt=payload.vault_salt,
         vault=payload.vault,
         email_verified=False,
-        email_verification_token=verification_token,
     )
+
+    verification_token = create_jwt_token(new_user.id)
+    new_user.email_verification_token = verification_token
 
     new_user_dict = new_user.model_dump(by_alias=True, mode="python")
 
@@ -109,14 +110,22 @@ async def verify_email(
     token: str, 
     user_collection: Annotated[AsyncIOMotorCollection, 
     Depends(get_user_collection)]):
-    user = await user_collection.find_one({"emailVerificationToken": token})
-
-    if not user:
-        return {"success": False, "message": "Invalid or expired verification token."}
     
+    from app.utils.auth import jwt, JWT_SECRET, JWT_ALGORITHM, ISSUER
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"require": ["exp", "iat", "iss"]})
+    except Exception:
+        return {"success": False, "message": "Invalid or expired verification token."}
+
+    if payload.get("iss") != ISSUER:
+        return {"success": False, "message": "Invalid token issuer."}
+
+    user_id = payload.get("sub")
+    user = await user_collection.find_one({"_id": uuid.UUID(user_id)})
+    if not user:
+        return {"success": False, "message": "User not found."}
     if user.get("emailVerified"):
         return {"success": True, "message": "Email already verified."}
-    
     await user_collection.update_one({"_id": user["_id"]}, {"$set": {"emailVerified": True, "emailVerificationToken": None}})
     return {"success": True, "message": "Email successfully verified."}
 
