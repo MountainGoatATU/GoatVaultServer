@@ -211,6 +211,7 @@ async def test_verify_success(async_client_no_auth, mock_user) -> None:
     # Update mock_user to have matching auth_verifier after pydantic processes the request
     test_mock_user = mock_user.copy()
     test_mock_user["authVerifier"] = mock_user["authVerifier"]
+    test_mock_user["emailVerified"] = True
 
     def override_get_user_collection():
         mock = AsyncMock()
@@ -372,9 +373,12 @@ async def test_generated_token_can_be_used_for_auth(async_client_no_auth, mock_u
         "proof": base64.b64encode(proof).decode("utf-8"),
     }
 
+    test_mock_user = mock_user.copy()
+    test_mock_user["emailVerified"] = True
+
     def override_get_user_collection():
         mock = AsyncMock()
-        mock.find_one = AsyncMock(return_value=mock_user)
+        mock.find_one = AsyncMock(return_value=test_mock_user)
         return mock
 
     def override_get_nonce_collection():

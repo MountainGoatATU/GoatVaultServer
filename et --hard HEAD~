@@ -1,0 +1,169 @@
+[33m3f57c4f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32memail-verification[m[33m, [m[1;31morigin/email-verification[m[33m)[m final fix
+[33m10a5a11[m added requirement
+[33m669bf83[m fixed tests
+[33m923eb8a[m updated env example
+[33m87ff968[m renamed files
+[33m5c86206[m added email not verified exception
+[33m7d5950c[m check if user is verified
+[33mc70a9a4[m added expiration on token to verify email
+[33m334ff36[m added use of jwt token
+[33mb428444[m added verify email endpoint
+[33m739677d[m added simple register confirmation
+[33m04488d4[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Test fix workflow
+[33m82d0d44[m Test fix workflow
+[33m4cb7f1a[m test fix workflow
+[33m25db8a2[m Test overhaul
+[33me4f98c6[m Adjusted error handling
+[33m9c8c290[m Fixed tests by removing failing tests (for now)
+[33m63f7197[m Change access token expiry to minutes
+[33md09d567[m Formatting
+[33m18c4675[m Merge branch 'refactor'
+[33mca406f4[m[33m ([m[1;31morigin/refactor[m[33m)[m Make mfa_secret nullable in user response
+[33m7cd7c4c[m Fixed tests
+[33mc1b8825[m Updated the user mode with shamir_enable
+[33m7e0ef58[m Readded auth verifier to user response
+[33mc5e006e[m Logging and other fixes
+[33me06389d[m Modified json examples
+[33mf46d2a2[m Added nonce in verify endpoint
+[33m8822946[m Update main.tf
+[33ma54f354[m Update variables.tf
+[33m024b947[m Changed access token expiry from hours to minutes
+[33m08a3a57[m Added json for mfa_secret in UserUpdateRequest
+[33m28d1068[m Updated type of mfa_secret in UserResponse
+[33medc0c2c[m Return MFA secret in UserResponse
+[33m3251a51[m Add created_at to register response
+[33m63c7bfa[m Return timestamp(s) in user response and register response
+[33m1bb0cc7[m Added auth_salt and auth_verifier to json example in UserUpdateRequest
+[33mfe005f9[m Update uv.lock
+[33mc98e0e6[m Specify build directory
+[33m1cc874f[m[33m ([m[1;31morigin/jwt-refresh[m[33m)[m Added tests
+[33mced6017[m Fixed endpoints
+[33mffc3bec[m Return refresh token on verification
+[33mb291953[m Lint
+[33m0253747[m Cleanup
+[33mc317f53[m Cleanup
+[33m3af4420[m Fixed tests
+[33mca95512[m Using RefreshTokenModel and created RefreshRotationResult
+[33m7032abb[m Added request model
+[33me8f2e46[m Added refresh token and tests
+[33m2ec4ffb[m Fixed tests
+[33m61d4b7d[m Changed JWT payload to use a Pydantic model
+[33m190a982[m LINT: Removed unused imports
+[33m25b3baa[m Fixed failing tests
+[33md34ee6e[m Added root healthcheck endpoint and lint ignores
+[33m1e05a84[m formatting
+[33m1e8360a[m Formatting
+[33mc9257c9[m added cors for local testing
+[33m8db7c80[m test v2
+[33m6ede281[m test
+[33mc593b32[m turnining off vpc setup for dev env
+[33mdb0ff5f[m uuidRepresentation added
+[33m7ca1141[m request import added
+[33mb7d492a[m validators modified
+[33mf7fa2d6[m rollbacking changes
+[33mc2f150c[m changing definiton of get_user_collection
+[33m350daa3[m getting rid of unused imports
+[33mc3f4c17[m rollbacking changes
+[33m649e4dd[m testing changes to handling uuid
+[33mbee6b83[m rollbacking changes
+[33m9d296f8[m changed prop
+[33m2cf9046[m changed notation
+[33m938faea[m testing uuid changes
+[33mee404de[m adding cors
+[33m4e5843b[m preventing event loop in lambda
+[33maffea7b[m testing
+[33m68295af[m added permission role to lambda
+[33m323ea55[m adjusting infra with vpc to securely connect to mongo atlas
+[33mbf5b632[m chaining jobs
+[33mf659420[m fiixing tests lint issues
+[33m60d66cb[m fixing lint issues
+[33m71ede95[m adding tests to pipeline
+[33mac03f88[m setting env variables via pipeline
+[33m65d9800[m fixing zipping package
+[33m4ce1078[m idk v2
+[33m2d119a8[m idk
+[33m2448f5a[m idk
+[33meb3eecf[m adjusting docker step
+[33m174f4f2[m utilizing docker for building package
+[33mc3b0638[m Testing commit for CI/CD pipeline
+[33ma1cf793[m is it gonna work?
+[33m37fe320[m removing unnecessary step
+[33mec0f1b1[m idk
+[33m3888b75[m finding out where is deployment.zip again
+[33mde6fef3[m no need for deploy job
+[33mf0ee67d[m changing lambda deployment
+[33m9a0afa6[m terraform s3 creation flow adjusted
+[33m84cda97[m new step added
+[33mddd4acd[m trying to unlock the state
+[33m9b5b3de[m fixing terraform state
+[33mf13d86c[m checking if hash is getting calculated
+[33m3985daa[m checking where the zip exists
+[33m21284c4[m checking where the zip is being uploaded
+[33m2068989[m fixing paths v2
+[33m6499978[m fixing paths
+[33m3813b79[m viewing working dir
+[33m80fc1f8[m idk
+[33m9891b5f[m idk
+[33m875ff4a[m zip path changed
+[33mb129ec1[m download artifact added and permissions added to role
+[33mf73be9b[m terraform lambda deployment adjusted
+[33mb4ec039[m minor adjustment made
+[33mf250b0a[m pipeline adjusted
+[33mc221db5[m idk
+[33m4d0615d[m idk anymore
+[33m3d399f2[m verifying creating artifact
+[33me45663a[m uploading artifact
+[33mde59657[m build step adjusted
+[33m01c0bf7[m build step added
+[33m5aba5a5[m requirements.txt building
+[33m2fc28a4[m pipeline fix
+[33m1525831[m building artifact adjusted
+[33mc996733[m docker run command adjusted
+[33m4ebfd8b[m build step adjusted
+[33m471e66f[m tests not included in pipeline
+[33m192d424[m pipeline conditions fixed
+[33m6be4e06[m testing commit v2
+[33m2c3eb1a[m fixed pipeline
+[33me482739[m testing commit
+[33m10fd8d9[m testing oidc and aws role config
+[33m2f04991[m fixed for lambda deployment
+[33md666a99[m code adjusted for lambda
+[33m677c02c[m gitignore for terraform added
+[33m365cc91[m terraform setup added
+[33mb2b6c82[m Fix: Dynamic server list based on presence of environment variables
+[33m9037db9[m[33m ([m[1;31morigin/tests[m[33m)[m Added MFA tests
+[33m7c5ca23[m[33m ([m[1;31morigin/cors[m[33m)[m Removed unused CORS middleware
+[33m00b8dab[m Explicitly stated host and port for dev task.
+[33mab338fb[m Removed environment error on else condition
+[33m6d7403e[m Removed CORS as it's unneeded for now. Added Server URLs to environment file used for OpenAPI.
+[33m4117056[m[33m ([m[1;31morigin/mfa[m[33m)[m Added MFA and user verification
+[33mb9ee481[m[33m ([m[1;31morigin/restructure[m[33m)[m Added middleware tests
+[33mc711161[m Restructured files into folders
+[33maef75ff[m Simplified logging middleware
+[33m2e610c6[m[33m ([m[1;31morigin/logging[m[33m)[m Add request logging middleware for debugging in development environment
+[33m3552c36[m Merge branch 'main' of https://github.com/MountainGoatATU/GoatVaultServer
+[33m6626bb4[m Changed nonce length from 16 to 12
+[33m8b84456[m Added tests to increase coverage
+[33m2ccfee3[m Updated tests
+[33m22e0ac5[m Fixed user routes returning id instead of _id and other inconsistencies
+[33ma9a8f3b[m Version change
+[33m0830fc9[m Updated tests
+[33m66be36d[m No longer returning vault in /auth/verify, use GET /users/{user_id}
+[33mb0d0ceb[m Updated tests for new auth route and model
+[33m477f2a8[m Updated auth route to match new auth model
+[33m0ccae16[m Changed AuthInitResponse to not return VaultModel, it is now returned by AuthResponse once authenticated
+[33m2e58747[m Changed comment
+[33m1c52eab[m Removed redunded json encoder
+[33m7bb5721[m Added AuthRegisterResponse to only return minimal info upon registration
+[33m76b733b[m Changed UserResponse to not return mfa_secret
+[33m646e39d[m Changes bytes encoding to bytes is sent to MongoDB
+[33m2c6798b[m Removed redundant vault collection code
+[33m486227d[m Fixed tests to match auth model change
+[33m1a72177[m Rewrote example json and models to use valid base64, be in alphabetical order, and changed user_id to _id
+[33m5550995[m No lint for unused request param
+[33med02ce7[m Changed deprecated status code
+[33m9104b13[m Added sanitation to validation errors to prevent crashes
+[33md851ece[m Add Codecov badge to README
+[33mbc829ed[m[33m ([m[1;31morigin/workflow[m[33m)[m Testing Codecov integration
+[33m3f2dd4b[m[33m ([m[1;31morigin/auth[m[33m)[m Update README.md
+[33m781ddbc[m[33m ([m[1;31morigin/authverifier[m

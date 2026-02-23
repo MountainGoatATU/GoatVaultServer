@@ -33,6 +33,8 @@ from app.utils import (
     CredentialsException,
     InvalidMfaCodeException,
     UserCreationFailedException,
+    InvalidRefreshTokenException,
+    EmailNotVerifiedException,
     create_jwt_token,
     create_refresh_token,
     ensure_bytes,
@@ -43,8 +45,8 @@ from app.utils import (
     validate_email_available,
     verify_mfa,
     verify_refresh_token,
+    create_email_verification_token,
 )
-from app.utils.exceptions import InvalidRefreshTokenException
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +76,10 @@ async def register(
         auth_verifier=payload.auth_verifier,
         vault_salt=payload.vault_salt,
         vault=payload.vault,
+        email_verified=False,
     )
+
+    verification_token = create_email_verification_token(new_user.id)
 
     new_user_dict = new_user.model_dump(by_alias=True, mode="python")
 
@@ -88,8 +93,52 @@ async def register(
         logger.error(f"Failed to create user: {payload.email}")
         raise UserCreationFailedException
 
+    from app.utils.email import send_verification
+    try:
+        await send_verification(payload.email, verification_token)
+        logger.info(f"Verification email sent to: {payload.email}")
+    except Exception as e:
+        logger.error(f"Failed to send verification email: {e}")
     logger.info(f"User registered successfully: {payload.email}")
     return AuthRegisterResponse(**created_user_obj)
+
+@auth_router.get(
+    "/email/{token}"
+    , response_description="Verify email", 
+    status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
+async def email(
+    request: Request,
+    token: str, 
+    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]):
+    """Verify email using JWT token."""
+    from app.utils.auth import jwt, JWT_SECRET, JWT_ALGORITHM, ISSUER
+    try:
+        payload = jwt.decode(
+            token, 
+            JWT_SECRET, 
+            algorithms=[JWT_ALGORITHM], 
+            options={"require": ["exp", "iat", "iss"]})
+    except Exception:
+        return {"success": False, "message": "Invalid or expired verification token."}
+
+    if payload.get("iss") != ISSUER:
+        return {"success": False, "message": "Invalid token issuer."}
+    
+    if payload.get("purpose") != "email_verification":
+        return {"success": False, "message": "Invalid token purpose."}
+
+    user_id = payload.get("sub")
+    user = await user_collection.find_one({"_id": uuid.UUID(user_id)})
+    if not user:
+        return {"success": False, "message": "User not found."}
+    if user.get("emailVerified"):
+        return {"success": True, "message": "Email already verified."}
+
+    await user_collection.update_one(
+        {"_id": user["_id"]}, 
+        {"$set": {"emailVerified": True, "emailVerificationToken": None}})
+    return {"success": True, "message": "Email successfully verified."}
 
 
 @auth_router.post(
@@ -171,6 +220,11 @@ async def verify(
         logger.warning(f"User not found during verification: {payload.id}")
         raise CredentialsException
 
+    # Check if email is verified
+    if not user.get("emailVerified", False):
+        logger.warning(f"User {payload.id} tried to login without verifying email")
+        raise EmailNotVerifiedException
+        
     # Find the most recent valid nonce for this user
     stored_nonce_doc: NonceModel | None = await nonce_collection.find_one(
         {"userId": payload.id}, sort=[("createdAtUtc", -1)]

@@ -299,6 +299,18 @@ async def verify_token(
     logger.info(f"Token {token} verified")
     return token_payload
 
+def create_email_verification_token(user_id: uuid.UUID) -> str:
+    """Create a JWT token for email verification with 1h expiry."""
+    now = datetime.now(UTC)
+    expire = now + timedelta(hours=1)
+    payload = {
+        "sub": str(user_id),
+        "iss": ISSUER,
+        "iat": now,
+        "exp": expire,
+        "purpose": "email_verification",
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
 """
 MFA & User Access Checks

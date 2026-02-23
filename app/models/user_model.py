@@ -21,6 +21,8 @@ class UserModel(Base64BytesModel):
 
     shamir_enabled: bool = Field(default=False)
 
+    email_verified: bool = Field(default=False)
+
     vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: VaultModel = Field(...)
 

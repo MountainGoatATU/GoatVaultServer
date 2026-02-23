@@ -1,3 +1,14 @@
+<<<<<<< email-verification
+fastapi[standard]>=0.119.0
+mangum>=0.20.0
+motor>=3.7.1
+pymongo>=4.15.3
+pyjwt>=2.10.1
+pyotp>=2.9.0
+python-dotenv>=1.1.1
+slowapi>=0.1.9
+fastapi-mail
+=======
 aiosmtplib==5.1.0
 annotated-doc==0.0.4
 annotated-types==0.7.0
@@ -69,3 +80,4 @@ uvicorn==0.41.0
 watchfiles==1.1.1
 websockets==16.0
 wrapt==2.1.1
+>>>>>>> main
