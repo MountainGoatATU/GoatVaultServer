@@ -8,6 +8,7 @@ from typing import Annotated
 
 from bson import Binary
 from fastapi import APIRouter, Body, Depends, Request, status
+from fastapi.responses import HTMLResponse
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.results import InsertOneResult
 from slowapi import Limiter
@@ -119,27 +120,48 @@ async def email(
             JWT_SECRET, 
             algorithms=[JWT_ALGORITHM], 
             options={"require": ["exp", "iat", "iss"]})
+        
     except Exception:
-        return {"success": False, "message": "Invalid or expired verification token."}
-
+        logger.warning(f"Failed to decode email verification token: {token}")
+        return render_email_verification_page("Invalid or expired token ❌", 400)
+    
     if payload.get("iss") != ISSUER:
-        return {"success": False, "message": "Invalid token issuer."}
+        return render_email_verification_page("Invalid token issuer ❌", 400)
     
     if payload.get("purpose") != "email_verification":
-        return {"success": False, "message": "Invalid token purpose."}
+        return render_email_verification_page("Invalid token purpose ❌", 400)
 
     user_id = payload.get("sub")
     user = await user_collection.find_one({"_id": uuid.UUID(user_id)})
+
     if not user:
-        return {"success": False, "message": "User not found."}
+        return render_email_verification_page("User not found ❌", 400)
+    
     if user.get("emailVerified"):
-        return {"success": True, "message": "Email already verified."}
+        return render_email_verification_page("Email already verified ❌", 400)
 
     await user_collection.update_one(
         {"_id": user["_id"]}, 
         {"$set": {"emailVerified": True, "emailVerificationToken": None}})
-    return {"success": True, "message": "Email successfully verified."}
+    
+    return HTMLResponse("""
+        <html>
+            <body style="font-family: Arial; text-align:center; margin-top:60px;">
+                <h1>Email verified successfully 🎉</h1>
+                <p>You can now return to the GoatVault desktop app and log in.</p>
+                <p>You may safely close this window.</p>
+            </body>
+        </html>
+    """, status_code=200)
 
+def render_email_verification_page(message: str, status_code: int, ) -> HTMLResponse:
+    return HTMLResponse(f"""
+        <html>
+            <body style="font-family: Arial; text-align:center; margin-top:60px;">
+                <h1>{message}</h1>
+            </body>
+        </html>
+    """, status_code=status_code)
 
 @auth_router.post(
     "/init",

@@ -23,12 +23,9 @@ async def send_verification(to_email: str, token: str):
         body=f"""
         <html>
             <body>
-                <h2>Welcome to <b>GoatVault</b>!</h2>
-                <p>Thank you for registering. Please verify your email address by clicking the link below:</p>
-                <p><a href='{verification_link}'>Verify Email</a></p>
-                <br>
+                <p>Welcome to GoatVault!</p>
+                <p>Thank you for registering. Please verify your email address by clicking the link: <a href='{verification_link}'>Verify Email</a></p> 
                 <p>If you did not register, you can ignore this email.</p>
-                <br>
                 <p>Best regards,<br>GoatVault Team</p>
             </body>
         </html>
