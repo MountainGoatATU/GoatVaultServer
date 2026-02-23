@@ -219,6 +219,11 @@ async def verify(
         logger.warning(f"User not found during verification: {payload.id}")
         raise CredentialsException
 
+    # Check if email is verified
+    if not user.get("emailVerified", False):
+        logger.warning(f"User {payload.id} tried to login without verifying email")
+        raise CredentialsException
+
     # Find the most recent valid nonce for this user
     stored_nonce_doc: NonceModel | None = await nonce_collection.find_one(
         {"userId": payload.id}, sort=[("createdAtUtc", -1)]
