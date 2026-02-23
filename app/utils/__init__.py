@@ -24,6 +24,7 @@ from app.utils.exceptions import (
     UserAlreadyExistsException,
     UserCreationFailedException,
     UserUpdateFailedException,
+    EmailNotVerifiedException,
 )
 from app.utils.validators import (
     sanitize_validation_error,
@@ -48,6 +49,7 @@ __all__: list[str] = [
     "create_email_verification_token",
     "EmailAlreadyInUseException",
     "CredentialsException",
+    "EmailNotVerifiedException",
     "InvalidMfaCodeException",
     "NoFieldsToUpdateException",
     "UserAlreadyExistsException",

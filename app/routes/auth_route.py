@@ -33,6 +33,8 @@ from app.utils import (
     CredentialsException,
     InvalidMfaCodeException,
     UserCreationFailedException,
+    InvalidRefreshTokenException,
+    EmailNotVerifiedException,
     create_jwt_token,
     create_refresh_token,
     ensure_bytes,
@@ -45,7 +47,6 @@ from app.utils import (
     verify_refresh_token,
     create_email_verification_token,
 )
-from app.utils.exceptions import InvalidRefreshTokenException
 
 logger = logging.getLogger(__name__)
 
@@ -222,8 +223,8 @@ async def verify(
     # Check if email is verified
     if not user.get("emailVerified", False):
         logger.warning(f"User {payload.id} tried to login without verifying email")
-        raise CredentialsException
-
+        raise EmailNotVerifiedException
+        
     # Find the most recent valid nonce for this user
     stored_nonce_doc: NonceModel | None = await nonce_collection.find_one(
         {"userId": payload.id}, sort=[("createdAtUtc", -1)]

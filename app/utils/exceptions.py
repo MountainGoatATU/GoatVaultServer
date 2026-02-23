@@ -102,3 +102,12 @@ class InvalidMfaCodeException(HTTPException):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid MFA code",
         )
+
+class EmailNotVerifiedException(HTTPException):
+    """Raised when a user tries to log in without verifying their email."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email address not verified. Please verify your email before logging in.",
+        )
