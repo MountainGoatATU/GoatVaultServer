@@ -11,6 +11,7 @@ from app.utils.auth import (
     verify_refresh_token,
     verify_token,
     verify_user_access,
+    create_email_verification_token,
 )
 from app.utils.exceptions import (
     CredentialsException,
@@ -44,6 +45,7 @@ __all__: list[str] = [
     "get_now",
     "ensure_bytes",
     "verify_user_access",
+    "create_email_verification_token",
     "EmailAlreadyInUseException",
     "CredentialsException",
     "InvalidMfaCodeException",

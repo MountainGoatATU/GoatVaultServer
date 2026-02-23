@@ -43,6 +43,7 @@ from app.utils import (
     validate_email_available,
     verify_mfa,
     verify_refresh_token,
+    create_email_verification_token,
 )
 from app.utils.exceptions import InvalidRefreshTokenException
 
@@ -77,8 +78,7 @@ async def register(
         email_verified=False,
     )
 
-    verification_token = create_jwt_token(new_user.id)
-    new_user.email_verification_token = verification_token
+    verification_token = create_email_verification_token(new_user.id)
 
     new_user_dict = new_user.model_dump(by_alias=True, mode="python")
 
@@ -105,20 +105,27 @@ async def register(
     "/verify-email/{token}"
     , response_description="Verify email", 
     status_code=status.HTTP_200_OK)
-
+@limiter.limit("5/minute")
 async def verify_email(
+    request: Request,
     token: str, 
-    user_collection: Annotated[AsyncIOMotorCollection, 
-    Depends(get_user_collection)]):
-    
+    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]):
+    """Verify email using JWT token."""
     from app.utils.auth import jwt, JWT_SECRET, JWT_ALGORITHM, ISSUER
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options={"require": ["exp", "iat", "iss"]})
+        payload = jwt.decode(
+            token, 
+            JWT_SECRET, 
+            algorithms=[JWT_ALGORITHM], 
+            options={"require": ["exp", "iat", "iss"]})
     except Exception:
         return {"success": False, "message": "Invalid or expired verification token."}
 
     if payload.get("iss") != ISSUER:
         return {"success": False, "message": "Invalid token issuer."}
+    
+    if payload.get("purpose") != "email_verification":
+        return {"success": False, "message": "Invalid token purpose."}
 
     user_id = payload.get("sub")
     user = await user_collection.find_one({"_id": uuid.UUID(user_id)})
@@ -126,7 +133,10 @@ async def verify_email(
         return {"success": False, "message": "User not found."}
     if user.get("emailVerified"):
         return {"success": True, "message": "Email already verified."}
-    await user_collection.update_one({"_id": user["_id"]}, {"$set": {"emailVerified": True, "emailVerificationToken": None}})
+
+    await user_collection.update_one(
+        {"_id": user["_id"]}, 
+        {"$set": {"emailVerified": True, "emailVerificationToken": None}})
     return {"success": True, "message": "Email successfully verified."}
 
 
