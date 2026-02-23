@@ -93,9 +93,9 @@ async def register(
         logger.error(f"Failed to create user: {payload.email}")
         raise UserCreationFailedException
 
-    from app.utils.email_sender import send_verification_email
+    from app.utils.email import send_verification
     try:
-        await send_verification_email(payload.email, verification_token)
+        await send_verification(payload.email, verification_token)
         logger.info(f"Verification email sent to: {payload.email}")
     except Exception as e:
         logger.error(f"Failed to send verification email: {e}")
@@ -103,11 +103,11 @@ async def register(
     return AuthRegisterResponse(**created_user_obj)
 
 @auth_router.get(
-    "/verify-email/{token}"
+    "/email/{token}"
     , response_description="Verify email", 
     status_code=status.HTTP_200_OK)
 @limiter.limit("5/minute")
-async def verify_email(
+async def email(
     request: Request,
     token: str, 
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]):

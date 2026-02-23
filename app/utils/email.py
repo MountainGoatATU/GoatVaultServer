@@ -15,10 +15,10 @@ conf = ConnectionConfig(
     VALIDATE_CERTS=True
 )
 
-async def send_verification_email(to_email: str, token: str):
-    verification_link = f"{BASE_URL}/v1/auth/verify-email/{token}"
+async def send_verification(to_email: str, token: str):
+    verification_link = f"{BASE_URL}/v1/auth/email/{token}"
     message = MessageSchema(
-        subject="GoatVault – Verify your email",
+        subject="GoatVault - Verify your email",
         recipients=[to_email],
         body=f"""
         <html>
