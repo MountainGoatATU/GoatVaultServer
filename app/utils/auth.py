@@ -1,12 +1,10 @@
 import base64
 import hashlib
-import hmac
 import logging
 import os
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
-from hashlib import sha256
 from typing import Annotated
 from uuid import UUID
 
@@ -21,7 +19,7 @@ from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult
 
 from app.models import RefreshRotationResult, RefreshTokenModel, TokenPayload
-from app.utils.exceptions import CredentialsException, ForbiddenException, InvalidJWTException
+from app.utils.exceptions import ForbiddenException, InvalidJWTException
 
 """
 Settings
