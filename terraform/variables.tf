@@ -21,19 +21,34 @@ variable "jwt_algorithm" {
   description = "Algorithm used for JWT signing"
 }
 
-variable "email_secret" {
+variable "mail_secret" {
   type        = string
   description = "Secret key for email signing"
 }
 
-variable "email_username" {
+variable "mail_username" {
   type        = string
   description = "Username for email service"
 }
 
-variable "email_password" {
+variable "mail_password" {
   type        = string
   description = "Password for email service"
+}
+
+variable "mail_from" {
+  type        = string
+  description = "Email address to send from"
+}
+
+variable "mail_server" {
+  type        = string
+  description = "Email server address"
+}
+
+variable "mail_port" {
+  type        = string
+  description = "Email server port"
 }
 
 variable "issuer" {

@@ -1,4 +1,4 @@
-name: UV
+name: Build & Test - UV
 
 on:
   push:
@@ -40,7 +40,7 @@ jobs:
         env:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           ISSUER: ${{ secrets.ISSUER }}
-          EMAIL_SECRET: ${{ secrets.EMAIL_SECRET }}
+          MAIL_SECRET: ${{ secrets.MAIL_SECRET }}
         run: uv run task test
 
       - name: Upload coverage reports

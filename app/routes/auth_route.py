@@ -112,11 +112,11 @@ async def email(
     token: str,
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]):
     """Verify email using JWT token."""
-    from app.utils.auth import EMAIL_SECRET, ISSUER, JWT_ALGORITHM, jwt
+    from app.utils.auth import MAIL_SECRET, ISSUER, JWT_ALGORITHM, jwt
     try:
         payload = jwt.decode(
             token,
-            EMAIL_SECRET,
+            MAIL_SECRET,
             algorithms=[JWT_ALGORITHM],
             options={"require": ["exp", "iat", "iss"]})
     except Exception:
