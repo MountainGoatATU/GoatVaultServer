@@ -21,6 +21,21 @@ variable "jwt_algorithm" {
   description = "Algorithm used for JWT signing"
 }
 
+variable "email_secret" {
+  type        = string
+  description = "Secret key for email signing"
+}
+
+variable "email_username" {
+  type        = string
+  description = "Username for email service"
+}
+
+variable "email_password" {
+  type        = string
+  description = "Password for email service"
+}
+
 variable "issuer" {
   type        = string
   description = "Issuer claim for JWT"

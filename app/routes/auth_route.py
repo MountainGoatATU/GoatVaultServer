@@ -104,27 +104,27 @@ async def register(
 
 @auth_router.get(
     "/email/{token}"
-    , response_description="Verify email", 
+    , response_description="Verify email",
     status_code=status.HTTP_200_OK)
 @limiter.limit("5/minute")
 async def email(
     request: Request,
-    token: str, 
+    token: str,
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]):
     """Verify email using JWT token."""
-    from app.utils.auth import jwt, JWT_SECRET, JWT_ALGORITHM, ISSUER
+    from app.utils.auth import jwt, EMAIL_SECRET, JWT_ALGORITHM, ISSUER
     try:
         payload = jwt.decode(
-            token, 
-            JWT_SECRET, 
-            algorithms=[JWT_ALGORITHM], 
+            token,
+            EMAIL_SECRET,
+            algorithms=[JWT_ALGORITHM],
             options={"require": ["exp", "iat", "iss"]})
     except Exception:
         return {"success": False, "message": "Invalid or expired verification token."}
 
     if payload.get("iss") != ISSUER:
         return {"success": False, "message": "Invalid token issuer."}
-    
+
     if payload.get("purpose") != "email_verification":
         return {"success": False, "message": "Invalid token purpose."}
 
@@ -136,7 +136,7 @@ async def email(
         return {"success": True, "message": "Email already verified."}
 
     await user_collection.update_one(
-        {"_id": user["_id"]}, 
+        {"_id": user["_id"]},
         {"$set": {"emailVerified": True, "emailVerificationToken": None}})
     return {"success": True, "message": "Email successfully verified."}
 
@@ -224,7 +224,7 @@ async def verify(
     if not user.get("emailVerified", False):
         logger.warning(f"User {payload.id} tried to login without verifying email")
         raise EmailNotVerifiedException
-        
+
     # Find the most recent valid nonce for this user
     stored_nonce_doc: NonceModel | None = await nonce_collection.find_one(
         {"userId": payload.id}, sort=[("createdAtUtc", -1)]

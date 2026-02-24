@@ -40,6 +40,12 @@ if not JWT_SECRET:
 if len(JWT_SECRET) < 32:
     raise ValueError("JWT_SECRET must be at least 32 characters")
 
+EMAIL_SECRET: str | None = os.getenv("EMAIL_SECRET")
+if not EMAIL_SECRET:
+    raise ValueError("EMAIL_SECRET environment variable is required")
+if len(EMAIL_SECRET) < 32:
+    raise ValueError("EMAIL_SECRET must be at least 32 characters")
+
 ISSUER: str | None = os.getenv("ISSUER")
 if not ISSUER:
     raise ValueError("ISSUER environment variable is required.")
@@ -310,7 +316,7 @@ def create_email_verification_token(user_id: uuid.UUID) -> str:
         "exp": expire,
         "purpose": "email_verification",
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, EMAIL_SECRET, algorithm=JWT_ALGORITHM)
 
 """
 MFA & User Access Checks
