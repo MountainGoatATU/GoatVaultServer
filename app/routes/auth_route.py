@@ -108,7 +108,7 @@ async def register(
     status_code=status.HTTP_200_OK)
 @limiter.limit("5/minute")
 async def email(
-    request: Request,
+    request: Request,  # noqa: ARG001
     token: str,
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]):
     """Verify email using JWT token."""
