@@ -6,7 +6,6 @@ BASE_URL = os.environ.get("LOCAL_SERVER_URL")
 conf = ConnectionConfig(
     MAIL_USERNAME=os.environ.get("EMAIL_USERNAME"),
     MAIL_PASSWORD=os.environ.get("EMAIL_PASSWORD"),
-    MAIL_FROM="os.environ.get("EMAIL_USERNAME")",
     MAIL_PORT=587,
     MAIL_SERVER="smtp.gmail.com",
     MAIL_STARTTLS=True,
