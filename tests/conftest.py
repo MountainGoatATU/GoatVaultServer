@@ -118,6 +118,9 @@ def validate_env() -> None:
         "ISSUER",
         "ACCESS_TOKEN_EXP_MINUTES",
         "REFRESH_TOKEN_EXP_DAYS",
+        "EMAIL_SECRET",
+        "EMAIL_USERNAME",
+        "EMAIL_PASSWORD",
     ]
 
     for var in required_vars:

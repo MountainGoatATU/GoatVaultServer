@@ -31,6 +31,7 @@ async def test_register_success(
         "mfaEnabled": False,
         "mfaSecret": None,
         "shamirEnabled": False,
+        "emailVerified": False,
         "vaultSalt": base64.b64decode(sample_register_payload["vaultSalt"]),
         "vault": mock_vault_object,
         "createdAtUtc": datetime.now(UTC),
