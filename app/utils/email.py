@@ -6,7 +6,7 @@ BASE_URL = os.environ.get("LOCAL_SERVER_URL")
 conf = ConnectionConfig(
     MAIL_USERNAME=os.environ.get("EMAIL_USERNAME"),
     MAIL_PASSWORD=os.environ.get("EMAIL_PASSWORD"),
-    MAIL_FROM="no-reply@mountaingoat.dev",
+    MAIL_FROM="os.environ.get("EMAIL_USERNAME")",
     MAIL_PORT=587,
     MAIL_SERVER="smtp.gmail.com",
     MAIL_STARTTLS=True,
@@ -33,7 +33,7 @@ async def send_verification(to_email: str, token: str):
             </body>
         </html>
         """,
-        subtype="html",
+        subtype="html"
     )
     fm = FastMail(conf)
     await fm.send_message(message)
