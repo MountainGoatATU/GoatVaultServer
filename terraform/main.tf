@@ -149,6 +149,9 @@ resource "aws_lambda_function" "api" {
       DATABASE_NAME   = var.database_name
       JWT_SECRET      = var.jwt_secret
       JWT_ALGORITHM   = var.jwt_algorithm
+      EMAIL_SECRET    = var.email_secret
+      EMAIL_USERNAME  = var.email_username
+      EMAIL_PASSWORD  = var.email_password
       ISSUER          = var.issuer
       ACCESS_TOKEN_EXP_MINUTES = var.access_token_exp_minutes
       REFRESH_TOKEN_EXP_DAYS = var.refresh_token_exp_days
