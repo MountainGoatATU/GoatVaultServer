@@ -31,10 +31,11 @@ from app.models import (
 )
 from app.utils import (
     CredentialsException,
-    InvalidMfaCodeException,
-    UserCreationFailedException,
-    InvalidRefreshTokenException,
     EmailNotVerifiedException,
+    InvalidMfaCodeException,
+    InvalidRefreshTokenException,
+    UserCreationFailedException,
+    create_email_verification_token,
     create_jwt_token,
     create_refresh_token,
     ensure_bytes,
@@ -45,7 +46,6 @@ from app.utils import (
     validate_email_available,
     verify_mfa,
     verify_refresh_token,
-    create_email_verification_token,
 )
 
 logger = logging.getLogger(__name__)
@@ -112,7 +112,7 @@ async def email(
     token: str,
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]):
     """Verify email using JWT token."""
-    from app.utils.auth import jwt, EMAIL_SECRET, JWT_ALGORITHM, ISSUER
+    from app.utils.auth import EMAIL_SECRET, ISSUER, JWT_ALGORITHM, jwt
     try:
         payload = jwt.decode(
             token,

@@ -1,4 +1,5 @@
 from app.utils.auth import (
+    create_email_verification_token,
     create_jwt_token,
     create_refresh_token,
     ensure_bytes,
@@ -11,11 +12,11 @@ from app.utils.auth import (
     verify_refresh_token,
     verify_token,
     verify_user_access,
-    create_email_verification_token,
 )
 from app.utils.exceptions import (
     CredentialsException,
     EmailAlreadyInUseException,
+    EmailNotVerifiedException,
     ForbiddenException,
     InvalidJWTException,
     InvalidMfaCodeException,
@@ -24,7 +25,6 @@ from app.utils.exceptions import (
     UserAlreadyExistsException,
     UserCreationFailedException,
     UserUpdateFailedException,
-    EmailNotVerifiedException,
 )
 from app.utils.validators import (
     sanitize_validation_error,

@@ -1,5 +1,6 @@
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 import os
+
+from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
 
 BASE_URL = os.environ.get("LOCAL_SERVER_URL")
 
