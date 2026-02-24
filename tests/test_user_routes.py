@@ -90,6 +90,7 @@ async def test_update_user_success(async_client, sample_user_id, mock_vault_obje
         "mfaEnabled": False,
         "mfaSecret": None,
         "shamirEnabled": False,
+        "emailVerified": True,
         "vaultSalt": b"vault_salt_12345",
         "vault": mock_vault_object,
         "createdAtUtc": datetime.now(UTC),

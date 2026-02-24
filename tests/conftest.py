@@ -123,7 +123,7 @@ def validate_env() -> None:
         "MAIL_PASSWORD",
         "MAIL_FROM",
         "MAIL_SERVER",
-        "MAIL_PORT"
+        "MAIL_PORT",
     ]
 
     for var in required_vars:
@@ -202,6 +202,7 @@ def mock_user(sample_user_id: UUID, mock_vault_object: dict) -> dict:
         "mfaEnabled": False,
         "mfaSecret": None,
         "shamirEnabled": False,
+        "emailVerified": True,
         "vaultSalt": TEST_VAULT_SALT,
         "vault": mock_vault_object,
         "createdAtUtc": datetime.now(UTC),
