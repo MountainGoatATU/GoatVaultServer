@@ -139,9 +139,7 @@ async def email(
     if user.get("emailVerified"):
         return {"success": True, "message": "Email already verified."}
 
-    await user_collection.update_one(
-        {"_id": user["_id"]}, {"$set": {"emailVerified": True, "emailVerificationToken": None}}
-    )
+    await user_collection.update_one({"_id": user["_id"]}, {"$set": {"emailVerified": True}})
     return {"success": True, "message": "Email successfully verified."}
 
 

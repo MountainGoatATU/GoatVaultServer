@@ -20,7 +20,6 @@ class UserModel(Base64BytesModel):
     mfa_secret: str | None = Field(default=None)
 
     shamir_enabled: bool = Field(default=False)
-
     email_verified: bool = Field(default=False)
 
     vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
@@ -112,6 +111,7 @@ class UserResponse(Base64BytesModel):
     mfa_secret: str | None
 
     shamir_enabled: bool
+    email_verified: bool
 
     vault_salt: bytes
     vault: VaultModel
@@ -130,6 +130,7 @@ class UserResponse(Base64BytesModel):
                 "mfaEnabled": False,
                 "mfaSecret": "cmFuZG9tc2FsdGJ5dGVz",
                 "shamirEnabled": False,
+                "emailVerified": True,
                 "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
                 "vault": {
                     "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
