@@ -141,6 +141,7 @@ jobs:
           TF_VAR_issuer: ${{ secrets.ISSUER }}
           TF_VAR_access_token_exp_minutes: ${{ secrets.ACCESS_TOKEN_EXP_MINUTES }}
           TF_VAR_refresh_token_exp_days: ${{ secrets.REFRESH_TOKEN_EXP_DAYS }}
+          TF_VAR_server_url: ${{ secrets.SERVER_URL }}
         run: |
           # Show current working directory
           echo "Current working directory:"

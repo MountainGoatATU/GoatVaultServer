@@ -66,6 +66,11 @@ variable "refresh_token_exp_days" {
   description = "Token expiration time in days"
 }
 
+variable "server_url" {
+  type        = string
+  description = "Server URL"
+}
+
 # ============================
 # TERRAFOAM VARIABLES
 # ============================

@@ -79,7 +79,7 @@ async def register(
         email_verified=False,
     )
 
-    verification_token = create_email_verification_token(new_user.id)
+    verification_token: str = create_email_verification_token(new_user.id)
 
     new_user_dict = new_user.model_dump(by_alias=True, mode="python")
 
@@ -94,6 +94,7 @@ async def register(
         raise UserCreationFailedException
 
     from app.utils.email import send_verification
+
     try:
         await send_verification(payload.email, verification_token)
         logger.info(f"Verification email sent to: {payload.email}")
@@ -102,23 +103,26 @@ async def register(
     logger.info(f"User registered successfully: {payload.email}")
     return AuthRegisterResponse(**created_user_obj)
 
+
 @auth_router.get(
-    "/email/{token}"
-    , response_description="Verify email",
-    status_code=status.HTTP_200_OK)
+    "/email/{token}", response_description="Verify email", status_code=status.HTTP_200_OK
+)
 @limiter.limit("5/minute")
 async def email(
     request: Request,  # noqa: ARG001
     token: str,
-    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)]):
+    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
+):
     """Verify email using JWT token."""
-    from app.utils.auth import MAIL_SECRET, ISSUER, JWT_ALGORITHM, jwt
+    from app.utils.auth import ISSUER, JWT_ALGORITHM, MAIL_SECRET, jwt
+
     try:
         payload = jwt.decode(
             token,
             MAIL_SECRET,
             algorithms=[JWT_ALGORITHM],
-            options={"require": ["exp", "iat", "iss"]})
+            options={"require": ["exp", "iat", "iss"]},
+        )
     except Exception:
         return {"success": False, "message": "Invalid or expired verification token."}
 
@@ -136,8 +140,8 @@ async def email(
         return {"success": True, "message": "Email already verified."}
 
     await user_collection.update_one(
-        {"_id": user["_id"]},
-        {"$set": {"emailVerified": True, "emailVerificationToken": None}})
+        {"_id": user["_id"]}, {"$set": {"emailVerified": True, "emailVerificationToken": None}}
+    )
     return {"success": True, "message": "Email successfully verified."}
 
 

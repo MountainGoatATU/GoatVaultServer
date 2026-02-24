@@ -158,6 +158,7 @@ resource "aws_lambda_function" "api" {
       ISSUER          = var.issuer
       ACCESS_TOKEN_EXP_MINUTES = var.access_token_exp_minutes
       REFRESH_TOKEN_EXP_DAYS = var.refresh_token_exp_days
+      SERVER_URL      = var.server_url
     }
   }
 
