@@ -5,7 +5,7 @@ import pytest
 from httpx import AsyncClient
 from mangum import Mangum
 
-from app.lambda_handler import lambda_handler
+from app.lambda_handler import handler
 from app.main import app
 
 ########################################################################
@@ -66,4 +66,4 @@ async def test_production_environment_config() -> None:
 
 def test_handler_instance():
     """Test that the handler is an instance of Mangum."""
-    assert isinstance(lambda_handler, Mangum), "Handler should be an instance of Mangum"
+    assert isinstance(handler, Mangum), "Handler should be an instance of Mangum"
