@@ -4,11 +4,12 @@ from typing import ClassVar
 
 from pydantic import ConfigDict, EmailStr, Field
 
-from app.models.base import BASE_CONFIG, Base64BytesModel
-from app.models.vault_model import VaultModel
+from app.models.base_model import Base64BytesModel
+from app.models.config import BASE_CONFIG
+from app.models.vault_model import Vault
 
 
-class UserModel(Base64BytesModel):
+class User(Base64BytesModel):
     """Container for a single user record."""
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, alias="_id")
@@ -23,41 +24,13 @@ class UserModel(Base64BytesModel):
     email_verified: bool = Field(default=False)
 
     vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
-    vault: VaultModel = Field(...)
+    vault: Vault = Field(...)
 
     created_at_utc: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at_utc: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         **BASE_CONFIG,
-    )
-
-
-class UserCreateRequest(Base64BytesModel):
-    """Request model for creating a new user."""
-
-    email: EmailStr = Field(..., max_length=254)
-    auth_salt: bytes = Field(..., min_length=16, max_length=64)
-    auth_verifier: bytes = Field(..., min_length=16, max_length=128)
-
-    vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
-    vault: VaultModel = Field(...)
-
-    model_config: ClassVar[ConfigDict] = ConfigDict(
-        **BASE_CONFIG,
-        json_schema_extra={
-            "example": {
-                "authSalt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
-                "authVerifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
-                "email": "user@example.com",
-                "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
-                "vault": {
-                    "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
-                    "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
-                    "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
-                },
-            },
-        },
     )
 
 
@@ -76,7 +49,7 @@ class UserUpdateRequest(Base64BytesModel):
     shamir_enabled: bool | None = None
 
     vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
-    vault: VaultModel | None = None
+    vault: Vault | None = None
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         **BASE_CONFIG,
@@ -114,7 +87,7 @@ class UserResponse(Base64BytesModel):
     email_verified: bool
 
     vault_salt: bytes
-    vault: VaultModel
+    vault: Vault
 
     created_at_utc: datetime
     updated_at_utc: datetime

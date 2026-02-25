@@ -10,7 +10,7 @@ from fastapi import status
 
 from app.database import get_nonce_collection, get_user_collection
 from app.main import app
-from app.utils.validators import validate_email_available
+from app.utils import validate_email_available
 
 ########################################################################
 # Register Tests

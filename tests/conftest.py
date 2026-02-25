@@ -13,7 +13,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.main import app
 from app.middleware import RequestLoggingMiddleware
-from app.routes.auth_route import limiter
+from app.routes import limiter
 
 ########################################################################
 # Constants
@@ -269,7 +269,7 @@ def token(request, sample_user_id):
         payload["iss"] = "wrong-issuer"
         payload["exp"] = datetime.now(UTC) + timedelta(hours=1)
 
-    return jwt.encode(payload, os.getenv("JWT_SECRET"), algorithm=os.getenv("JWT_ALGORITHM"))
+    return jwt.encode(payload, os.getenv("JWT_SECRET"), algorithm=os.getenv("JWT_ALGORITHM"))  # ty: ignore[invalid-argument-type]
 
 
 @pytest.fixture

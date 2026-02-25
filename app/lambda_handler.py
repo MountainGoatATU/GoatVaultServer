@@ -1,7 +1,5 @@
 from mangum import Mangum
 
-from app.main import app  # FastAPI instance
+from app.main import app
 
-handler = Mangum(app)
-
-# Testing
+lambda_handler = Mangum(app)

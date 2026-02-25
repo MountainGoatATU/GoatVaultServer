@@ -4,6 +4,10 @@ import os
 from fastapi import FastAPI, Request
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 
+########################################################################
+# Init / Close Database
+########################################################################
+
 
 def init_db(app: FastAPI):
     """
@@ -25,7 +29,11 @@ def close_db(app: FastAPI):
         client.close()
 
 
-# Dependency to get user collection
+########################################################################
+# Get Collections From Database
+########################################################################
+
+
 def get_user_collection(request: Request) -> AsyncIOMotorCollection:
     """Dependency that returns the users collection from app state database."""
     return request.app.state.db["users"]

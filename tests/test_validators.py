@@ -3,9 +3,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from app.exceptions import EmailAlreadyInUseException, UserAlreadyExistsException
 from app.utils import (
-    EmailAlreadyInUseException,
-    UserAlreadyExistsException,
     sanitize_validation_error,
     validate_email_available,
     validate_email_available_for_user,

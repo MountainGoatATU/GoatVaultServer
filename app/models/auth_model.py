@@ -5,28 +5,35 @@ from uuid import UUID
 
 from pydantic import ConfigDict, EmailStr, Field
 
-from app.models.base import BASE_CONFIG, Base64BytesModel
+from app.models.base_model import Base64BytesModel
+from app.models.config import BASE_CONFIG
+from app.models.vault_model import Vault
 
 
-class NonceModel(Base64BytesModel):
-    """Model for nonce."""
+class AuthRegisterRequest(Base64BytesModel):
+    """Request model for creating a new user."""
 
-    id: UUID = Field(default_factory=uuid.uuid4, alias="_id")
-    user_id: UUID
-    nonce: bytes = Field(..., min_length=32, max_length=32)
-    created_at_utc: datetime = Field(..., description="Creation time (UTC)")
-    expires_at_utc: datetime = Field(..., description="Expiration time (UTC)")
+    email: EmailStr = Field(..., max_length=254)
+    auth_salt: bytes = Field(..., min_length=16, max_length=64)
+    auth_verifier: bytes = Field(..., min_length=16, max_length=128)
+
+    vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
+    vault: Vault = Field(...)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         **BASE_CONFIG,
         json_schema_extra={
             "example": {
-                "_id": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
-                "userId": "af7d341e-85be-4e54-a8c6-e5fd685c4742",
-                "nonce": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
-                "createdAtUtc": "2024-01-15T10:30:00Z",
-                "expiresAtUtc": "2024-01-15T11:30:00Z",
-            }
+                "authSalt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
+                "authVerifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
+                "email": "user@example.com",
+                "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
+                "vault": {
+                    "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
+                },
+            },
         },
     )
 
@@ -82,7 +89,7 @@ class AuthInitResponse(Base64BytesModel):
     )
 
 
-class AuthRequest(Base64BytesModel):
+class AuthVerifyRequest(Base64BytesModel):
     """Request model for generating JWT token."""
 
     id: UUID = Field(..., description="UUID of the user requesting a token", alias="_id")
@@ -112,7 +119,7 @@ class AuthRequest(Base64BytesModel):
     )
 
 
-class AuthResponse(Base64BytesModel):
+class AuthVerifyResponse(Base64BytesModel):
     """Response model for the generated JWT token."""
 
     access_token: str = Field(..., description="Generated JWT token")

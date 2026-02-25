@@ -2,10 +2,11 @@ from typing import ClassVar
 
 from pydantic import ConfigDict, Field
 
-from app.models.base import BASE_CONFIG, Base64BytesModel
+from app.models.base_model import Base64BytesModel
+from app.models.config import BASE_CONFIG
 
 
-class VaultModel(Base64BytesModel):
+class Vault(Base64BytesModel):
     """Object representing a user's vault."""
 
     encrypted_blob: bytes = Field(...)

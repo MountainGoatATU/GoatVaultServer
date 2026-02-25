@@ -8,9 +8,14 @@ from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
 
 from app.database import get_user_collection
-from app.utils import EmailAlreadyInUseException, UserAlreadyExistsException
+from app.exceptions import EmailAlreadyInUseException, UserAlreadyExistsException
 
 logger = logging.getLogger(__name__)
+
+
+########################################################################
+# Email Validation
+########################################################################
 
 
 async def validate_email_available(email: str, request: Request) -> None:
@@ -42,6 +47,11 @@ async def validate_email_available_for_user(email: str, user_id: UUID, request: 
     existing = await user_collection.find_one({"email": email, "_id": {"$ne": user_id}})
     if existing:
         raise EmailAlreadyInUseException
+
+
+########################################################################
+# Validation Error Sanitization
+########################################################################
 
 
 def sanitize_validation_error(error_dict: dict) -> dict:
@@ -76,7 +86,7 @@ def sanitize_validation_error(error_dict: dict) -> dict:
 
 
 async def validation_exception_handler(
-    request: Request,  # noqa: ARG001
+    request: Request,
     exc: RequestValidationError,
 ) -> JSONResponse:
     """Custom handler for RequestValidationError that safely handles bytes in error details."""

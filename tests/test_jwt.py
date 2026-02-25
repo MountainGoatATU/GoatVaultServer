@@ -10,20 +10,21 @@ from fastapi.security import HTTPAuthorizationCredentials
 from httpx import AsyncClient
 
 from app.database import get_refresh_collection
+from app.exceptions import InvalidJWTException
 from app.main import app
 from app.models import RefreshRotationResult, RefreshTokenModel, TokenPayload
 from app.utils import (
-    InvalidJWTException,
-    create_jwt_token,
+    create_access_token,
     create_refresh_token,
-    hash_token,
     revoke_refresh_token,
     rotate_refresh_token,
     store_refresh_token,
+    verify_access_token,
     verify_refresh_token,
-    verify_token,
 )
-from app.utils.auth import ensure_bytes
+from app.utils.crypto import hash_token
+from app.utils.helpers import ensure_bytes
+from app.utils.time import get_now
 
 
 @pytest.mark.asyncio
@@ -36,7 +37,7 @@ async def test_verify_token(token) -> None:
     )
 
     if token == "valid":
-        result: TokenPayload = await verify_token(credentials)
+        result: TokenPayload = await verify_access_token(credentials)
         assert result is not None
         assert "sub" in result
         assert "iss" in result
@@ -45,7 +46,7 @@ async def test_verify_token(token) -> None:
 
     elif token in ["invalid", "expired", "wrong_issuer"]:
         with pytest.raises(InvalidJWTException) as exc_info:
-            await verify_token(credentials)
+            await verify_access_token(credentials)
         exception: InvalidJWTException = exc_info.value
         assert exception.status_code == status.HTTP_401_UNAUTHORIZED
         assert "Invalid" in exception.detail
@@ -54,7 +55,7 @@ async def test_verify_token(token) -> None:
 @pytest.mark.asyncio
 async def test_create_jwt_token(sample_user_id) -> None:
     """Test that JWT token is created successfully."""
-    token: str = create_jwt_token(sample_user_id)
+    token: str = create_access_token(sample_user_id)
 
     assert token is not None
     assert isinstance(token, str)
@@ -62,7 +63,7 @@ async def test_create_jwt_token(sample_user_id) -> None:
 
     # Verify the token can be decoded
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
-    payload: TokenPayload = await verify_token(credentials)
+    payload: TokenPayload = await verify_access_token(credentials)
 
     assert payload.sub == sample_user_id
 
@@ -77,16 +78,16 @@ async def test_verify_token_missing_subject() -> None:
 
     payload = {
         "iss": os.getenv("ISSUER"),
-        "exp": datetime.now(UTC) + timedelta(hours=1),
-        "iat": datetime.now(UTC),
+        "exp": get_now() + timedelta(hours=1),
+        "iat": get_now(),
     }
-    token: str = jwt.encode(payload, os.getenv("JWT_SECRET"), algorithm=os.getenv("JWT_ALGORITHM"))
+    token: str = jwt.encode(payload, os.getenv("JWT_SECRET"), algorithm=os.getenv("JWT_ALGORITHM"))  # ty: ignore[invalid-argument-type]
 
     credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
     # This should still decode successfully, but sub will be None
     with pytest.raises(InvalidJWTException) as exc_info:
-        await verify_token(credentials)
+        await verify_access_token(credentials)
 
     exception: InvalidJWTException = exc_info.value
     assert exception.status_code == status.HTTP_401_UNAUTHORIZED
@@ -181,9 +182,12 @@ async def test_refresh_and_logout_endpoints(async_client_no_auth: AsyncClient, m
 
     # Monkeypatch rotate_refresh_token and revoke_refresh_token used by the route
     monkeypatch.setattr(
-        "app.routes.auth_route.rotate_refresh_token", AsyncMock(return_value=rotation_result)
+        "app.services.auth_service.rotate_refresh_token", AsyncMock(return_value=rotation_result)
     )
-    monkeypatch.setattr("app.routes.auth_route.revoke_refresh_token", AsyncMock(return_value=True))
+
+    monkeypatch.setattr(
+        "app.services.auth_service.revoke_refresh_token", AsyncMock(return_value=True)
+    )
 
     try:
         # Call refresh endpoint

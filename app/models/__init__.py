@@ -6,42 +6,36 @@ from app.models.auth_model import (
     AuthLogoutResponse,
     AuthRefreshRequest,
     AuthRefreshResponse,
+    AuthRegisterRequest,
     AuthRegisterResponse,
-    AuthRequest,
-    AuthResponse,
-    NonceModel,
+    AuthVerifyRequest,
+    AuthVerifyResponse,
 )
-from app.models.base import (
-    Base64BytesModel,
-)
-from app.models.jwt_model import RefreshRotationResult, RefreshTokenModel, TokenPayload
+from app.models.base_model import BaseModelConfigured
+from app.models.nonce_model import NonceModel
+from app.models.token_model import RefreshRotationResult, RefreshTokenModel, TokenPayload
 from app.models.user_model import (
-    UserCreateRequest,
-    UserModel,
+    User,
     UserResponse,
     UserUpdateRequest,
-)
-from app.models.vault_model import (
-    VaultModel,
 )
 
 __all__: list[str] = [
     "AuthInitRequest",
     "AuthInitResponse",
     "AuthRegisterResponse",
-    "AuthRequest",
-    "AuthResponse",
+    "AuthVerifyRequest",
+    "AuthVerifyResponse",
     "AuthLogoutResponse",
     "AuthRefreshRequest",
     "AuthRefreshResponse",
-    "Base64BytesModel",
+    "BaseModelConfigured",
     "NonceModel",
     "RefreshRotationResult",
     "RefreshTokenModel",
     "TokenPayload",
-    "UserCreateRequest",
-    "UserModel",
+    "AuthRegisterRequest",
+    "User",
     "UserResponse",
     "UserUpdateRequest",
-    "VaultModel",
 ]

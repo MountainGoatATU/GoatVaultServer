@@ -1,5 +1,3 @@
-import base64
-import hashlib
 import logging
 import os
 import secrets
@@ -18,16 +16,17 @@ from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo import ReturnDocument
 from pymongo.results import InsertOneResult
 
+from app.exceptions import ForbiddenException, InvalidJWTException
 from app.models import RefreshRotationResult, RefreshTokenModel, TokenPayload
-from app.utils.exceptions import ForbiddenException, InvalidJWTException
+from app.utils.crypto import hash_token
+from app.utils.time import ensure_aware, get_now
 
-"""
-Settings
-"""
+########################################################################
+# Settings
+########################################################################
 
 logger = logging.getLogger(__name__)
 
-# Load environment variables
 load_dotenv()
 
 JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
@@ -51,93 +50,15 @@ if not ISSUER:
     raise ValueError("ISSUER environment variable is required.")
 
 
-"""
-Helpers
-"""
-
-
-def get_now() -> datetime:
-    return datetime.now(UTC)
-
-
-def hash_token(raw_token: str) -> str:
-    """Hash a refresh token for storage (SHA256 hex)."""
-    logger.info("Hashing refresh token")
-    h = hashlib.sha256()
-    h.update(raw_token.encode("utf-8"))
-    logger.info(f"Hashed token: {h.hexdigest()}")
-    return h.hexdigest()
+########################################################################
+# Refresh Token Helpers
+########################################################################
 
 
 def create_refresh_token() -> str:
     """Create a new random refresh token (raw value to return to client)."""
     logger.info("Creating new refresh token")
     return secrets.token_urlsafe(48)
-
-
-def ensure_bytes(value) -> bytes:
-    """Normalize common token-like/byte-like inputs to bytes."""
-    logger.info("Ensuring bytes")
-
-    # memoryview -> bytes
-    if isinstance(value, memoryview):
-        return bytes(value)
-
-    # bytes/bytearray -> bytes
-    if isinstance(value, (bytes, bytearray)):
-        return bytes(value)
-
-    # list of ints -> bytes
-    if isinstance(value, list):
-        try:
-            return bytes(value)
-        except Exception as e:
-            logger.info("Cannot convert list to bytes")
-            raise TypeError(f"Cannot convert list to bytes: {e}") from e
-
-    # str -> try base64 decode, fall back to utf-8
-    if isinstance(value, str):
-        try:
-            # Accept padded and unpadded base64; base64.b64decode will raise on invalid input
-            return base64.b64decode(value, validate=True)
-        except Exception:
-            logger.info("Exception while converting string to bytes")
-            # fallback to plain utf-8
-            return value.encode("utf-8")
-
-    raise TypeError(f"Unsupported type for bytes conversion: {type(value)!r}")
-
-
-def ensure_aware(dt_value):
-    if dt_value is None:
-        logger.info("Datetime is None")
-        return None
-    # If Pydantic model instance field (already datetime), preserve/normalize
-    try:
-        # datetime objects only
-        if not isinstance(dt_value, datetime):
-            logger.info(f"Converting datetime {dt_value} to UTC")
-            return dt_value.astimezone(UTC)
-        if dt_value.tzinfo is None:
-            # assume stored naive datetimes are UTC
-            return dt_value.replace(tzinfo=UTC)
-        # convert to UTC uniformly
-        logger.info(f"Converting datetime {dt_value} to UTC")
-        return dt_value.astimezone(UTC)
-    except Exception:
-        return dt_value
-
-    if dt_value.tzinfo is None:
-        # assume stored naive datetimes are UTC
-        return dt_value.replace(tzinfo=UTC)
-    # convert to UTC uniformly
-    logger.info(f"Converting datetime {dt_value} to UTC")
-    return dt_value.astimezone(UTC)
-
-
-"""
-Refresh Token Helpers
-"""
 
 
 async def store_refresh_token(
@@ -233,12 +154,12 @@ async def revoke_refresh_token(refresh_collection: AsyncIOMotorCollection, raw_t
     return result.modified_count > 0
 
 
-"""
-JWT Helpers
-"""
+########################################################################
+# Access Token Helpers
+########################################################################
 
 
-def create_jwt_token(user_id: UUID) -> str:
+def create_access_token(user_id: UUID) -> str:
     """Generate a signed JWT for a given user UUID."""
     logger.info(f"Creating JWT token for user {user_id}")
     now: datetime = get_now()
@@ -252,13 +173,13 @@ def create_jwt_token(user_id: UUID) -> str:
     }
 
     logger.info(f"Token {payload} created")
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)  # ty: ignore[invalid-argument-type]
 
 
 bearer_scheme = HTTPBearer(auto_error=True)
 
 
-async def verify_token(
+async def verify_access_token(
     credentials: Annotated[HTTPAuthorizationCredentials, Security(bearer_scheme)],
 ) -> TokenPayload:
     """Verifies that the provided Bearer JWT token is valid and that its 'iss'
@@ -270,7 +191,7 @@ async def verify_token(
     try:
         payload = jwt.decode(
             token,
-            JWT_SECRET,
+            JWT_SECRET,  # ty: ignore[invalid-argument-type]
             algorithms=[JWT_ALGORITHM],
             options={"require": ["exp", "iat", "iss"]},
         )
@@ -305,7 +226,8 @@ async def verify_token(
     logger.info(f"Token {token} verified")
     return token_payload
 
-def create_email_verification_token(user_id: uuid.UUID) -> str:
+
+def create_email_verification_access_token(user_id: uuid.UUID) -> str:
     """Create a JWT token for email verification with 1h expiry."""
     now = datetime.now(UTC)
     expire = now + timedelta(hours=1)
@@ -316,11 +238,12 @@ def create_email_verification_token(user_id: uuid.UUID) -> str:
         "exp": expire,
         "purpose": "email_verification",
     }
-    return jwt.encode(payload, MAIL_SECRET, algorithm=JWT_ALGORITHM)
+    return jwt.encode(payload, MAIL_SECRET, algorithm=JWT_ALGORITHM)  # ty: ignore[invalid-argument-type]
 
-"""
-MFA & User Access Checks
-"""
+
+########################################################################
+# MFA Checks
+########################################################################
 
 
 def verify_mfa(otp: str | None, secret_key: str | None) -> bool:
@@ -337,6 +260,11 @@ def verify_mfa(otp: str | None, secret_key: str | None) -> bool:
     except Exception:
         logger.exception("Error verifying MFA")
         return False
+
+
+########################################################################
+# User Access Checks
+########################################################################
 
 
 def verify_user_access(token_payload: TokenPayload, user_id: UUID) -> None:

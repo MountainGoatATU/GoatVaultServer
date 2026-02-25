@@ -1,15 +1,7 @@
-import hmac
-import logging
-import secrets
-import uuid
-from datetime import UTC, datetime, timedelta
-from hashlib import sha256
 from typing import Annotated
 
-from bson import Binary
 from fastapi import APIRouter, Body, Depends, Request, status
 from motor.motor_asyncio import AsyncIOMotorCollection
-from pymongo.results import InsertOneResult
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
@@ -20,39 +12,27 @@ from app.models import (
     AuthLogoutResponse,
     AuthRefreshRequest,
     AuthRefreshResponse,
+    AuthRegisterRequest,
     AuthRegisterResponse,
-    AuthRequest,
-    AuthResponse,
-    NonceModel,
-    RefreshRotationResult,
-    RefreshTokenModel,
-    UserCreateRequest,
-    UserModel,
+    AuthVerifyRequest,
+    AuthVerifyResponse,
 )
-from app.utils import (
-    CredentialsException,
-    EmailNotVerifiedException,
-    InvalidMfaCodeException,
-    InvalidRefreshTokenException,
-    UserCreationFailedException,
-    create_email_verification_token,
-    create_jwt_token,
-    create_refresh_token,
-    ensure_bytes,
-    get_now,
-    revoke_refresh_token,
-    rotate_refresh_token,
-    store_refresh_token,
-    validate_email_available,
-    verify_mfa,
-    verify_refresh_token,
+from app.services import (
+    init_auth,
+    logout_user,
+    new_refresh_token,
+    register_user,
+    verify_auth,
+    verify_email,
 )
-
-logger = logging.getLogger(__name__)
 
 limiter = Limiter(key_func=get_remote_address)
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
+
+########################################################################
+# POST /v1/auth/register
+########################################################################
 
 
 @auth_router.post(
@@ -63,45 +43,16 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 @limiter.limit("2/minute")
 async def register(
     request: Request,
-    payload: Annotated[UserCreateRequest, Body()],
+    payload: Annotated[AuthRegisterRequest, Body()],
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
 ) -> AuthRegisterResponse:
     """Register new user."""
-    logger.info(f"Registering new user with email: {payload.email}")
-    await validate_email_available(payload.email, request)
+    return await register_user(request, payload, user_collection)
 
-    new_user = UserModel(
-        email=payload.email,
-        auth_salt=payload.auth_salt,
-        auth_verifier=payload.auth_verifier,
-        vault_salt=payload.vault_salt,
-        vault=payload.vault,
-        email_verified=False,
-    )
 
-    verification_token: str = create_email_verification_token(new_user.id)
-
-    new_user_dict = new_user.model_dump(by_alias=True, mode="python")
-
-    if isinstance(new_user_dict.get("authVerifier"), (bytes, bytearray)):
-        new_user_dict["authVerifier"] = Binary(new_user_dict["authVerifier"])
-
-    created_user: InsertOneResult = await user_collection.insert_one(new_user_dict)
-    created_user_obj = await user_collection.find_one({"_id": created_user.inserted_id})
-
-    if created_user_obj is None:
-        logger.error(f"Failed to create user: {payload.email}")
-        raise UserCreationFailedException
-
-    from app.utils.email import send_verification
-
-    try:
-        await send_verification(payload.email, verification_token)
-        logger.info(f"Verification email sent to: {payload.email}")
-    except Exception as e:
-        logger.error(f"Failed to send verification email: {e}")
-    logger.info(f"User registered successfully: {payload.email}")
-    return AuthRegisterResponse(**created_user_obj)
+########################################################################
+# GET /v1/auth/email/{token}
+########################################################################
 
 
 @auth_router.get(
@@ -112,35 +63,14 @@ async def email(
     request: Request,  # noqa: ARG001
     token: str,
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
-):
+) -> dict:
     """Verify email using JWT token."""
-    from app.utils.auth import ISSUER, JWT_ALGORITHM, MAIL_SECRET, jwt
+    return await verify_email(token, user_collection)
 
-    try:
-        payload = jwt.decode(
-            token,
-            MAIL_SECRET,
-            algorithms=[JWT_ALGORITHM],
-            options={"require": ["exp", "iat", "iss"]},
-        )
-    except Exception:
-        return {"success": False, "message": "Invalid or expired verification token."}
 
-    if payload.get("iss") != ISSUER:
-        return {"success": False, "message": "Invalid token issuer."}
-
-    if payload.get("purpose") != "email_verification":
-        return {"success": False, "message": "Invalid token purpose."}
-
-    user_id = payload.get("sub")
-    user = await user_collection.find_one({"_id": uuid.UUID(user_id)})
-    if not user:
-        return {"success": False, "message": "User not found."}
-    if user.get("emailVerified"):
-        return {"success": True, "message": "Email already verified."}
-
-    await user_collection.update_one({"_id": user["_id"]}, {"$set": {"emailVerified": True}})
-    return {"success": True, "message": "Email successfully verified."}
+########################################################################
+# POST /v1/auth/init
+########################################################################
 
 
 @auth_router.post(
@@ -159,42 +89,12 @@ async def init(
     - Verify that user exists.
     - Return details including `authSalt` and encrypted `vault`.
     """
-    logger.info(f"Auth init requested for email: {payload.email}")
+    return await init_auth(payload, user_collection, nonce_collection)
 
-    user: UserModel | None = await user_collection.find_one({"email": payload.email})
 
-    # Generate nonce
-    nonce: bytes = secrets.token_bytes(32)
-
-    # Return fake response if user not found
-    if not user:
-        logger.warning(f"User not found for auth init: {payload.email}")
-        return AuthInitResponse(
-            _id=uuid.uuid4(),
-            auth_salt=secrets.token_bytes(32),
-            nonce=nonce,
-            mfa_enabled=False,
-        )
-
-    now: datetime = get_now()
-
-    nonce_record = NonceModel(
-        user_id=user["_id"],
-        nonce=nonce,
-        created_at_utc=now,
-        expires_at_utc=now + timedelta(minutes=2),
-    )
-
-    # Store nonce with expiry (e.g. 2 minutes)
-    await nonce_collection.insert_one(nonce_record.model_dump(by_alias=True))
-
-    logger.info(f"Auth init successful for user: {user['_id']}")
-    return AuthInitResponse(
-        _id=user["_id"],
-        auth_salt=user["authSalt"],
-        nonce=nonce,
-        mfa_enabled=user["mfaEnabled"],
-    )
+########################################################################
+# POST /v1/auth/verify
+########################################################################
 
 
 @auth_router.post(
@@ -205,115 +105,40 @@ async def init(
 @limiter.limit("5/minute")
 async def verify(
     request: Request,  # noqa: ARG001
-    payload: Annotated[AuthRequest, Body()],
+    payload: Annotated[AuthVerifyRequest, Body()],
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
     nonce_collection: Annotated[AsyncIOMotorCollection, Depends(get_nonce_collection)],
     refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
-) -> AuthResponse:
+) -> AuthVerifyResponse:
     """Return a JWT token for a valid `auth_verifier`.
     - Verifies that user exists.
     - Returns a signed JWT containing the authority claim.
     """
-    logger.info(f"Auth verification requested for user: {payload.id}")
+    return await verify_auth(payload, user_collection, nonce_collection, refresh_collection)
 
-    # Find user
-    user: AsyncIOMotorCollection | None = await user_collection.find_one({"_id": payload.id})
-    if not user:
-        logger.warning(f"User not found during verification: {payload.id}")
-        raise CredentialsException
 
-    # Check if email is verified
-    if not user.get("emailVerified", False):
-        logger.warning(f"User {payload.id} tried to login without verifying email")
-        raise EmailNotVerifiedException
-
-    # Find the most recent valid nonce for this user
-    stored_nonce_doc: NonceModel | None = await nonce_collection.find_one(
-        {"userId": payload.id}, sort=[("createdAtUtc", -1)]
-    )
-
-    if not stored_nonce_doc:
-        logger.warning(f"No nonce found for user: {payload.id}")
-        raise CredentialsException
-
-    # Consume the nonce immediately to prevent replay
-    await nonce_collection.delete_one({"_id": stored_nonce_doc["_id"]})
-
-    # Check if nonce is expired (double check, though TTL index should handle it eventually)
-    if stored_nonce_doc["expiresAtUtc"].replace(tzinfo=UTC) < datetime.now(UTC):
-        logger.warning(f"Nonce expired for user: {payload.id}")
-        raise CredentialsException
-
-    nonce_bytes: bytes = ensure_bytes(stored_nonce_doc["nonce"])
-    user_auth_verifier: bytes = ensure_bytes(user.get("authVerifier"))
-    payload_proof: bytes = ensure_bytes(payload.proof)
-
-    # Compute expected proof: HMAC-SHA256(key=auth_verifier, msg=nonce)
-    expected_proof: bytes = hmac.new(
-        key=user_auth_verifier, msg=nonce_bytes, digestmod=sha256
-    ).digest()
-
-    # Compare proofs
-    if not hmac.compare_digest(payload_proof, expected_proof):
-        logger.warning(f"Invalid proof provided for user: {payload.id}")
-        raise CredentialsException
-
-    # Handle MFA
-    if user.get("mfaEnabled", False):
-        if not payload.mfa_code:
-            logger.warning(f"MFA code required but not provided for user: {payload.id}")
-            raise CredentialsException
-
-        if not verify_mfa(payload.mfa_code, user.get("mfaSecret")):
-            logger.warning(f"Invalid MFA code for user: {payload.id}")
-            raise InvalidMfaCodeException
-
-    # Issue token
-    token: str = create_jwt_token(payload.id)
-    raw_refresh: str = create_refresh_token()
-
-    await store_refresh_token(refresh_collection, payload.id, raw_refresh)
-
-    logger.info(f"Auth verification successful for user: {payload.id}")
-    return AuthResponse(access_token=token, refresh_token=raw_refresh)
+########################################################################
+# POST /v1/auth/refresh
+########################################################################
 
 
 @auth_router.post("/refresh")
-async def refresh_token_endpoint(
+async def refresh(
     request: Request,  # noqa: ARG001
     payload: Annotated[AuthRefreshRequest, Body(...)],
     refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
 ) -> AuthRefreshResponse:
-    rec: RefreshTokenModel | None = await verify_refresh_token(
-        refresh_collection, payload.refresh_token
-    )
-    if not rec:
-        logger.warning("Invalid or expired refresh token used")
-        raise InvalidRefreshTokenException
+    return await new_refresh_token(payload, refresh_collection)
 
-    rotation: RefreshRotationResult | None = await rotate_refresh_token(
-        refresh_collection, payload.refresh_token, rec.user_id
-    )
-    if rotation is None:
-        logger.warning(f"Refresh token rotation failed for user: {rec.user_id}")
-        raise InvalidRefreshTokenException
 
-    access: str = create_jwt_token(rotation.record.user_id)
-    logger.info(f"Token refreshed successfully for user: {rec.user_id}")
-    return AuthRefreshResponse(access_token=access, refresh_token=rotation.raw)
+########################################################################
+# POST /v1/auth/logout
+########################################################################
 
 
 @auth_router.post("/logout")
-async def logout_endpoint(
+async def logout(
     payload: Annotated[AuthRefreshRequest, Body(...)],
     refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
 ) -> AuthLogoutResponse:
-    raw_refresh: str = payload.refresh_token
-
-    if not raw_refresh:
-        logger.warning("Logout attempted without refresh token")
-        raise InvalidRefreshTokenException
-
-    _ok: bool = await revoke_refresh_token(refresh_collection, raw_refresh)
-    logger.info("Logout successful (refresh token revoked)")
-    return AuthLogoutResponse(status="ok")
+    return await logout_user(payload, refresh_collection)

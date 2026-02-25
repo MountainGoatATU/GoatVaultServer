@@ -113,7 +113,7 @@ async def test_verify_with_mfa_wrong_format(async_client_no_auth, mock_user_with
 @pytest.mark.parametrize("token", ["valid"], indirect=True)
 async def test_user_update_enable_mfa(async_client, mock_user, mfa_secret) -> None:
     """Test enabling MFA via user update endpoint."""
-    update_data = {
+    update_data: dict = {
         "mfaEnabled": True,
         "mfaSecret": mfa_secret,
     }
@@ -146,7 +146,7 @@ async def test_user_update_enable_mfa(async_client, mock_user, mfa_secret) -> No
 @pytest.mark.parametrize("token", ["valid"], indirect=True)
 async def test_user_update_disable_mfa(async_client, mock_user_with_mfa) -> None:
     """Test disabling MFA via user update endpoint."""
-    update_data = {
+    update_data: dict = {
         "mfaEnabled": False,
         "mfaSecret": None,
     }

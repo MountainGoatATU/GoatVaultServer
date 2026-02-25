@@ -7,7 +7,7 @@ from fastapi import status
 
 from app.database import get_user_collection
 from app.main import app
-from app.utils.validators import validate_email_available_for_user
+from app.utils import validate_email_available_for_user
 
 ########################################################################
 # Helper Functions

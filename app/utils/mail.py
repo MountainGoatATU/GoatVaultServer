@@ -20,7 +20,7 @@ conf = ConnectionConfig(
 )
 
 
-async def send_verification(recipient: str, token: str) -> JSONResponse:
+async def send_verification_email(recipient: str, token: str) -> JSONResponse:
     verification_link = f"{BASE_URL}/v1/auth/email/{token}"
 
     html: str = f"""

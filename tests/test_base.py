@@ -1,7 +1,7 @@
 import pytest
 from pydantic import Field, ValidationError
 
-from app.models import Base64BytesModel
+from app.models.base_model import Base64BytesModel
 
 ########################################################################
 # Test Model

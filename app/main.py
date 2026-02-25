@@ -10,14 +10,22 @@ from slowapi.errors import RateLimitExceeded
 from starlette.middleware.errors import ServerErrorMiddleware
 from starlette.middleware.exceptions import ExceptionMiddleware
 
-from app.database.database import close_db, init_db
+from app.database import close_db, init_db
 from app.middleware import RequestLoggingMiddleware
 from app.routes import auth_route, user_route
 from app.utils import validation_exception_handler
 
+########################################################################
+# Environment
+########################################################################
+
 _ = load_dotenv()
 
 ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
+
+########################################################################
+# App
+########################################################################
 
 
 @asynccontextmanager
@@ -35,20 +43,30 @@ app = FastAPI(
 )
 
 
-@app.get("/")
-async def root():
-    """Health check endpoint."""
-    return {"status": "ok", "version": app.version}
-
-
 app.state.limiter = auth_route.limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # ty:ignore[invalid-argument-type]
-app.add_exception_handler(RequestValidationError, validation_exception_handler)  # ty:ignore[invalid-argument-type]
+
+########################################################################
+# Middleware
+########################################################################
 
 app.add_middleware(ServerErrorMiddleware)  # ty:ignore[invalid-argument-type]
 app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)  # ty:ignore[invalid-argument-type]
 app.add_middleware(ExceptionMiddleware)  # ty:ignore[invalid-argument-type]
 app.add_middleware(RequestLoggingMiddleware)  # ty:ignore[invalid-argument-type]
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # ty:ignore[invalid-argument-type]
+app.add_exception_handler(RequestValidationError, validation_exception_handler)  # ty:ignore[invalid-argument-type]
+
+########################################################################
+# Endpoints
+########################################################################
+
+
+@app.get("/")
+async def root():
+    """Health check endpoint."""
+    return {"status": "ok", "version": app.version}
+
 
 app.include_router(user_route.user_router, prefix="/v1")
 app.include_router(auth_route.auth_router, prefix="/v1")

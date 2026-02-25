@@ -30,7 +30,7 @@ jobs:
 
   #     - uses: actions/setup-python@v5
   #       with:
-  #         python-version: "3.11"
+  #         python-version: "3.12"
 
   #     - uses: astral-sh/setup-uv@v6
   #       with:
@@ -52,7 +52,7 @@ jobs:
 
         # --entrypoint "" is used to override the default entrypoint of the AWS Lambda Docker image
         # --v option mounts the current working directory to /var/task inside the container
-        # public.ecr.aws/lambda/python:3.11 is the official AWS Lambda Docker image for Python 3.11
+        # public.ecr.aws/lambda/python:3.12 is the official AWS Lambda Docker image for Python 3.11
         # The bash -c command runs a series of commands inside the container to install dependencies and create the deployment package
         # python -m pip install --upgrade pip upgrades pip to the latest version
         # pip install --no-cache-dir -r requirements.txt -t build/package installs the dependencies listed in requirements.txt into the build/package directory
@@ -64,7 +64,7 @@ jobs:
           docker run --rm \
             --entrypoint "" \
             -v "$PWD:/var/task" \
-            public.ecr.aws/lambda/python:3.11 \
+            public.ecr.aws/lambda/python:3.12 \
             bash -c "
               python -m pip install --upgrade pip &&
               pip install --no-cache-dir -r requirements.txt -t build/package &&

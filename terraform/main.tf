@@ -132,7 +132,7 @@ resource "aws_route_table_association" "private_assoc" {
 resource "aws_lambda_function" "api" {
   function_name = var.aws_lambda_function_name
   role          = aws_iam_role.lambda_exec_role.arn
-  runtime       = "python3.11"
+  runtime       = "python3.12"
   handler       = "app.lambda_handler.handler"
 
   timeout     = 30
