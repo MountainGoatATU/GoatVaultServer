@@ -21,6 +21,11 @@ variable "jwt_algorithm" {
   description = "Algorithm used for JWT signing"
 }
 
+variable "mfa_secret_key" {
+  type        = string
+  description = "Secret key used to encrypt and decrypt MFA secrets"
+}
+
 variable "mail_secret" {
   type        = string
   description = "Secret key for email signing"

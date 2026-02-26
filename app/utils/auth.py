@@ -18,7 +18,7 @@ from pymongo.results import InsertOneResult
 
 from app.exceptions import ForbiddenException, InvalidJWTException
 from app.models import RefreshRotationResult, RefreshTokenModel, TokenPayload
-from app.utils.crypto import hash_token
+from app.utils.crypto import decrypt_mfa_secret, hash_token
 from app.utils.time import ensure_aware, get_now
 
 ########################################################################
@@ -248,14 +248,16 @@ def create_email_verification_access_token(user_id: uuid.UUID) -> str:
 
 def verify_mfa(otp: str | None, secret_key: str | None) -> bool:
     """Verify the user's multi-factor authentication token."""
-    logger.info(f"Verifying MFA for OTP {otp} and secret key {secret_key}")
+    logger.info(f"Verifying MFA for OTP {otp} and encrypted MFA secret {secret_key}")
+
     if not otp or not secret_key:
-        logger.info("OTP or secret key missing")
+        logger.info("OTP or encrypted MFA secret missing")
         return False
 
     try:
-        totp = pyotp.TOTP(secret_key)
-        logger.info(f"TOTP instance created for secret key {secret_key}")
+        mfa_secret: str = decrypt_mfa_secret(secret_key)
+        totp = pyotp.TOTP(mfa_secret)
+        logger.info(f"TOTP instance created for secret key {mfa_secret}")
         return totp.verify(otp, valid_window=1)
     except Exception:
         logger.exception("Error verifying MFA")

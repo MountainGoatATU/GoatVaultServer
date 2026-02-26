@@ -14,32 +14,32 @@ from app.utils import verify_mfa
 
 
 @pytest.mark.asyncio
-async def test_verify_mfa_valid_code(mfa_secret, valid_mfa_code) -> None:
-    """Test MFA verification with valid code."""
-    result = verify_mfa(valid_mfa_code, mfa_secret)
+async def test_verify_mfa_valid_code(mfa_secret_encrypted, valid_mfa_code):
+    """Verify MFA with a valid OTP code."""
+    result: bool = verify_mfa(valid_mfa_code, mfa_secret_encrypted)
     assert result is True
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("invalid_code", ["12345", "1234567", "000000", None])
-async def test_verify_mfa_invalid_code(mfa_secret, invalid_code) -> None:
-    """Test MFA verification with invalid code."""
-    result: bool = verify_mfa(invalid_code, mfa_secret)
+async def test_verify_mfa_invalid_code(mfa_secret_encrypted, invalid_code):
+    """Verify MFA with invalid codes fails."""
+    result: bool = verify_mfa(invalid_code, mfa_secret_encrypted)
     assert result is False
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("invalid_secret", ["invalid-secret", None])
-async def test_verify_mfa_invalid_secret(valid_mfa_code, invalid_secret) -> None:
-    """Test MFA verification with invalid secret."""
+async def test_verify_mfa_invalid_secret(valid_mfa_code, invalid_secret):
+    """Verify MFA fails with invalid secrets."""
     result: bool = verify_mfa(valid_mfa_code, invalid_secret)
     assert result is False
 
 
 @pytest.mark.asyncio
-async def test_verify_mfa_both_none() -> None:
-    """Test MFA verification with both None."""
-    result = verify_mfa(None, None)
+async def test_verify_mfa_both_none():
+    """Verify MFA fails when both OTP and secret are None."""
+    result: bool = verify_mfa(None, None)
     assert result is False
 
 
@@ -111,11 +111,11 @@ async def test_verify_with_mfa_wrong_format(async_client_no_auth, mock_user_with
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("token", ["valid"], indirect=True)
-async def test_user_update_enable_mfa(async_client, mock_user, mfa_secret) -> None:
+async def test_user_update_enable_mfa(async_client, mock_user, mfa_secret_plain: str) -> None:
     """Test enabling MFA via user update endpoint."""
     update_data: dict = {
         "mfaEnabled": True,
-        "mfaSecret": mfa_secret,
+        "mfaSecret": mfa_secret_plain,
     }
 
     updated_user = mock_user.copy()

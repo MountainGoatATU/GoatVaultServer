@@ -14,6 +14,7 @@ from httpx import ASGITransport, AsyncClient
 from app.main import app
 from app.middleware import RequestLoggingMiddleware
 from app.routes import limiter
+from app.utils.crypto import encrypt_mfa_secret
 
 ########################################################################
 # Constants
@@ -211,9 +212,9 @@ def mock_user(sample_user_id: UUID, mock_vault_object: dict) -> dict:
 
 
 @pytest.fixture
-def mock_user_with_mfa(mock_user: dict, mfa_secret: str) -> dict:
+def mock_user_with_mfa(mock_user: dict, mfa_secret_encrypted: str) -> dict:
     """Return a mock user object with MFA enabled."""
-    mock_user.update({"mfaEnabled": True, "mfaSecret": mfa_secret})
+    mock_user.update({"mfaEnabled": True, "mfaSecret": mfa_secret_encrypted})
     return mock_user
 
 
@@ -284,19 +285,27 @@ def auth_headers(token: str) -> dict[str, str]:
 
 
 @pytest.fixture
-def mfa_secret() -> str:
+def mfa_secret_plain() -> str:
     """Return a valid TOTP secret for MFA testing."""
     import pyotp
 
-    return pyotp.random_base32()
+    secret_plain: str = pyotp.random_base32()
+    return secret_plain
 
 
 @pytest.fixture
-def valid_mfa_code(mfa_secret: str) -> str:
+def mfa_secret_encrypted(mfa_secret_plain: str) -> str:
+    """Return a valid TOTP secret for MFA testing."""
+    secret_encrypted: str = encrypt_mfa_secret(mfa_secret_plain)
+    return secret_encrypted
+
+
+@pytest.fixture
+def valid_mfa_code(mfa_secret_plain: str) -> str:
     """Generate a valid MFA code for the given secret."""
     import pyotp
 
-    totp = pyotp.TOTP(mfa_secret)
+    totp = pyotp.TOTP(mfa_secret_plain)
     return totp.now()
 
 

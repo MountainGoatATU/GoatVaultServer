@@ -1,7 +1,9 @@
+import base64
 import logging
 from typing import Annotated
 from uuid import UUID
 
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import Body, Depends, Request
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.results import DeleteResult, UpdateResult
@@ -14,6 +16,7 @@ from app.utils import (
     verify_access_token,
     verify_user_access,
 )
+from app.utils.crypto import encrypt_mfa_secret
 from app.utils.time import get_now
 
 logger = logging.getLogger(__name__)
@@ -67,8 +70,16 @@ async def update_user_by_id(
         logger.info(f"No fields to update for user with ID: {user_id}")
         raise NoFieldsToUpdateException
 
+    # Check email uniqueness if email is updated
     if "email" in update_data:
         await validate_email_available_for_user(update_data["email"], user_id, request)
+
+    # Encrypt MFA secret if provided
+    mfa_secret_plain: str | None = update_data.pop("mfaSecret", None)
+    if mfa_secret_plain:
+        encrypted_secret: str = encrypt_mfa_secret(mfa_secret_plain)
+        update_data["mfaSecret"] = encrypted_secret
+        update_data["mfaEnabled"] = True
 
     update_data["updatedAtUtc"] = get_now()
 
