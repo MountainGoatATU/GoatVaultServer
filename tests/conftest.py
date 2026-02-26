@@ -3,6 +3,7 @@ import os
 import uuid
 from collections.abc import AsyncGenerator, Generator
 from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 from uuid import UUID
 
@@ -112,7 +113,7 @@ def reset_rate_limiter() -> Generator[None]:
 
 @pytest.fixture(autouse=True)
 def validate_env() -> None:
-    required_vars = [
+    required_vars: list[str] = [
         "MONGODB_URL",
         "DATABASE_NAME",
         "JWT_SECRET",
@@ -250,13 +251,13 @@ def mock_request() -> MagicMock:
 
 
 @pytest.fixture(params=["valid", "expired", "invalid", "wrong_issuer"])
-def token(request, sample_user_id):
+def token(request, sample_user_id: UUID) -> str:
     """Return different types of tokens based on the parameter."""
     from datetime import UTC, datetime, timedelta
 
     import jwt
 
-    payload: dict = {
+    payload: dict[str, Any] = {
         "sub": str(sample_user_id),
         "iss": os.getenv("ISSUER"),
         "iat": datetime.now(UTC),
@@ -287,7 +288,7 @@ def auth_headers(token: str) -> dict[str, str]:
 
 
 @pytest.fixture(autouse=True, scope="session")
-def set_test_mfa_secret_key_env():
+def set_test_mfa_secret_key_env() -> Generator:
     """Set MFA_SECRET_KEY to a test value for all tests."""
     os.environ["MFA_SECRET_KEY"] = TEST_MFA_SECRET_KEY
     yield

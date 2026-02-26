@@ -19,7 +19,7 @@ from app.utils import validation_exception_handler
 # Environment
 ########################################################################
 
-_ = load_dotenv()
+load_dotenv()
 
 ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
 

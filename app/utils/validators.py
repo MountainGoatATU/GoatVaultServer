@@ -8,9 +8,11 @@ from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
 
 from app.database import get_user_collection
-from app.exceptions import EmailAlreadyInUseException, UserAlreadyExistsException
+from app.exceptions import UserAlreadyExistsException
+from app.exceptions.exceptions import EmailAlreadyInUseException
+from app.models import User
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 ########################################################################
@@ -18,35 +20,22 @@ logger = logging.getLogger(__name__)
 ########################################################################
 
 
-async def validate_email_available(email: str, request: Request) -> None:
-    """Validate that an email is not already registered.
-
-    Raises:
-        UserAlreadyExistsException: If email is already in use.
-
-    """
-
+async def validate_email_available(
+    request: Request, email: str, user_id: UUID | None = None
+) -> None:
+    """Validate that an email is not already registered."""
     user_collection = get_user_collection(request)
-    existing = await user_collection.find_one({"email": email})
-    if existing:
-        raise UserAlreadyExistsException
 
-
-async def validate_email_available_for_user(email: str, user_id: UUID, request: Request) -> None:
-    """Validate that an email is available for a specific user to use.
-
-    Allows the user to keep their own email, but prevents using
-    another user's email.
-
-    Raises:
-        EmailAlreadyInUseException: If email is in use by another user.
-
-    """
-
-    user_collection = get_user_collection(request)
-    existing = await user_collection.find_one({"email": email, "_id": {"$ne": user_id}})
-    if existing:
-        raise EmailAlreadyInUseException
+    if not user_id:
+        existing: User | None = await user_collection.find_one({"email": email})
+        if existing:
+            raise UserAlreadyExistsException
+    else:
+        existing: User | None = await user_collection.find_one(
+            {"email": email, "_id": {"$ne": user_id}}
+        )
+        if existing:
+            raise EmailAlreadyInUseException
 
 
 ########################################################################
@@ -55,11 +44,7 @@ async def validate_email_available_for_user(email: str, user_id: UUID, request: 
 
 
 def sanitize_validation_error(error_dict: dict) -> dict:
-    """Sanitize validation errors to handle bytes that can't be encoded as UTF-8.
-
-    Converts any bytes in the error 'input' field to base64 strings so they can
-    be safely serialized to JSON.
-    """
+    """Sanitize validation errors to handle bytes that can't be encoded as UTF-8."""
     sanitized: dict = error_dict.copy()
 
     if "input" in sanitized and isinstance(sanitized["input"], bytes):
@@ -94,11 +79,11 @@ async def validation_exception_handler(
     sanitized_errors = [sanitize_validation_error(error) for error in errors]
 
     # Log detailed validation error information
-    logger.error("=" * 80)
-    logger.error(f"VALIDATION ERROR on {request.method} {request.url.path}")
-    logger.error(f"Number of validation errors: {len(errors)}")
-    logger.error(f"Validation errors: {json.dumps(sanitized_errors, indent=2)}")
-    logger.error("=" * 80)
+    _logger.error("=" * 80)
+    _logger.error(f"VALIDATION ERROR on {request.method} {request.url.path}")
+    _logger.error(f"Number of validation errors: {len(errors)}")
+    _logger.error(f"Validation errors: {json.dumps(sanitized_errors, indent=2)}")
+    _logger.error("=" * 80)
 
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

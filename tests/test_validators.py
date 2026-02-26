@@ -1,5 +1,6 @@
 import uuid
 from unittest.mock import AsyncMock
+from uuid import UUID
 
 import pytest
 
@@ -7,7 +8,6 @@ from app.exceptions import EmailAlreadyInUseException, UserAlreadyExistsExceptio
 from app.utils import (
     sanitize_validation_error,
     validate_email_available,
-    validate_email_available_for_user,
 )
 
 ########################################################################
@@ -31,7 +31,7 @@ async def test_validate_email_available_success(mock_request) -> None:
     configure_mock_find_one(mock_request, return_value=None)
 
     # Should not raise any exception
-    await validate_email_available("new@example.com", mock_request)
+    await validate_email_available(mock_request, "new@example.com")
 
     mock_request.app.state.db["users"].find_one.assert_called_once_with(
         {"email": "new@example.com"}
@@ -47,17 +47,17 @@ async def test_validate_email_available_already_exists(mock_request) -> None:
     )
 
     with pytest.raises(UserAlreadyExistsException):
-        await validate_email_available("existing@example.com", mock_request)
+        await validate_email_available(mock_request, "existing@example.com")
 
 
 @pytest.mark.asyncio
-async def test_validate_email_available_for_user_same_user(mock_request) -> None:
+async def test_validate_email_available_same_user(mock_request) -> None:
     """Test email validation when user is updating their own email."""
-    user_id = uuid.uuid4()
+    user_id: UUID = uuid.uuid4()
     configure_mock_find_one(mock_request, return_value=None)
 
     # Should not raise any exception
-    await validate_email_available_for_user("user@example.com", user_id, mock_request)
+    await validate_email_available(mock_request, "user@example.com", user_id)
 
     mock_request.app.state.db["users"].find_one.assert_called_once_with(
         {"email": "user@example.com", "_id": {"$ne": user_id}},
@@ -65,10 +65,10 @@ async def test_validate_email_available_for_user_same_user(mock_request) -> None
 
 
 @pytest.mark.asyncio
-async def test_validate_email_available_for_user_different_user(mock_request) -> None:
+async def test_validate_email_available_different_user(mock_request) -> None:
     """Test email validation when another user has the email."""
-    user_id = uuid.uuid4()
-    other_user_id = uuid.uuid4()
+    user_id: UUID = uuid.uuid4()
+    other_user_id: UUID = uuid.uuid4()
 
     configure_mock_find_one(
         mock_request,
@@ -76,16 +76,16 @@ async def test_validate_email_available_for_user_different_user(mock_request) ->
     )
 
     with pytest.raises(EmailAlreadyInUseException):
-        await validate_email_available_for_user("taken@example.com", user_id, mock_request)
+        await validate_email_available(mock_request, "taken@example.com", user_id)
 
 
 @pytest.mark.asyncio
-async def test_validate_email_available_for_user_no_conflict(mock_request) -> None:
+async def test_validate_email_available_no_conflict(mock_request) -> None:
     """Test email validation when email is completely available."""
-    user_id = uuid.uuid4()
+    user_id: UUID = uuid.uuid4()
     configure_mock_find_one(mock_request, return_value=None)
 
-    await validate_email_available_for_user("available@example.com", user_id, mock_request)
+    await validate_email_available(mock_request, "available@example.com", user_id)
 
     mock_request.app.state.db["users"].find_one.assert_called_once()
 

@@ -3,7 +3,7 @@ import os
 import secrets
 import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
 import jwt
@@ -14,37 +14,36 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jwt import PyJWTError
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo import ReturnDocument
-from pymongo.results import InsertOneResult
+from pymongo.results import InsertOneResult, UpdateResult
 
 from app.exceptions import ForbiddenException, InvalidJWTException
 from app.models import RefreshRotationResult, RefreshTokenModel, TokenPayload
 from app.utils.crypto import decrypt_mfa_secret, hash_token
 from app.utils.time import ensure_aware, get_now
 
-########################################################################
-# Settings
-########################################################################
+_logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
+########################################################################
+# Environment Variables
+########################################################################
 
 load_dotenv()
 
-JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
-ACCESS_TOKEN_EXP_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXP_MINUTES", 5))
-REFRESH_TOKEN_EXP_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXP_DAYS", 7))
-
-JWT_SECRET: str | None = os.getenv("JWT_SECRET")
-if not JWT_SECRET:
+_BEARER_SCHEME = HTTPBearer(auto_error=True)
+_ACCESS_TOKEN_EXP_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXP_MINUTES", 5))
+_REFRESH_TOKEN_EXP_DAYS: int = int(os.getenv("REFRESH_TOKEN_EXP_DAYS", 7))
+_JWT_SECRET: str | None = os.getenv("JWT_SECRET")
+if not _JWT_SECRET:
     raise ValueError("JWT_SECRET environment variable is required")
-if len(JWT_SECRET) < 32:
+if len(_JWT_SECRET) < 32:
     raise ValueError("JWT_SECRET must be at least 32 characters")
 
+JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")  # Default to HS256
 MAIL_SECRET: str | None = os.getenv("MAIL_SECRET")
 if not MAIL_SECRET:
     raise ValueError("MAIL_SECRET environment variable is required")
 if len(MAIL_SECRET) < 32:
     raise ValueError("MAIL_SECRET must be at least 32 characters")
-
 ISSUER: str | None = os.getenv("ISSUER")
 if not ISSUER:
     raise ValueError("ISSUER environment variable is required.")
@@ -57,7 +56,7 @@ if not ISSUER:
 
 def create_refresh_token() -> str:
     """Create a new random refresh token (raw value to return to client)."""
-    logger.info("Creating new refresh token")
+    _logger.info("Creating new refresh token")
     return secrets.token_urlsafe(48)
 
 
@@ -65,9 +64,9 @@ async def store_refresh_token(
     refresh_collection: AsyncIOMotorCollection, user_id: UUID, raw_token: str
 ) -> RefreshTokenModel:
     """Store hashed refresh token in DB and return the DB record dict."""
-    logger.info(f"Storing refresh token for user {user_id}")
+    _logger.info(f"Storing refresh token for user {user_id}")
     now: datetime = get_now()
-    expires_at: datetime = now + timedelta(days=REFRESH_TOKEN_EXP_DAYS)
+    expires_at: datetime = now + timedelta(days=_REFRESH_TOKEN_EXP_DAYS)
     token_hash: str = hash_token(raw_token)
 
     new_id: UUID = uuid.uuid4()
@@ -82,7 +81,7 @@ async def store_refresh_token(
 
     result: InsertOneResult = await refresh_collection.insert_one(doc)
     doc["_id"] = getattr(result, "inserted_id", new_id)
-    logger.info(f"New token {raw_token} stored")
+    _logger.info(f"New token {raw_token} stored")
     return RefreshTokenModel.model_validate(doc)
 
 
@@ -90,16 +89,16 @@ async def verify_refresh_token(
     refresh_collection: AsyncIOMotorCollection, raw_token: str
 ) -> RefreshTokenModel | None:
     """Verify a refresh token and return the DB record if valid and not revoked/expired."""
-    logger.info("Verifying refresh token")
+    _logger.info("Verifying refresh token")
     token_hash: str = hash_token(raw_token)
     now: datetime = get_now()
     rec = await refresh_collection.find_one({"tokenHash": token_hash})
     if not rec:
-        logger.info("No token hash found")
+        _logger.info("No token hash found")
         return None
 
     # normalize to a dict
-    rec_dict = rec.model_dump() if isinstance(rec, RefreshTokenModel) else rec
+    rec_dict: dict = rec.model_dump() if isinstance(rec, RefreshTokenModel) else rec
 
     if "createdAtUtc" in rec_dict:
         rec_dict["createdAtUtc"] = ensure_aware(rec_dict.get("createdAtUtc"))
@@ -107,12 +106,13 @@ async def verify_refresh_token(
         rec_dict["expiresAtUtc"] = ensure_aware(rec_dict.get("expiresAtUtc"))
 
     if rec_dict.get("revoked", False):
-        logger.info("Token is revoked")
+        _logger.info("Token is revoked")
         return None
     if rec_dict.get("expiresAtUtc") is None or rec_dict["expiresAtUtc"] < now:
-        logger.info("Token is expired")
+        _logger.info("Token is expired")
         return None
-    logger.info(f"Token {raw_token} is valid")
+
+    _logger.info(f"Token {raw_token} is valid")
     return RefreshTokenModel.model_validate(rec_dict)
 
 
@@ -120,37 +120,37 @@ async def rotate_refresh_token(
     refresh_collection: AsyncIOMotorCollection, old_raw_token: str, user_id: UUID
 ) -> RefreshRotationResult | None:
     """Rotate a refresh token: verify old one, revoke it, create & store a new one."""
-    logger.info(f"Rotating refresh token for user {user_id}")
+    _logger.info(f"Rotating refresh token for user {user_id}")
 
     token_hash: str = hash_token(old_raw_token)
     now: datetime = get_now()
 
     # Find non-revoked, non-expired token and mark it revoked
-    claimed = await refresh_collection.find_one_and_update(
+    claimed: UpdateResult | None = await refresh_collection.find_one_and_update(
         {"tokenHash": token_hash, "revoked": False, "expiresAtUtc": {"$gt": now}},
         {"$set": {"revoked": True}},
         return_document=ReturnDocument.BEFORE,
     )
 
     if not claimed:
-        logger.info("Token not found")
+        _logger.info("Token not found")
         return None
 
     # Create and store a new refresh token
     new_raw: str = create_refresh_token()
     new_rec: RefreshTokenModel = await store_refresh_token(refresh_collection, user_id, new_raw)
-    logger.info(f"New token {new_raw} created")
+    _logger.info(f"New token {new_raw} created")
     return RefreshRotationResult(raw=new_raw, record=new_rec)
 
 
 async def revoke_refresh_token(refresh_collection: AsyncIOMotorCollection, raw_token: str) -> bool:
     """Revoke a refresh token by raw token string."""
-    logger.info(f"Revoking refresh token {raw_token}")
+    _logger.info(f"Revoking refresh token {raw_token}")
     token_hash: str = hash_token(raw_token)
     result = await refresh_collection.update_one(
         {"tokenHash": token_hash, "revoked": False}, {"$set": {"revoked": True}}
     )
-    logger.info(f"Token {raw_token} revoked")
+    _logger.info(f"Token {raw_token} revoked")
     return result.modified_count > 0
 
 
@@ -161,9 +161,9 @@ async def revoke_refresh_token(refresh_collection: AsyncIOMotorCollection, raw_t
 
 def create_access_token(user_id: UUID) -> str:
     """Generate a signed JWT for a given user UUID."""
-    logger.info(f"Creating JWT token for user {user_id}")
+    _logger.info(f"Creating JWT token for user {user_id}")
     now: datetime = get_now()
-    expire: datetime = now + timedelta(minutes=ACCESS_TOKEN_EXP_MINUTES)
+    expire: datetime = now + timedelta(minutes=_ACCESS_TOKEN_EXP_MINUTES)
 
     payload: dict = {
         "sub": str(user_id),  # Subject (the user)
@@ -172,66 +172,63 @@ def create_access_token(user_id: UUID) -> str:
         "exp": expire,  # Expiration time
     }
 
-    logger.info(f"Token {payload} created")
-    return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)  # ty: ignore[invalid-argument-type]
-
-
-bearer_scheme = HTTPBearer(auto_error=True)
+    _logger.info(f"Token {payload} created")
+    return jwt.encode(payload, _JWT_SECRET, algorithm=JWT_ALGORITHM)  # ty: ignore[invalid-argument-type]
 
 
 async def verify_access_token(
-    credentials: Annotated[HTTPAuthorizationCredentials, Security(bearer_scheme)],
+    credentials: Annotated[HTTPAuthorizationCredentials, Security(_BEARER_SCHEME)],
 ) -> TokenPayload:
     """Verifies that the provided Bearer JWT token is valid and that its 'iss'
     (issuer) claim matches the SERVER_NAME environment variable.
     """
-    logger.info(f"Verifying token {credentials.credentials}")
+    _logger.info(f"Verifying token {credentials.credentials}")
     token: str = credentials.credentials
 
     try:
-        payload = jwt.decode(
+        payload: dict[str, Any] = jwt.decode(
             token,
-            JWT_SECRET,  # ty: ignore[invalid-argument-type]
+            _JWT_SECRET,  # ty: ignore[invalid-argument-type]
             algorithms=[JWT_ALGORITHM],
             options={"require": ["exp", "iat", "iss"]},
         )
     except PyJWTError as e:
         match e:
             case jwt.ExpiredSignatureError:
-                logger.info(f"Token {token} expired")
+                _logger.info(f"Token {token} expired")
                 raise InvalidJWTException from e
             case jwt.InvalidTokenError:
-                logger.info(f"Token {token} invalid")
+                _logger.info(f"Token {token} invalid")
                 raise InvalidJWTException from e
             case _:
-                logger.info(f"Token {token} error")
+                _logger.info(f"Token {token} error")
                 raise InvalidJWTException from e
 
-    issuer = payload.get("iss")
+    issuer: str | None = payload.get("iss")
     if issuer != ISSUER:
-        logger.info(f"Token {token} issuer mismatch")
+        _logger.info(f"Token {token} issuer mismatch")
         raise InvalidJWTException
 
     if "sub" not in payload or payload.get("sub") is None:
-        logger.info(f"Token {token} missing required 'sub' (subject) claim")
+        _logger.info(f"Token {token} missing required 'sub' (subject) claim")
         raise InvalidJWTException
 
     # Convert payload to TokenPayload model
     try:
         token_payload: TokenPayload = TokenPayload.model_validate(payload)
     except Exception as e:
-        logger.info(f"Token {token} invalid payload")
+        _logger.info(f"Token {token} invalid payload")
         raise InvalidJWTException from e
 
-    logger.info(f"Token {token} verified")
+    _logger.info(f"Token {token} verified")
     return token_payload
 
 
 def create_email_verification_access_token(user_id: uuid.UUID) -> str:
     """Create a JWT token for email verification with 1h expiry."""
-    now = datetime.now(UTC)
-    expire = now + timedelta(hours=1)
-    payload = {
+    now: datetime = datetime.now(UTC)
+    expire: datetime = now + timedelta(hours=1)
+    payload: dict[str, Any] = {
         "sub": str(user_id),
         "iss": ISSUER,
         "iat": now,
@@ -248,19 +245,19 @@ def create_email_verification_access_token(user_id: uuid.UUID) -> str:
 
 def verify_mfa(otp: str | None, secret_key: str | None) -> bool:
     """Verify the user's multi-factor authentication token."""
-    logger.info(f"Verifying MFA for OTP {otp} and encrypted MFA secret {secret_key}")
+    _logger.info(f"Verifying MFA for OTP {otp} and encrypted MFA secret {secret_key}")
 
     if not otp or not secret_key:
-        logger.info("OTP or encrypted MFA secret missing")
+        _logger.info("OTP or encrypted MFA secret missing")
         return False
 
     try:
         mfa_secret: str = decrypt_mfa_secret(secret_key)
         totp = pyotp.TOTP(mfa_secret)
-        logger.info(f"TOTP instance created for secret key {mfa_secret}")
+        _logger.info(f"TOTP instance created for secret key {mfa_secret}")
         return totp.verify(otp, valid_window=1)
     except Exception:
-        logger.exception("Error verifying MFA")
+        _logger.exception("Error verifying MFA")
         return False
 
 
@@ -273,6 +270,6 @@ def verify_user_access(token_payload: TokenPayload, user_id: UUID) -> None:
     """Verify that the authenticated user is accessing their own resources."""
     requesting_user_id: UUID = token_payload.sub
     if requesting_user_id != user_id:
-        logger.info(f"Requesting user ID {requesting_user_id} does not match user ID {user_id}")
+        _logger.info(f"Requesting user ID {requesting_user_id} does not match user ID {user_id}")
         raise ForbiddenException
-    logger.info(f"User access verified for user ID {user_id}")
+    _logger.info(f"User access verified for user ID {user_id}")

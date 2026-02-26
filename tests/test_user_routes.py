@@ -7,7 +7,7 @@ from fastapi import status
 
 from app.database import get_user_collection
 from app.main import app
-from app.utils import validate_email_available_for_user
+from app.utils import validate_email_available
 
 ########################################################################
 # Helper Functions
@@ -100,7 +100,7 @@ async def test_update_user_success(async_client, sample_user_id, mock_vault_obje
     app.dependency_overrides[get_user_collection] = lambda: override_user_collection(
         mock_user=updated_user
     )
-    app.dependency_overrides[validate_email_available_for_user] = mock_validate_email
+    app.dependency_overrides[validate_email_available] = mock_validate_email
 
     try:
         response = await async_client.patch(f"/v1/users/{sample_user_id}", json=update_data)
@@ -121,7 +121,7 @@ async def test_update_user_not_found(async_client, sample_user_id) -> None:
     app.dependency_overrides[get_user_collection] = lambda: override_user_collection(
         matched_count=0
     )
-    app.dependency_overrides[validate_email_available_for_user] = mock_validate_email
+    app.dependency_overrides[validate_email_available] = mock_validate_email
 
     try:
         response = await async_client.patch(f"/v1/users/{sample_user_id}", json=update_data)
@@ -146,7 +146,7 @@ async def test_update_user_retrieval_failure(async_client, sample_user_id) -> No
     update_data = {"email": "newemail@example.com"}
 
     app.dependency_overrides[get_user_collection] = lambda: override_user_collection(mock_user=None)
-    app.dependency_overrides[validate_email_available_for_user] = mock_validate_email
+    app.dependency_overrides[validate_email_available] = mock_validate_email
 
     try:
         response = await async_client.patch(f"/v1/users/{sample_user_id}", json=update_data)

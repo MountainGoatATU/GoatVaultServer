@@ -14,7 +14,6 @@ from app.utils.mail import send_verification_email
 from app.utils.validators import (
     sanitize_validation_error,
     validate_email_available,
-    validate_email_available_for_user,
     validation_exception_handler,
 )
 
@@ -32,6 +31,5 @@ __all__: list[str] = [
     "create_email_verification_access_token",
     "sanitize_validation_error",
     "validate_email_available",
-    "validate_email_available_for_user",
     "validation_exception_handler",
 ]

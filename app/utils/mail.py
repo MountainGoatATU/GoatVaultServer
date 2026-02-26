@@ -1,12 +1,15 @@
+import logging
 import os
 
 from fastapi.responses import JSONResponse
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType, NameEmail
 from pydantic import SecretStr
 
-BASE_URL = os.environ.get("SERVER_URL")
+_logger = logging.getLogger(__name__)
 
-conf = ConnectionConfig(
+_BASE_URL: str | None = os.environ.get("SERVER_URL")
+
+_CONFIG: ConnectionConfig = ConnectionConfig(
     MAIL_USERNAME=os.environ.get("MAIL_USERNAME") or "",
     MAIL_PASSWORD=SecretStr(os.environ.get("MAIL_PASSWORD") or ""),
     MAIL_FROM=os.environ.get("MAIL_FROM") or "",
@@ -21,7 +24,7 @@ conf = ConnectionConfig(
 
 
 async def send_verification_email(recipient: str, token: str) -> JSONResponse:
-    verification_link = f"{BASE_URL}/v1/auth/email/{token}"
+    verification_link: str = f"{_BASE_URL}/v1/auth/email/{token}"
 
     html: str = f"""
     <html>
@@ -43,6 +46,8 @@ async def send_verification_email(recipient: str, token: str) -> JSONResponse:
         body=html,
         subtype=MessageType.html,
     )
-    fm = FastMail(conf)
-    await fm.send_message(message)  #
+
+    fm = FastMail(_CONFIG)
+    await fm.send_message(message)
+    _logger.info("Verification email sent")
     return JSONResponse(status_code=200, content={"message": "verification email has been sent"})

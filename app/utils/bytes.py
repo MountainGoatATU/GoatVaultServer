@@ -1,7 +1,7 @@
 import base64
 import logging
 
-logger = logging.getLogger(__name__)
+_logger = logging.getLogger(__name__)
 
 ########################################################################
 # Bytes Helpers
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def ensure_bytes(value) -> bytes:
     """Normalize common token-like/byte-like inputs to bytes."""
-    logger.info("Ensuring bytes")
+    _logger.info("Ensuring bytes")
 
     # memoryview -> bytes
     if isinstance(value, memoryview):
@@ -25,7 +25,7 @@ def ensure_bytes(value) -> bytes:
         try:
             return bytes(value)
         except Exception as e:
-            logger.info("Cannot convert list to bytes")
+            _logger.info("Cannot convert list to bytes")
             raise TypeError(f"Cannot convert list to bytes: {e}") from e
 
     # str -> try base64 decode, fall back to utf-8
@@ -34,7 +34,7 @@ def ensure_bytes(value) -> bytes:
             # Accept padded and unpadded base64; base64.b64decode will raise on invalid input
             return base64.b64decode(value, validate=True)
         except Exception:
-            logger.info("Exception while converting string to bytes")
+            _logger.info("Exception while converting string to bytes")
             # fallback to plain utf-8
             return value.encode("utf-8")
 

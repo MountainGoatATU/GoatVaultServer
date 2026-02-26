@@ -48,11 +48,11 @@ from app.utils import (
     verify_refresh_token,
 )
 from app.utils.auth import ISSUER, JWT_ALGORITHM, MAIL_SECRET, jwt
+from app.utils.bytes import ensure_bytes
 from app.utils.crypto import generate_nonce, generate_salt
-from app.utils.helpers import ensure_bytes
 from app.utils.time import get_now, get_now_plus_two_minutes
 
-logger: Logger = logging.getLogger(__name__)
+_logger: Logger = logging.getLogger(__name__)
 
 ########################################################################
 # Register New User
@@ -65,8 +65,8 @@ async def register_user(
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
 ) -> AuthRegisterResponse:
     """Register new user."""
-    logger.info(f"Registering new user with email: {payload.email}")
-    await validate_email_available(payload.email, request)
+    _logger.info(f"Registering new user with email: {payload.email}")
+    await validate_email_available(request, payload.email)
 
     new_user = User(
         email=payload.email,
@@ -88,15 +88,15 @@ async def register_user(
     created_user_obj = await user_collection.find_one({"_id": created_user.inserted_id})
 
     if created_user_obj is None:
-        logger.error(f"Failed to create user: {payload.email}")
+        _logger.error(f"Failed to create user: {payload.email}")
         raise UserCreationFailedException
 
     try:
         await send_verification_email(payload.email, verification_token)
-        logger.info(f"Verification email sent to: {payload.email}")
+        _logger.info(f"Verification email sent to: {payload.email}")
     except Exception as e:
-        logger.error(f"Failed to send verification email: {e}")
-    logger.info(f"User registered successfully: {payload.email}")
+        _logger.error(f"Failed to send verification email: {e}")
+    _logger.info(f"User registered successfully: {payload.email}")
     return AuthRegisterResponse(**created_user_obj)
 
 
@@ -110,7 +110,7 @@ async def verify_email(
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
 ) -> dict:
     try:
-        payload = jwt.decode(
+        payload: dict[str, str] = jwt.decode(
             token,
             MAIL_SECRET,  # ty: ignore[invalid-argument-type]
             algorithms=[JWT_ALGORITHM],
@@ -154,7 +154,7 @@ async def init_auth(
     user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
     nonce_collection: Annotated[AsyncIOMotorCollection, Depends(get_nonce_collection)],
 ) -> AuthInitResponse:
-    logger.info(f"Auth init requested for email: {payload.email}")
+    _logger.info(f"Auth init requested for email: {payload.email}")
 
     user: User | None = await user_collection.find_one({"email": payload.email})
 
@@ -162,7 +162,7 @@ async def init_auth(
 
     # Return fake response if user not found
     if not user:
-        logger.warning(f"User not found for auth init: {payload.email}")
+        _logger.warning(f"User not found for auth init: {payload.email}")
         return AuthInitResponse(
             _id=uuid.uuid4(),
             auth_salt=generate_salt(),
@@ -179,7 +179,7 @@ async def init_auth(
 
     await nonce_collection.insert_one(nonce_record.model_dump(by_alias=True))
 
-    logger.info(f"Auth init successful for user: {user['_id']}")
+    _logger.info(f"Auth init successful for user: {user['_id']}")
 
     return AuthInitResponse(
         _id=user["_id"],
@@ -200,17 +200,17 @@ async def verify_auth(
     nonce_collection: Annotated[AsyncIOMotorCollection, Depends(get_nonce_collection)],
     refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
 ) -> AuthVerifyResponse:
-    logger.info(f"Auth verification requested for user: {payload.id}")
+    _logger.info(f"Auth verification requested for user: {payload.id}")
 
     # Find user
     user: AsyncIOMotorCollection | None = await user_collection.find_one({"_id": payload.id})
     if not user:
-        logger.warning(f"User not found during verification: {payload.id}")
+        _logger.warning(f"User not found during verification: {payload.id}")
         raise CredentialsException
 
     # Check if email is verified
     if not user.get("emailVerified", False):
-        logger.warning(f"User {payload.id} tried to login without verifying email")
+        _logger.warning(f"User {payload.id} tried to login without verifying email")
         raise EmailNotVerifiedException
 
     # Find the most recent valid nonce for this user
@@ -219,7 +219,7 @@ async def verify_auth(
     )
 
     if not stored_nonce_doc:
-        logger.warning(f"No nonce found for user: {payload.id}")
+        _logger.warning(f"No nonce found for user: {payload.id}")
         raise CredentialsException
 
     # Consume the nonce immediately to prevent replay
@@ -227,7 +227,7 @@ async def verify_auth(
 
     # Check if nonce is expired (double check, though TTL index should handle it eventually)
     if stored_nonce_doc["expiresAtUtc"].replace(tzinfo=UTC) < get_now():
-        logger.warning(f"Nonce expired for user: {payload.id}")
+        _logger.warning(f"Nonce expired for user: {payload.id}")
         raise CredentialsException
 
     nonce_bytes: bytes = ensure_bytes(stored_nonce_doc["nonce"])
@@ -241,17 +241,17 @@ async def verify_auth(
 
     # Compare proofs
     if not hmac.compare_digest(payload_proof, expected_proof):
-        logger.warning(f"Invalid proof provided for user: {payload.id}")
+        _logger.warning(f"Invalid proof provided for user: {payload.id}")
         raise CredentialsException
 
     # Handle MFA
     if user.get("mfaEnabled", False):
         if not payload.mfa_code:
-            logger.warning(f"MFA code required but not provided for user: {payload.id}")
+            _logger.warning(f"MFA code required but not provided for user: {payload.id}")
             raise CredentialsException
 
         if not verify_mfa(payload.mfa_code, user.get("mfaSecret")):
-            logger.warning(f"Invalid MFA code for user: {payload.id}")
+            _logger.warning(f"Invalid MFA code for user: {payload.id}")
             raise InvalidMfaCodeException
 
     # Issue token
@@ -260,7 +260,7 @@ async def verify_auth(
 
     await store_refresh_token(refresh_collection, payload.id, raw_refresh)
 
-    logger.info(f"Auth verification successful for user: {payload.id}")
+    _logger.info(f"Auth verification successful for user: {payload.id}")
 
     return AuthVerifyResponse(access_token=token, refresh_token=raw_refresh)
 
@@ -278,18 +278,18 @@ async def new_refresh_token(
         refresh_collection, payload.refresh_token
     )
     if not rec:
-        logger.warning("Invalid or expired refresh token used")
+        _logger.warning("Invalid or expired refresh token used")
         raise InvalidRefreshTokenException
 
     rotation: RefreshRotationResult | None = await rotate_refresh_token(
         refresh_collection, payload.refresh_token, rec.user_id
     )
     if rotation is None:
-        logger.warning(f"Refresh token rotation failed for user: {rec.user_id}")
+        _logger.warning(f"Refresh token rotation failed for user: {rec.user_id}")
         raise InvalidRefreshTokenException
 
     access: str = create_access_token(rotation.record.user_id)
-    logger.info(f"Token refreshed successfully for user: {rec.user_id}")
+    _logger.info(f"Token refreshed successfully for user: {rec.user_id}")
 
     return AuthRefreshResponse(access_token=access, refresh_token=rotation.raw)
 
@@ -306,10 +306,10 @@ async def logout_user(
     raw_refresh: str = payload.refresh_token
 
     if not raw_refresh:
-        logger.warning("Logout attempted without refresh token")
+        _logger.warning("Logout attempted without refresh token")
         raise InvalidRefreshTokenException
 
     _ok: bool = await revoke_refresh_token(refresh_collection, raw_refresh)
-    logger.info("Logout successful (refresh token revoked)")
+    _logger.info("Logout successful (refresh token revoked)")
 
     return AuthLogoutResponse(status="ok")
