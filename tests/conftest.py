@@ -20,17 +20,18 @@ from app.utils.crypto import encrypt_mfa_secret
 # Constants
 ########################################################################
 
-TEST_USER_ID = uuid.UUID("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
-TEST_EMAIL = "test@example.com"
-TEST_AUTH_SALT = b"salt1234567890ab"
-TEST_AUTH_VERIFIER = b"authverifier1234567890ab"
-TEST_VAULT_SALT = b"vault_salt_12345"
+TEST_USER_ID: UUID = UUID("a1b2c3d4-e5f6-7890-abcd-ef1234567890")
+TEST_EMAIL: str = "test@example.com"
+TEST_AUTH_SALT: bytes = b"salt1234567890ab"
+TEST_AUTH_VERIFIER: bytes = b"authverifier1234567890ab"
+TEST_VAULT_SALT: bytes = b"vault_salt_12345"
+TEST_MFA_SECRET_KEY: str = base64.b64encode(b"0" * 32).decode("ascii")
 
-TEST_AUTH_TAG = b"auth_tag_1234567"
-TEST_ENCRYPTED_BLOB = b"encrypted_data_blob"
-TEST_NONCE = b"random_nonce_123"
+TEST_AUTH_TAG: bytes = b"auth_tag_1234567"
+TEST_ENCRYPTED_BLOB: bytes = b"encrypted_data_blob"
+TEST_NONCE: bytes = b"random_nonce_123"
 
-TEST_BASE_URL = "http://test"
+TEST_BASE_URL: str = "http://test"
 
 ########################################################################
 # Utility functions
@@ -283,6 +284,14 @@ def auth_headers(token: str) -> dict[str, str]:
 ########################################################################
 # MFA Fixtures
 ########################################################################
+
+
+@pytest.fixture(autouse=True, scope="session")
+def set_test_mfa_secret_key_env():
+    """Set MFA_SECRET_KEY to a test value for all tests."""
+    os.environ["MFA_SECRET_KEY"] = TEST_MFA_SECRET_KEY
+    yield
+    del os.environ["MFA_SECRET_KEY"]
 
 
 @pytest.fixture
