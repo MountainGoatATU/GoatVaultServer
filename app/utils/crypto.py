@@ -51,28 +51,33 @@ def hash_token(raw_token: str) -> str:
 ########################################################################
 
 
-def _load_mfa_secret_key() -> str:
+def _load_mfa_secret_key() -> bytes:
     import os
 
     from dotenv import load_dotenv
 
     load_dotenv()
 
-    mfa_secret_key: str | None = os.getenv("MFA_SECRET_KEY")
-    if not mfa_secret_key:
-        raise ValueError("MFA_SECRET_KEY environment variable is required")
-
+    mfa_secret_key: str = os.environ.get("MFA_SECRET_KEY", "").strip().replace("\n", "")
     if not mfa_secret_key:
         raise Exception("MFA_SECRET_KEY missing")
 
-    return mfa_secret_key
+    # Fix base64 padding if missing
+    missing_padding: int = len(mfa_secret_key) % 4
+    if missing_padding:
+        mfa_secret_key += "=" * (4 - missing_padding)
+
+    try:
+        return base64.b64decode(mfa_secret_key)
+    except Exception as e:
+        raise Exception(f"Failed to decode MFA_SECRET_KEY: {e}") from e
 
 
 def encrypt_mfa_secret(secret: str) -> str:
     """Encrypt client-generated MFA secret for DB storage"""
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-    mfa_secret_key: bytes = base64.b64decode(_load_mfa_secret_key())
+    mfa_secret_key: bytes = _load_mfa_secret_key()
     aes = AESGCM(mfa_secret_key)
 
     plaintext: bytes = secret.encode("utf-8")
@@ -88,7 +93,7 @@ def decrypt_mfa_secret(secret: str) -> str:
 
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-    mfa_secret_key: bytes = base64.b64decode(_load_mfa_secret_key())
+    mfa_secret_key: bytes = _load_mfa_secret_key()
     aes = AESGCM(mfa_secret_key)
 
     combined: bytes = base64.b64decode(secret)

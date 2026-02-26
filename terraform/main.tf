@@ -149,7 +149,7 @@ resource "aws_lambda_function" "api" {
       DATABASE_NAME   = var.database_name
       JWT_SECRET      = var.jwt_secret
       JWT_ALGORITHM   = var.jwt_algorithm
-      MFA_SECRET_KEY  = var.mfa_secret_key
+      MFA_SECRET_KEY  = "\"${var.mfa_secret_key}\""
       MAIL_SECRET     = var.mail_secret
       MAIL_USERNAME   = var.mail_username
       MAIL_PASSWORD   = var.mail_password
