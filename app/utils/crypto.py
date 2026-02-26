@@ -1,22 +1,13 @@
 import base64
 import hashlib
 import logging
-import os
 import secrets
-
-from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
 SALT_LENGTH: int = 32
 NONCE_LENGTH: int = 32
 AES_NONCE_LENGTH: int = 12
-
-load_dotenv()
-
-MFA_SECRET_KEY: str | None = os.getenv("MFA_SECRET_KEY")
-if not MFA_SECRET_KEY:
-    raise ValueError("MFA_SECRET_KEY environment variable is required")
 
 ########################################################################
 # Generate Bytes
@@ -62,7 +53,16 @@ def hash_token(raw_token: str) -> str:
 
 def encrypt_mfa_secret(secret: str) -> str:
     """Encrypt client-generated MFA secret for DB storage"""
+    import os
+
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    MFA_SECRET_KEY: str | None = os.getenv("MFA_SECRET_KEY")
+    if not MFA_SECRET_KEY:
+        raise ValueError("MFA_SECRET_KEY environment variable is required")
 
     if not MFA_SECRET_KEY:
         raise Exception("MFA_SECRET_KEY missing")
@@ -80,7 +80,16 @@ def encrypt_mfa_secret(secret: str) -> str:
 
 def decrypt_mfa_secret(secret: str) -> str:
     """Decrypt server-generated MFA secret from DB storage"""
+    import os
+
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    MFA_SECRET_KEY: str | None = os.getenv("MFA_SECRET_KEY")
+    if not MFA_SECRET_KEY:
+        raise ValueError("MFA_SECRET_KEY environment variable is required")
 
     if not MFA_SECRET_KEY:
         raise Exception("MFA_SECRET_KEY missing")
