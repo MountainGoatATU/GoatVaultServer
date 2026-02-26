@@ -119,6 +119,7 @@ def validate_env() -> None:
         "ISSUER",
         "ACCESS_TOKEN_EXP_MINUTES",
         "REFRESH_TOKEN_EXP_DAYS",
+        "MFA_SECRET_KEY",
         "MAIL_SECRET",
         "MAIL_USERNAME",
         "MAIL_PASSWORD",
