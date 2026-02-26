@@ -1,9 +1,7 @@
-import base64
 import logging
 from typing import Annotated
 from uuid import UUID
 
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from fastapi import Body, Depends, Request
 from motor.motor_asyncio import AsyncIOMotorCollection
 from pymongo.results import DeleteResult, UpdateResult
