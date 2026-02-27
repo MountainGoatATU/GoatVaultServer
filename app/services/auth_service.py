@@ -74,6 +74,7 @@ async def register_user(
         auth_verifier=payload.auth_verifier,
         vault_salt=payload.vault_salt,
         vault=payload.vault,
+        argon2_parameters=payload.argon2_parameters,
         email_verified=False,
     )
 

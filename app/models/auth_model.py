@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import ConfigDict, EmailStr, Field
 
+from app.models import Argon2Parameters
 from app.models.base_model import Base64BytesModel
 from app.models.config import BASE_CONFIG
 from app.models.vault_model import Vault
@@ -20,6 +21,8 @@ class AuthRegisterRequest(Base64BytesModel):
     vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: Vault = Field(...)
 
+    argon2_parameters: Argon2Parameters = Field(...)
+
     model_config: ClassVar[ConfigDict] = ConfigDict(
         **BASE_CONFIG,
         json_schema_extra={
@@ -32,6 +35,13 @@ class AuthRegisterRequest(Base64BytesModel):
                     "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
                     "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
+                },
+                "argon2Parameters": {
+                    "timeCost": 3,
+                    "memoryCost": 65536,
+                    "lanes": 4,
+                    "threads": 4,
+                    "hashLength": 32,
                 },
             },
         },

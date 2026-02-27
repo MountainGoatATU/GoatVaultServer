@@ -1,5 +1,6 @@
 """Data models."""
 
+from app.models.argon_model import Argon2Parameters
 from app.models.auth_model import (
     AuthInitRequest,
     AuthInitResponse,
@@ -21,6 +22,7 @@ from app.models.user_model import (
 )
 
 __all__: list[str] = [
+    "Argon2Parameters",
     "AuthInitRequest",
     "AuthInitResponse",
     "AuthRegisterResponse",

@@ -22,7 +22,7 @@ from app.utils import validate_email_available
 
 @pytest.mark.asyncio
 async def test_register_success(
-    async_client_no_auth, sample_register_payload, mock_vault_object
+    async_client_no_auth, sample_register_payload, mock_vault_object, mock_argon2_parameters
 ) -> None:
     """Test successfully registering a new user."""
     new_user_id: UUID = uuid.uuid4()
@@ -37,6 +37,7 @@ async def test_register_success(
         "emailVerified": False,
         "vaultSalt": base64.b64decode(sample_register_payload["vaultSalt"]),
         "vault": mock_vault_object,
+        "argon2_parameters": mock_argon2_parameters,
         "createdAtUtc": datetime.now(UTC),
         "updatedAtUtc": datetime.now(UTC),
     }

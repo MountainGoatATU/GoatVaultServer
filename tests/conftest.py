@@ -156,7 +156,19 @@ def sample_vault_data() -> dict:
 
 
 @pytest.fixture
-def sample_register_payload(sample_vault_data: dict) -> dict:
+def mock_argon2_parameters() -> dict:
+    """Return sample Argon2 parameters."""
+    return {
+        "timeCost": 3,
+        "memoryCost": 65536,
+        "lanes": 4,
+        "threads": 4,
+        "hashLength": 32,
+    }
+
+
+@pytest.fixture
+def sample_register_payload(sample_vault_data: dict, mock_argon2_parameters: dict) -> dict:
     """Return sample registration payload (alias for sample_user_data)."""
     return {
         "email": TEST_EMAIL,
@@ -164,6 +176,7 @@ def sample_register_payload(sample_vault_data: dict) -> dict:
         "authVerifier": encode_base64(TEST_AUTH_VERIFIER),
         "vaultSalt": encode_base64(TEST_VAULT_SALT),
         "vault": sample_vault_data,
+        "argon2Parameters": mock_argon2_parameters,
     }
 
 
@@ -196,7 +209,7 @@ def mock_nonce_collection() -> MagicMock:
 
 
 @pytest.fixture
-def mock_user(sample_user_id: UUID, mock_vault_object: dict) -> dict:
+def mock_user(sample_user_id: UUID, mock_vault_object: dict, mock_argon2_parameters: dict) -> dict:
     """Return a complete mock user object as stored in MongoDB."""
     return {
         "_id": sample_user_id,
@@ -209,6 +222,7 @@ def mock_user(sample_user_id: UUID, mock_vault_object: dict) -> dict:
         "emailVerified": True,
         "vaultSalt": TEST_VAULT_SALT,
         "vault": mock_vault_object,
+        "argon2Parameters": mock_argon2_parameters,
         "createdAtUtc": datetime.now(UTC),
         "updatedAtUtc": datetime.now(UTC),
     }

@@ -79,7 +79,9 @@ async def test_bearer_token_required(async_client_no_auth) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("token", ["valid"], indirect=True)
-async def test_update_user_success(async_client, sample_user_id, mock_vault_object) -> None:
+async def test_update_user_success(
+    async_client, sample_user_id, mock_vault_object, mock_argon2_parameters
+) -> None:
     """Test successfully updating a user."""
     update_data = {"email": "newemail@example.com"}
     updated_user = {
@@ -93,6 +95,7 @@ async def test_update_user_success(async_client, sample_user_id, mock_vault_obje
         "emailVerified": True,
         "vaultSalt": b"vault_salt_12345",
         "vault": mock_vault_object,
+        "argon2_parameters": mock_argon2_parameters,
         "createdAtUtc": datetime.now(UTC),
         "updatedAtUtc": datetime.now(UTC),
     }

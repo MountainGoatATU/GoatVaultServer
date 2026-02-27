@@ -15,4 +15,11 @@ class Vault(Base64BytesModel):
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         **BASE_CONFIG,
+        json_schema_extra={
+            "example": {
+                "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
+                "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+            }
+        },
     )

@@ -4,6 +4,7 @@ from typing import ClassVar
 
 from pydantic import ConfigDict, EmailStr, Field
 
+from app.models import Argon2Parameters
 from app.models.base_model import Base64BytesModel
 from app.models.config import BASE_CONFIG
 from app.models.vault_model import Vault
@@ -26,11 +27,40 @@ class User(Base64BytesModel):
     vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: Vault = Field(...)
 
+    argon2_parameters: Argon2Parameters = Field(...)
+
     created_at_utc: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at_utc: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         **BASE_CONFIG,
+        json_schema_extra={
+            "example": {
+                "_id": "b1c1f27a-cc59-4d2b-ae74-7b3b0e33a61a",
+                "authSalt": "cmFuZG9tc2FsdGJ5dGVz",
+                "authVerifier": "aGFzaGVkcGFzc3dvcmRieXRlczEyMzQ1Njc4OTA=",
+                "email": "user@example.com",
+                "mfaEnabled": False,
+                "mfaSecret": "cmFuZG9tc2FsdGJ5dGVz",
+                "shamirEnabled": False,
+                "emailVerified": True,
+                "vaultSalt": "cmFuZG9tc2FsdDEyMzQ1Njc4OTBhYg==",
+                "vault": {
+                    "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
+                    "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
+                    "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
+                },
+                "argon2Parameters": {
+                    "timeCost": 3,
+                    "memoryCost": 65536,
+                    "lanes": 4,
+                    "threads": 4,
+                    "hashLength": 32,
+                },
+                "createdAtUtc": "2024-01-15T10:30:00Z",
+                "updatedAtUtc": "2024-01-15T14:45:00Z",
+            },
+        },
     )
 
 
@@ -51,6 +81,8 @@ class UserUpdateRequest(Base64BytesModel):
     vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: Vault | None = None
 
+    argon2_parameters: Argon2Parameters | None = None
+
     model_config: ClassVar[ConfigDict] = ConfigDict(
         **BASE_CONFIG,
         json_schema_extra={
@@ -66,6 +98,13 @@ class UserUpdateRequest(Base64BytesModel):
                     "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
                     "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
+                },
+                "argon2Parameters": {
+                    "timeCost": 3,
+                    "memoryCost": 65536,
+                    "lanes": 4,
+                    "threads": 4,
+                    "hashLength": 32,
                 },
             },
         },
@@ -89,6 +128,8 @@ class UserResponse(Base64BytesModel):
     vault_salt: bytes
     vault: Vault
 
+    argon2_parameters: Argon2Parameters
+
     created_at_utc: datetime
     updated_at_utc: datetime
 
@@ -109,6 +150,13 @@ class UserResponse(Base64BytesModel):
                     "authTag": "YXV0aHRhZzEyMzQ1Njc4OTBhYmNkZWY=",
                     "encryptedBlob": "ZW5jcnlwdGVkZGF0YTEyMzQ1Njc4OTA=",
                     "nonce": "cmFuZG9tbm9uY2UxMjM0NTY3ODkw",
+                },
+                "argon2Parameters": {
+                    "timeCost": 3,
+                    "memoryCost": 65536,
+                    "lanes": 4,
+                    "threads": 4,
+                    "hashLength": 32,
                 },
                 "createdAtUtc": "2024-01-15T10:30:00Z",
                 "updatedAtUtc": "2024-01-15T14:45:00Z",
