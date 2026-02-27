@@ -1,6 +1,5 @@
 [![codecov](https://codecov.io/gh/MountainGoatATU/GoatVaultServer/graph/badge.svg?token=B5HBATGFL2)](https://codecov.io/gh/MountainGoatATU/GoatVaultServer)
 [![CodeScene Average Code Health](https://codescene.io/projects/76220/status-badges/average-code-health?component-name=Goatvaultserver)](https://codescene.io/projects/76220/architecture/biomarkers?component=Goatvaultserver)
-[![CodeScene System Mastery](https://codescene.io/projects/76220/status-badges/system-mastery?component-name=Goatvaultserver)](https://codescene.io/projects/76220/)
 
 # GoatVaultServer
 
