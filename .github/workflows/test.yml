@@ -57,6 +57,8 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          disable_search: true
           slug: MountainGoatATU/GoatVaultServer
 
       - name: Build project
