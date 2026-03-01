@@ -85,6 +85,7 @@ class AuthInitResponse(Base64BytesModel):
     auth_salt: bytes = Field(..., min_length=16, max_length=64)
     nonce: bytes = Field(..., min_length=32, max_length=32)
     mfa_enabled: bool = Field(...)
+    shamir_enabled: bool = Field(...)
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         **BASE_CONFIG,
@@ -94,6 +95,7 @@ class AuthInitResponse(Base64BytesModel):
                 "authSalt": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
                 "nonce": "cmFuZG9tc2FsdGJ5dGVzMTIzNDU2",
                 "mfaEnabled": False,
+                "shamirEnabled": False,
             },
         },
     )
