@@ -169,6 +169,7 @@ async def init_auth(
             auth_salt=generate_salt(),
             nonce=nonce,
             mfa_enabled=False,
+            shamir_enabled=False,
         )
 
     nonce_record = NonceModel(
@@ -187,6 +188,7 @@ async def init_auth(
         auth_salt=user["authSalt"],
         nonce=nonce,
         mfa_enabled=user["mfaEnabled"],
+        shamir_enabled=user["shamirEnabled"],
     )
 
 
