@@ -18,6 +18,10 @@ class AuthRegisterRequest(Base64BytesModel):
     auth_salt: bytes = Field(..., min_length=16, max_length=64)
     auth_verifier: bytes = Field(..., min_length=16, max_length=128)
 
+    mfa_enabled: bool = Field(default=False)
+    mfa_secret: str | None = Field(None, min_length=16, max_length=128)
+    shamir_enabled: bool = Field(default=False)
+
     vault_salt: bytes | None = Field(None, min_length=16, max_length=64)
     vault: Vault = Field(...)
 
