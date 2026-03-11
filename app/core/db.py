@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi impoSQLrt Depends, HTTPException
+from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from supabase import AsyncClient, AsyncClientOptions, create_async_client
 
