@@ -1,72 +1,51 @@
-import os
-from contextlib import asynccontextmanager
+import logging
+from collections.abc import AsyncGenerator
+from logging import Logger
 
-from dotenv import load_dotenv
+import uvicorn
 from fastapi import FastAPI
-from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.gzip import GZipMiddleware
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from starlette.middleware.errors import ServerErrorMiddleware
-from starlette.middleware.exceptions import ExceptionMiddleware
+from fastapi.concurrency import asynccontextmanager
+from mangum import Mangum
+from uvicorn.config import LOGGING_CONFIG
 
-from app.database import close_db, init_db
-from app.middleware import RequestLoggingMiddleware
-from app.routes import auth_route, user_route
-from app.utils import validation_exception_handler
+from app.core.config import settings
 
-########################################################################
-# Environment
-########################################################################
-
-load_dotenv()
-
-ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
-
-########################################################################
-# App
-########################################################################
+logger: Logger = logging.getLogger("uvicorn")
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    init_db(app)  # create Mongo client and db bound to this event loop
-    yield
-    close_db(app)  # close client when Lambda container freezes or shuts down
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """life span events"""
+    try:
+        logger.info("lifespan start")
+        yield
+    finally:
+        logger.info("lifespan exit")
 
 
-app = FastAPI(
-    title="GoatVaultServer",
-    description="A server for GoatVault",
-    version="1.3.0",
-    lifespan=lifespan,
-)
+# init FastAPI with lifespan
+app = FastAPI(lifespan=lifespan, title=settings.PROJECT_NAME)
+handler = Mangum(app)
 
 
-app.state.limiter = auth_route.limiter
-
-########################################################################
-# Middleware
-########################################################################
-
-app.add_middleware(ServerErrorMiddleware)  # ty:ignore[invalid-argument-type]
-app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)  # ty:ignore[invalid-argument-type]
-app.add_middleware(ExceptionMiddleware)  # ty:ignore[invalid-argument-type]
-app.add_middleware(RequestLoggingMiddleware)  # ty:ignore[invalid-argument-type]
-
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # ty:ignore[invalid-argument-type]
-app.add_exception_handler(RequestValidationError, validation_exception_handler)  # ty:ignore[invalid-argument-type]
-
-########################################################################
-# Endpoints
-########################################################################
-
-
-@app.get("/")
-async def root():
-    """Health check endpoint."""
+@app.get("/", tags=["root"])
+async def root() -> dict[str, str]:
     return {"status": "ok", "version": app.version}
 
 
-app.include_router(user_route.user_router, prefix="/v1")
-app.include_router(auth_route.auth_router, prefix="/v1")
+# Logger
+def timestamp_log_config(uvicorn_log_config: dict[str, Any]) -> dict[str, Any]:
+    """https://github.com/fastapi/fastapi/discussions/7457#discussioncomment-5565969"""
+    datefmt = "%d-%m-%Y %H:%M:%S"
+    formatters = uvicorn_log_config["formatters"]
+    formatters["default"]["fmt"] = "%(levelprefix)s [%(asctime)s] %(message)s"
+    formatters["access"]["fmt"] = (
+        '%(levelprefix)s [%(asctime)s] %(client_addr)s - "%(request_line)s" %(status_code)s'
+    )
+    formatters["access"]["datefmt"] = datefmt
+    formatters["default"]["datefmt"] = datefmt
+    return uvicorn_log_config
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_config=timestamp_log_config(LOGGING_CONFIG))
