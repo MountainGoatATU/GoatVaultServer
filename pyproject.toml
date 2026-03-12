@@ -36,7 +36,7 @@ packages = ["src/app"]
 # Ref: https://docs.pytest.org/en/stable/reference/reference.html#command-line-flags
 addopts = "-rXs --strict-config --strict-markers --tb=short"
 xfail_strict = true
-pythonpath = "app"
+pythonpath = "."
 
 [tool.coverage.run]
 branch = true

@@ -5,10 +5,13 @@ from logging import Logger
 import uvicorn
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
+from limits.typing import Any
 from mangum import Mangum
 from uvicorn.config import LOGGING_CONFIG
 
 from app.core.config import settings
+from app.routes.auth_route import auth_router
+from app.routes.user_route import user_router
 
 logger: Logger = logging.getLogger("uvicorn")
 
@@ -31,6 +34,10 @@ handler = Mangum(app)
 @app.get("/", tags=["root"])
 async def root() -> dict[str, str]:
     return {"status": "ok", "version": app.version}
+
+
+app.router.include_router(router=user_router)
+app.router.include_router(router=auth_router)
 
 
 # Logger
