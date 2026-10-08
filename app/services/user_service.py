@@ -2,18 +2,12 @@ import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import Body, Depends, Request
-from motor.motor_asyncio import AsyncIOMotorCollection
-from pymongo.results import DeleteResult, UpdateResult
+from fastapi import Depends, Request
 
-from app.database import get_user_collection
-from app.exceptions import ForbiddenException, NoFieldsToUpdateException, UserUpdateFailedException
-from app.models import TokenPayload, User, UserResponse, UserUpdateRequest
-from app.utils import (
-    validate_email_available,
-    verify_access_token,
-    verify_user_access,
-)
+from app.exceptions import ForbiddenException, NoFieldsToUpdateException
+from app.models import TokenPayload, UserResponse, UserUpdateRequest
+from app.repositories import UserRepository
+from app.utils import validate_email_available, verify_access_token, verify_user_access
 from app.utils.crypto import encrypt_mfa_secret
 from app.utils.time import get_now
 
@@ -27,22 +21,17 @@ _logger = logging.getLogger(__name__)
 async def get_user_by_id(
     user_id: UUID,
     token_payload: Annotated[TokenPayload, Depends(verify_access_token)],
-    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
+    user_repo: UserRepository,
 ) -> UserResponse:
     """Get a user by ID and verify access."""
     _logger.info(f"Fetching user: {user_id}")
-
     verify_user_access(token_payload, user_id)
 
-    user: User | None = await user_collection.find_one({"_id": user_id})
-
-    _logger.info(f"User data: {user}")
-
+    user = await user_repo.find_by_id(user_id)
     if user is None:
-        logging.info(f"User not found with ID: {user_id}")
+        _logger.info(f"User not found with ID: {user_id}")
         raise ForbiddenException
-
-    return UserResponse(**user)
+    return UserResponse(**user.model_dump())
 
 
 ########################################################################
@@ -53,47 +42,38 @@ async def get_user_by_id(
 async def update_user_by_id(
     user_id: UUID,
     request: Request,
-    user_data: Annotated[UserUpdateRequest, Body()],
+    user_data: UserUpdateRequest,
     token_payload: Annotated[TokenPayload, Depends(verify_access_token)],
-    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
+    user_repo: UserRepository,
 ) -> UserResponse:
     """Update a user's information by ID."""
     _logger.info(f"Update requested for user with ID: {user_id}")
     verify_user_access(token_payload, user_id)
 
-    update_data: dict | None = user_data.model_dump(
-        exclude_unset=True, by_alias=True, mode="python"
-    )
-    if not update_data:
+    changes: dict = user_data.model_dump(exclude_unset=True)
+    if not changes:
         _logger.info(f"No fields to update for user with ID: {user_id}")
         raise NoFieldsToUpdateException
 
     # Check email uniqueness if email is updated
-    if "email" in update_data:
-        await validate_email_available(request, update_data["email"], user_id)
+    if "email" in changes:
+        await validate_email_available(request, changes["email"], user_id)
 
     # Encrypt MFA secret if provided
-    mfa_secret_plain: str | None = update_data.pop("mfaSecret", None)
+    mfa_secret_plain: str | None = changes.pop("mfa_secret", None)
     if mfa_secret_plain:
-        encrypted_secret: str = encrypt_mfa_secret(mfa_secret_plain)
-        update_data["mfaSecret"] = encrypted_secret
-        update_data["mfaEnabled"] = True
+        changes["mfa_secret"] = encrypt_mfa_secret(mfa_secret_plain)
+        changes["mfa_enabled"] = True
 
-    update_data["updatedAtUtc"] = get_now()
+    changes["updated_at_utc"] = get_now()
 
-    result: UpdateResult = await user_collection.update_one({"_id": user_id}, {"$set": update_data})
-
-    if result.matched_count == 0:
+    updated = await user_repo.update_profile(user_id, changes)
+    if updated is None:
         _logger.info(f"User not found with ID: {user_id}")
         raise ForbiddenException
 
-    updated_user_obj: User | None = await user_collection.find_one({"_id": user_id})
-    if updated_user_obj is None:
-        _logger.info(f"Update failed for user with ID: {user_id}")
-        raise UserUpdateFailedException
-
     _logger.info(f"User updated with ID: {user_id}")
-    return UserResponse(**updated_user_obj)
+    return UserResponse(**updated.model_dump())
 
 
 ########################################################################
@@ -104,17 +84,15 @@ async def update_user_by_id(
 async def delete_user_by_id(
     user_id: UUID,
     token_payload: Annotated[TokenPayload, Depends(verify_access_token)],
-    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
+    user_repo: UserRepository,
 ) -> None:
     """Delete a user by ID."""
     _logger.info(f"Requested deletion for user with ID: {user_id}")
     verify_user_access(token_payload, user_id)
 
-    result: DeleteResult = await user_collection.delete_one({"_id": user_id})
-
-    if result.deleted_count == 0:
+    deleted = await user_repo.delete(user_id)
+    if not deleted:
         _logger.info(f"User not found with ID: {user_id}")
         raise ForbiddenException
-
     _logger.info(f"User deleted with ID: {user_id}")
     return None

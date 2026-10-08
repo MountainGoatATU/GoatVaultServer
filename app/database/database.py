@@ -1,9 +1,10 @@
 import logging
-import os
-from typing import Any
 
 from fastapi import FastAPI, Request
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection, AsyncIOMotorDatabase
+
+from app.database.backend import DatabaseBackend
+from app.repositories import NonceRepository, RefreshTokenRepository, UserRepository
+from app.repositories.sql import SqlStorage
 
 _logger = logging.getLogger(__name__)
 
@@ -12,46 +13,34 @@ _logger = logging.getLogger(__name__)
 ########################################################################
 
 
-def init_db(app: FastAPI) -> None:
-    """
-    Attach Mongo client and database to FastAPI app state.
-    Should be called in FastAPI lifespan.
-    """
-    app.state.mongo_client = AsyncIOMotorClient(
-        os.environ["MONGODB_URL"], uuidRepresentation="standard"
-    )
-    app.state.db: AsyncIOMotorDatabase = app.state.mongo_client[os.environ["DATABASE_NAME"]]
-    _logger.info("Database initialized")
+async def init_db(app: FastAPI) -> None:
+    """Create the storage backend and make sure the schema exists."""
+    backend: DatabaseBackend = SqlStorage.create()
+    await backend.ensure_indexes()
+    app.state.backend = backend
+    _logger.info("Database backend initialized")
 
 
-def close_db(app: FastAPI) -> None:
-    """
-    Close the Mongo client when the app shuts down.
-    """
-    client: Any | None = getattr(app.state, "mongo_client", None)
-    if client:
-        client.close()
-        _logger.info("Database closed")
+async def close_db(app: FastAPI) -> None:
+    """Dispose the engine on shutdown."""
+    backend: DatabaseBackend | None = getattr(app.state, "backend", None)
+    if backend is not None:
+        await backend.close()
+        _logger.info("Database backend closed")
 
 
 ########################################################################
-# Get Collections From Database
+# Repository Dependencies
 ########################################################################
 
 
-def get_user_collection(request: Request) -> AsyncIOMotorCollection:
-    """Dependency that returns the users collection from app state database."""
-    _logger.info("Getting user collection")
-    return request.app.state.db["users"]
+def get_user_repository(request: Request) -> UserRepository:
+    return request.app.state.backend.user_repository
 
 
-def get_refresh_collection(request: Request) -> AsyncIOMotorCollection:
-    """Dependency that returns the refresh_tokens collection from app state database."""
-    _logger.info("Getting refresh collection")
-    return request.app.state.db["refresh_tokens"]
+def get_nonce_repository(request: Request) -> NonceRepository:
+    return request.app.state.backend.nonce_repository
 
 
-def get_nonce_collection(request: Request) -> AsyncIOMotorCollection:
-    """Dependency that returns the nonces collection from app state database."""
-    _logger.info("Getting nonce collection")
-    return request.app.state.db["nonces"]
+def get_refresh_token_repository(request: Request) -> RefreshTokenRepository:
+    return request.app.state.backend.refresh_token_repository

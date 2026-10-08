@@ -7,10 +7,9 @@ from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
 
-from app.database import get_user_collection
+from app.database import get_user_repository
 from app.exceptions import UserAlreadyExistsException
 from app.exceptions.exceptions import EmailAlreadyInUseException
-from app.models import User
 
 _logger = logging.getLogger(__name__)
 
@@ -24,18 +23,12 @@ async def validate_email_available(
     request: Request, email: str, user_id: UUID | None = None
 ) -> None:
     """Validate that an email is not already registered."""
-    user_collection = get_user_collection(request)
-
-    if not user_id:
-        existing: User | None = await user_collection.find_one({"email": email})
-        if existing:
+    user_repo = get_user_repository(request)
+    taken = await user_repo.email_taken(email, exclude_id=user_id)
+    if taken:
+        if user_id is None:
             raise UserAlreadyExistsException
-    else:
-        existing: User | None = await user_collection.find_one(
-            {"email": email, "_id": {"$ne": user_id}}
-        )
-        if existing:
-            raise EmailAlreadyInUseException
+        raise EmailAlreadyInUseException
 
 
 ########################################################################

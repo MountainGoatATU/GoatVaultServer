@@ -1,11 +1,14 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Request, status
-from motor.motor_asyncio import AsyncIOMotorCollection
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-from app.database import get_nonce_collection, get_refresh_collection, get_user_collection
+from app.database import (
+    get_nonce_repository,
+    get_refresh_token_repository,
+    get_user_repository,
+)
 from app.models import (
     AuthInitRequest,
     AuthInitResponse,
@@ -17,6 +20,7 @@ from app.models import (
     AuthVerifyRequest,
     AuthVerifyResponse,
 )
+from app.repositories import NonceRepository, RefreshTokenRepository, UserRepository
 from app.services import (
     init_auth,
     logout_user,
@@ -44,10 +48,10 @@ auth_router = APIRouter(prefix="/auth", tags=["auth"])
 async def register(
     request: Request,
     payload: Annotated[AuthRegisterRequest, Body()],
-    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
+    user_repo: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> AuthRegisterResponse:
     """Register new user."""
-    return await register_user(request, payload, user_collection)
+    return await register_user(request, payload, user_repo)
 
 
 ########################################################################
@@ -62,10 +66,10 @@ async def register(
 async def email(
     request: Request,  # noqa: ARG001
     token: str,
-    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
+    user_repo: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> dict:
     """Verify email using JWT token."""
-    return await verify_email(token, user_collection)
+    return await verify_email(token, user_repo)
 
 
 ########################################################################
@@ -82,14 +86,14 @@ async def email(
 async def init(
     request: Request,  # noqa: ARG001
     payload: Annotated[AuthInitRequest, Body()],
-    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
-    nonce_collection: Annotated[AsyncIOMotorCollection, Depends(get_nonce_collection)],
+    user_repo: Annotated[UserRepository, Depends(get_user_repository)],
+    nonce_repo: Annotated[NonceRepository, Depends(get_nonce_repository)],
 ) -> AuthInitResponse:
     """Look up user by email.
     - Verify that user exists.
     - Return details including `authSalt` and encrypted `vault`.
     """
-    return await init_auth(payload, user_collection, nonce_collection)
+    return await init_auth(payload, user_repo, nonce_repo)
 
 
 ########################################################################
@@ -106,15 +110,15 @@ async def init(
 async def verify(
     request: Request,  # noqa: ARG001
     payload: Annotated[AuthVerifyRequest, Body()],
-    user_collection: Annotated[AsyncIOMotorCollection, Depends(get_user_collection)],
-    nonce_collection: Annotated[AsyncIOMotorCollection, Depends(get_nonce_collection)],
-    refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
+    user_repo: Annotated[UserRepository, Depends(get_user_repository)],
+    nonce_repo: Annotated[NonceRepository, Depends(get_nonce_repository)],
+    refresh_repo: Annotated[RefreshTokenRepository, Depends(get_refresh_token_repository)],
 ) -> AuthVerifyResponse:
     """Return a JWT token for a valid `auth_verifier`.
     - Verifies that user exists.
     - Returns a signed JWT containing the authority claim.
     """
-    return await verify_auth(payload, user_collection, nonce_collection, refresh_collection)
+    return await verify_auth(payload, user_repo, nonce_repo, refresh_repo)
 
 
 ########################################################################
@@ -126,9 +130,9 @@ async def verify(
 async def refresh(
     request: Request,  # noqa: ARG001
     payload: Annotated[AuthRefreshRequest, Body(...)],
-    refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
+    refresh_repo: Annotated[RefreshTokenRepository, Depends(get_refresh_token_repository)],
 ) -> AuthRefreshResponse:
-    return await new_refresh_token(payload, refresh_collection)
+    return await new_refresh_token(payload, refresh_repo)
 
 
 ########################################################################
@@ -139,6 +143,6 @@ async def refresh(
 @auth_router.post("/logout")
 async def logout(
     payload: Annotated[AuthRefreshRequest, Body(...)],
-    refresh_collection: Annotated[AsyncIOMotorCollection, Depends(get_refresh_collection)],
+    refresh_repo: Annotated[RefreshTokenRepository, Depends(get_refresh_token_repository)],
 ) -> AuthLogoutResponse:
-    return await logout_user(payload, refresh_collection)
+    return await logout_user(payload, refresh_repo)

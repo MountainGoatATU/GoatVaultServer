@@ -30,9 +30,9 @@ ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development").lower()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db(app)  # create Mongo client and db bound to this event loop
+    await init_db(app)  # build the SQL backend + ensure schema
     yield
-    close_db(app)  # close client when Lambda container freezes or shuts down
+    await close_db(app)  # dispose the engine
 
 
 app = FastAPI(
