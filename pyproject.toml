@@ -1,11 +1,10 @@
 [project]
 name = "goatvaultserver"
 version = "0.2.0"
-description = "FastAPI with MongoDB"
+description = "FastAPI with SQLAlchemy"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "aiosqlite>=0.22.1",
     "alembic>=1.20.0",
     "asyncpg>=0.32.0",
     "fastapi-mail>=1.6.2",
@@ -15,7 +14,7 @@ dependencies = [
     "pyotp>=2.9.0",
     "python-dotenv>=1.1.1",
     "slowapi>=0.1.9",
-    "sqlalchemy>=2.1.4",
+    "sqlalchemy[asyncio]>=2.1.4",
 ]
 
 [build-system]
@@ -27,6 +26,7 @@ packages = ["app"]
 
 [dependency-groups]
 dev = [
+    "aiosqlite>=0.22.1",
     "httpx>=0.28.1",
     "pytest>=8.4.2",
     "pytest-asyncio>=1.2.0",
